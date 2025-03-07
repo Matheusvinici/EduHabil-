@@ -18,10 +18,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'escola',
+        'name', 'email', 'password', 'role', 'escola_id', 'cpf', 'matricula'
     ];
 
     /**
@@ -45,6 +42,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function escola()
+    {
+        return $this->belongsTo(Escola::class);
+    }
+
+    public function turmas()
+    {
+        return $this->hasMany(Turma::class, 'professor_id');
+    }
+
+    public function respostas()
+    {
+        return $this->hasMany(Resposta::class);
     }
    
 }

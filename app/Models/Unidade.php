@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Unidade extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['ano_id', 'nome'];
+
+    public function ano()
+    {
+        return $this->belongsTo(Ano::class);
+    }
+
+    public function habilidades()
+    {
+        return $this->hasMany(Habilidade::class);
+    }
+}
