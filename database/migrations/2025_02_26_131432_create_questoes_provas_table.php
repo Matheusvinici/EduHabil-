@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('questoes_provas', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('prova_id');
-            $table->unsignedBigInteger('questao_id');
+            $table->unsignedBigInteger('prova_id'); // Chave estrangeira para provas
+            $table->unsignedBigInteger('questao_id'); // Chave estrangeira para questões
             $table->timestamps();
 
             // Chaves estrangeiras

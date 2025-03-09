@@ -5,14 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Aluno extends Model
+class Ano extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['turma_id', 'codigo_acesso', 'nome', 'numero_chamada'];
+    protected $fillable = ['nome'];
 
-    public function turma()
+    public function unidades()
     {
-        return $this->belongsTo(Turma::class);
+        return $this->hasMany(Unidade::class);
     }
 }

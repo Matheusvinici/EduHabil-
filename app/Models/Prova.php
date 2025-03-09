@@ -59,4 +59,10 @@ class Prova extends Model
     {
         return $this->hasMany(Resposta::class);
     }
+
+    // Relacionamento com o professor (alias para o relacionamento user)
+    public function professor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

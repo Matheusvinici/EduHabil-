@@ -1,28 +1,38 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Resposta extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'prova_id', 'questao_id', 'resposta', 'correta'];
+    // Campos que podem ser preenchidos em massa
+    protected $fillable = [
+        'user_id',
+        'prova_id',
+        'questao_id',
+        'resposta',
+        'correta'
+    ];
 
-    public function user()
+    // Relacionamento com o usuário (aluno que respondeu)
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function prova()
+    // Relacionamento com a prova
+    public function prova(): BelongsTo
     {
         return $this->belongsTo(Prova::class);
     }
 
-    public function questao()
+    // Relacionamento com a questão
+    public function questao(): BelongsTo
     {
         return $this->belongsTo(Questao::class);
     }

@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('habilidades', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('ano_id');
-            $table->unsignedBigInteger('disciplina_id');
-            $table->unsignedBigInteger('unidade_id'); // Nova chave para unidade
-            $table->string('descricao'); // Ex: "Resolver problemas matemáticos simples"
+            $table->unsignedBigInteger('ano_id'); // Chave estrangeira para anos
+            $table->unsignedBigInteger('disciplina_id'); // Chave estrangeira para disciplinas
+            $table->unsignedBigInteger('unidade_id'); // Chave estrangeira para unidades
+            $table->string('descricao'); // Descrição da habilidade
             $table->timestamps();
 
             // Chaves estrangeiras

@@ -9,12 +9,9 @@ class Unidade extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['ano_id', 'nome'];
+    protected $fillable = [ 'nome'];
 
-    public function ano()
-    {
-        return $this->belongsTo(Ano::class);
-    }
+    
 
     public function habilidades()
     {

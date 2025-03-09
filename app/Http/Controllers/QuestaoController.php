@@ -19,26 +19,27 @@ class QuestaoController extends Controller
         $disciplinas = Disciplina::all();
         $habilidades = Habilidade::all();
         $unidades = Unidade::all();
-
+    
         return view('questoes.create', compact('anos', 'disciplinas', 'habilidades', 'unidades'));
     }
-
     // Método para salvar a nova questão
     public function store(Request $request)
 {
+    // Validação dos dados
     $request->validate([
-        'ano_id' => 'required',
-        'disciplina_id' => 'required',
-        'habilidade_id' => 'required',
-        'unidade_id' => 'required',
+        'ano_id' => 'required|exists:anos,id',
+        'disciplina_id' => 'required|exists:disciplinas,id',
+        'habilidade_id' => 'required|exists:habilidades,id',
+        'unidade_id' => 'required|exists:unidades,id',
         'enunciado' => 'required',
         'alternativa_a' => 'required',
         'alternativa_b' => 'required',
         'alternativa_c' => 'required',
         'alternativa_d' => 'required',
-        'resposta_correta' => 'required',
+        'resposta_correta' => 'required|in:A,B,C,D',
     ]);
 
+    // Cria a questão
     Questao::create([
         'ano_id' => $request->ano_id,
         'disciplina_id' => $request->disciplina_id,

@@ -13,23 +13,22 @@ return new class extends Migration
     {
         Schema::create('provas', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id'); // Professor que criou a prova
-            $table->unsignedBigInteger('ano_id');
-            $table->unsignedBigInteger('disciplina_id');
-            $table->unsignedBigInteger('habilidade_id');
-            $table->unsignedBigInteger('unidade_id');
+            $table->unsignedBigInteger('ano_id'); // Chave estrangeira para anos
+            $table->unsignedBigInteger('user_id'); // Chave estrangeira para users (professor)
+            $table->unsignedBigInteger('disciplina_id'); // Chave estrangeira para disciplinas
+            $table->unsignedBigInteger('unidade_id'); // Chave estrangeira para unidades
+            $table->unsignedBigInteger('habilidade_id'); // Chave estrangeira para habilidades
             $table->string('nome'); // Nome da prova
-            $table->date('data')->nullable();
-            $table->text('observacoes')->nullable();
+            $table->date('data'); // Data da prova
+            $table->text('observacoes')->nullable(); // Observações da prova
             $table->timestamps();
 
             // Chaves estrangeiras
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('ano_id')->references('id')->on('anos')->onDelete('cascade');
-            $table->foreign('habilidade_id')->references('id')->on('habilidades')->onDelete('cascade');
-
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('disciplina_id')->references('id')->on('disciplinas')->onDelete('cascade');
             $table->foreign('unidade_id')->references('id')->on('unidades')->onDelete('cascade');
+            $table->foreign('habilidade_id')->references('id')->on('habilidades')->onDelete('cascade');
         });
     }
 

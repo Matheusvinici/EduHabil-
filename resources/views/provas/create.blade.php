@@ -39,7 +39,6 @@
             </select>
         </div>
 
-        <!-- Unidade -->
         <div class="form-group">
             <label for="unidade_id">Unidade:</label>
             <select name="unidade_id" id="unidade_id" class="form-control" required>

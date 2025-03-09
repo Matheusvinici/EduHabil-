@@ -18,7 +18,8 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'escola_id', 'cpf', 'matricula'
+        'name', 'email', 'password', 'role', 'escola_id', 'cpf', 'matricula', 'codigo_acesso'
+
     ];
 
     /**
@@ -49,14 +50,26 @@ class User extends Authenticatable
         return $this->belongsTo(Escola::class);
     }
 
-    public function turmas()
-    {
-        return $this->hasMany(Turma::class, 'professor_id');
-    }
+ 
+            // No modelo User.php
+        public function turma()
+        {
+            return $this->belongsTo(Turma::class, 'turma_id');
+        }
 
     public function respostas()
     {
         return $this->hasMany(Resposta::class);
     }
+            public function professor()
+        {
+            return $this->belongsTo(User::class, 'professor_id');
+        }
+
+        public function alunos()
+        {
+            return $this->hasMany(User::class, 'professor_id');
+        }
+        
    
 }

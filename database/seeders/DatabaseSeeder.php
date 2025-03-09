@@ -17,6 +17,5 @@ class DatabaseSeeder extends Seeder
         $this->call(AdminUserSeeder::class);
         
         // Chama o seeder do formador
-        $this->call(FormadorUserSeeder::class);
     }
 }
