@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Prova;
 use App\Models\Ano;
 use App\Models\Disciplina;
-use App\Models\Unidade;
 use App\Models\Habilidade;
 use App\Models\Questao;
 use Illuminate\Support\Facades\Auth;
@@ -32,8 +31,7 @@ class ProvaController extends Controller
             // Admin pode selecionar qualquer escola
             $anos = Ano::all();
             $disciplinas = Disciplina::all();
-            $unidades = Unidade::all();
-            $habilidades = Habilidade::all();
+                       $habilidades = Habilidade::all();
         } elseif ($user->role === 'professor') {
             // Professor só pode criar provas para a escola à qual está vinculado
             if (is_null($user->escola_id)) {
@@ -46,9 +44,7 @@ class ProvaController extends Controller
             // Busca todas as disciplinas (não filtra por escola, pois as disciplinas são globais)
             $disciplinas = Disciplina::all();
 
-            // Busca todas as unidades (não filtra por escola, pois as unidades são globais)
-            $unidades = Unidade::all();
-
+         
             // Busca todas as habilidades (não filtra por escola, pois as habilidades são globais)
             $habilidades = Habilidade::all();
         } else {
@@ -59,7 +55,6 @@ class ProvaController extends Controller
         return view('provas.create', [
             'anos' => $anos,
             'disciplinas' => $disciplinas,
-            'unidades' => $unidades,
             'habilidades' => $habilidades,
         ]);
     }
@@ -75,8 +70,7 @@ class ProvaController extends Controller
     $request->validate([
         'ano_id' => 'required|exists:anos,id',
         'disciplina_id' => 'required|exists:disciplinas,id',
-        'unidade_id' => 'required|exists:unidades,id',
-        'habilidade_id' => 'required|exists:habilidades,id',
+               'habilidade_id' => 'required|exists:habilidades,id',
         'nome' => 'required|string|max:255',
         'data' => 'required|date',
         'observacoes' => 'nullable|string',
@@ -87,8 +81,7 @@ class ProvaController extends Controller
         'user_id' => auth()->id(), // Professor que criou a prova
         'ano_id' => $request->ano_id,
         'disciplina_id' => $request->disciplina_id,
-        'unidade_id' => $request->unidade_id,
-        'habilidade_id' => $request->habilidade_id,
+                'habilidade_id' => $request->habilidade_id,
         'nome' => $request->nome,
         'data' => $request->data,
         'observacoes' => $request->observacoes,
@@ -97,8 +90,7 @@ class ProvaController extends Controller
     // Seleciona 10 questões aleatórias com base nos critérios
     $questoes = Questao::where('ano_id', $request->ano_id)
         ->where('disciplina_id', $request->disciplina_id)
-        ->where('unidade_id', $request->unidade_id)
-        ->where('habilidade_id', $request->habilidade_id)
+                ->where('habilidade_id', $request->habilidade_id)
         ->inRandomOrder() // Ordena as questões aleatoriamente
         ->limit(10) // Limita a 10 questões
         ->get();
@@ -175,10 +167,9 @@ class ProvaController extends Controller
         // Carrega os dados necessários para o formulário de edição
         $anos = Ano::all();
         $disciplinas = Disciplina::all();
-        $unidades = Unidade::all();
-        $habilidades = Habilidade::all();
+               $habilidades = Habilidade::all();
 
-        return view('provas.edit', compact('prova', 'anos', 'disciplinas', 'unidades', 'habilidades'));
+        return view('provas.edit', compact('prova', 'anos', 'disciplinas', 'habilidades'));
     }
 
     /**
@@ -200,8 +191,7 @@ class ProvaController extends Controller
         $request->validate([
             'ano_id' => 'required|exists:anos,id',
             'disciplina_id' => 'required|exists:disciplinas,id',
-            'unidade_id' => 'required|exists:unidades,id',
-            'habilidade_id' => 'required|exists:habilidades,id',
+                      'habilidade_id' => 'required|exists:habilidades,id',
             'nome' => 'required|string|max:255',
             'data' => 'required|date',
             'observacoes' => 'nullable|string',
@@ -211,7 +201,6 @@ class ProvaController extends Controller
         $prova->update([
             'ano_id' => $request->ano_id,
             'disciplina_id' => $request->disciplina_id,
-            'unidade_id' => $request->unidade_id,
             'habilidade_id' => $request->habilidade_id,
             'nome' => $request->nome,
             'data' => $request->data,

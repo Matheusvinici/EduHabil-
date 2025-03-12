@@ -9,7 +9,7 @@ class Habilidade extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['ano_id', 'disciplina_id', 'unidade_id', 'descricao'];
+    protected $fillable = ['ano_id', 'disciplina_id', 'descricao'];
 
     public function ano()
     {
@@ -21,10 +21,7 @@ class Habilidade extends Model
         return $this->belongsTo(Disciplina::class);
     }
 
-    public function unidade()
-    {
-        return $this->belongsTo(Unidade::class);
-    }
+
 
     public function questoes()
     {

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('ano_id'); // Chave estrangeira para anos
             $table->unsignedBigInteger('disciplina_id'); // Chave estrangeira para disciplinas
             $table->unsignedBigInteger('habilidade_id'); // Chave estrangeira para habilidades
-            $table->unsignedBigInteger('unidade_id'); // Chave estrangeira para unidades
+          
             $table->text('enunciado'); // Enunciado da questão
             $table->string('alternativa_a'); // Alternativa A
             $table->string('alternativa_b'); // Alternativa B
@@ -29,7 +29,7 @@ return new class extends Migration
             $table->foreign('ano_id')->references('id')->on('anos')->onDelete('cascade');
             $table->foreign('disciplina_id')->references('id')->on('disciplinas')->onDelete('cascade');
             $table->foreign('habilidade_id')->references('id')->on('habilidades')->onDelete('cascade');
-            $table->foreign('unidade_id')->references('id')->on('unidades')->onDelete('cascade');
+            
         });
     }
 

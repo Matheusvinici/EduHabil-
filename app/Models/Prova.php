@@ -17,8 +17,7 @@ class Prova extends Model
         'ano_id',
         'user_id',
         'disciplina_id',
-        'unidade_id',
-        'habilidade_id',
+                'habilidade_id',
         'nome',
         'data',
         'observacoes'
@@ -36,11 +35,7 @@ class Prova extends Model
         return $this->belongsTo(Disciplina::class);
     }
 
-    // Relacionamento com o modelo Unidade
-    public function unidade(): BelongsTo
-    {
-        return $this->belongsTo(Unidade::class);
-    }
+  
 
     // Relacionamento com o modelo Habilidade
     public function habilidade(): BelongsTo

@@ -11,7 +11,7 @@ use App\Models\Escola;
 use App\Models\User;
 use App\Models\Habilidade; // Modelo para habilidades
 use App\Models\Ano; // Modelo para anos
-use App\Models\Unidade; // Modelo para unidades
+
 use Illuminate\Support\Facades\Auth;
 use PDF; // Para gerar PDF
 
@@ -125,16 +125,14 @@ class RespostaController extends Controller
         $provaId = $request->input('prova_id');
         $habilidadeId = $request->input('habilidade_id');
         $anoId = $request->input('ano_id');
-        $unidadeId = $request->input('unidade_id');
-
+      
         // Busca as provas criadas pelo professor
         $provas = Prova::where('user_id', $user->id)->get();
 
-        // Busca as habilidades, anos e unidades para os filtros
+        // Busca as habilidades, anos para os filtros
         $habilidades = Habilidade::all(); // Todas as habilidades
         $anos = Ano::all(); // Todos os anos
-        $unidades = Unidade::all(); // Todas as unidades
-
+      
         // Filtra as respostas dos alunos
         $respostas = Resposta::whereHas('prova', function ($query) use ($user) {
             $query->where('user_id', $user->id);
@@ -152,11 +150,7 @@ class RespostaController extends Controller
                 $q->where('ano_id', $anoId);
             });
         })
-        ->when($unidadeId, function ($query, $unidadeId) {
-            return $query->whereHas('prova', function ($q) use ($unidadeId) {
-                $q->where('unidade_id', $unidadeId);
-            });
-        })
+       
         ->with(['user', 'prova', 'questao'])
         ->get();
 
@@ -183,7 +177,7 @@ class RespostaController extends Controller
         }
 
         // Passa as variáveis para a view
-        return view('respostas.professor.estatisticas', compact('estatisticas', 'provas', 'habilidades', 'anos', 'unidades'));
+        return view('respostas.professor.estatisticas', compact('estatisticas', 'provas', 'habilidades', 'anos'));
     }
 
   
@@ -199,14 +193,13 @@ class RespostaController extends Controller
         $escolaId = $request->input('escola_id');
         $habilidadeId = $request->input('habilidade_id');
         $anoId = $request->input('ano_id');
-        $unidadeId = $request->input('unidade_id');
+       
     
-        // Busca todas as escolas, habilidades, anos e unidades para os filtros
+        // Busca todas as escolas, habilidades, anos para os filtros
         $escolas = Escola::all();
         $habilidades = Habilidade::all();
         $anos = Ano::all();
-        $unidades = Unidade::all();
-    
+       
         // Dados gerais
         $totalProvas = Prova::count();
         $totalProfessores = User::where('role', 'professor')->count();
@@ -270,7 +263,7 @@ class RespostaController extends Controller
             'escolas',
             'habilidades',
             'anos',
-            'unidades',
+            
             'request' 
         ));
     }
@@ -286,7 +279,7 @@ class RespostaController extends Controller
         $escolaId = $request->input('escola_id');
         $habilidadeId = $request->input('habilidade_id');
         $anoId = $request->input('ano_id');
-        $unidadeId = $request->input('unidade_id');
+     
     
         // Dados gerais
         $totalProvas = Prova::count();

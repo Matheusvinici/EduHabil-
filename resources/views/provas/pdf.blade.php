@@ -35,7 +35,6 @@
         <div class="header text-center">
             <h1>{{ $user->escola->nome }}</h1> <!-- Nome da escola -->
             <h2>Atividade Avaliativa: {{ $prova->disciplina->nome }}</h2> <!-- Nome da disciplina -->
-            <p><strong>Unidade:</strong> {{ $prova->unidade->nome }}</p> <!-- Unidade trabalhada -->
             <p><strong>Habilidade:</strong> {{ $prova->habilidade->descricao }}</p> <!-- Habilidade -->
             <p><strong>Ano:</strong> {{ $prova->ano->nome }}</p> <!-- Ano -->
         </div>

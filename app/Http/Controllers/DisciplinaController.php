@@ -46,6 +46,17 @@ class DisciplinaController extends Controller
     }
 
     /**
+     * Exibe os detalhes de uma disciplina específica.
+     *
+     * @param \App\Models\Disciplina $disciplina
+     * @return \Illuminate\View\View
+     */
+    public function show(Disciplina $disciplina)
+    {
+        return view('disciplinas.show', compact('disciplina'));
+    }
+
+    /**
      * Exibe o formulário para editar uma disciplina.
      *
      * @param \App\Models\Disciplina $disciplina

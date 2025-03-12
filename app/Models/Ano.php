@@ -11,8 +11,5 @@ class Ano extends Model
 
     protected $fillable = ['nome'];
 
-    public function unidades()
-    {
-        return $this->hasMany(Unidade::class);
-    }
+   
 }

@@ -20,7 +20,7 @@ class Questao extends Model
         'ano_id',
         'disciplina_id',
         'habilidade_id',
-        'unidade_id',
+       
         'enunciado',
         'alternativa_a',
         'alternativa_b',
@@ -47,11 +47,7 @@ class Questao extends Model
         return $this->belongsTo(Habilidade::class, 'habilidade_id');
     }
 
-    // Relacionamento com a tabela `unidades`
-    public function unidade(): BelongsTo
-    {
-        return $this->belongsTo(Unidade::class, 'unidade_id');
-    }
+   
 
     // Relacionamento com a tabela `provas` (através da tabela pivô `questoes_provas`)
     public function provas()

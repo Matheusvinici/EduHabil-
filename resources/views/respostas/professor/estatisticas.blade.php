@@ -34,15 +34,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
-                <label for="unidade_id">Unidade:</label>
-                <select name="unidade_id" id="unidade_id" class="form-control">
-                    <option value="">Todas</option>
-                    @foreach ($unidades as $unidade)
-                        <option value="{{ $unidade->id }}">{{ $unidade->nome }}</option>
-                    @endforeach
-                </select>
-            </div>
+            
         </div>
         <button type="submit" class="btn btn-primary mt-2">Filtrar</button>
     </form>
