@@ -46,7 +46,7 @@
                     class="logo-custom">
             </div>
             <div id="objetivo" class="col-lg-6">
-              <h1 class="display-5 fw-bold lh-1 mb-3">Sistema de Geração de Atividades</h1>
+              <h1 class="display-5 fw-bold lh-1 mb-3">EduHabil+</h1>
               <p class="lead">Facilitando a criação e gestão de atividades pedagógicas na Rede Municipal de Ensino de Juazeiro-BA</p>
               <div class="d-grid gap-2 d-md-flex justify-content-md-start">
                 <a href="{{ route('login') }}" class="btn btn-primary btn-lg px-4 me-md-2">Entrar</a>
@@ -58,9 +58,9 @@
 
         <div class="bg-dark text-secondary px-4 py-5 text-center">
           <div class="py-5">
-            <h3 class="display-8 fw-bold text-white">Sistema de Geração de Atividades Automatizadas</h3>
+            <h3 class="display-8 fw-bold text-white">EduHabil+</h3>
             <div class="col-lg-6 mx-auto">
-              <p class="fs-5 mb-4">Desenvolvido pelo Núcleo de Tecnologia Municipal (NTM)</p>
+              <p class="fs-5 mb-4">Desenvolvido pelo CETEJ</p>
               <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
               <a href="{{ route('login') }}" class="btn btn-outline-info btn-lg px-4 me-md-2">Entrar</a>
               <a href="{{ route('register') }}" class="btn btn-outline-light btn-lg px-4">Cadastre-se</a>

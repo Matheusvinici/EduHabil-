@@ -6,7 +6,7 @@ use App\Models\Questao;
 use App\Models\Ano;
 use App\Models\Disciplina;
 use App\Models\Habilidade;
-use App\Models\Unidade;
+
 
 use Illuminate\Http\Request;
 
@@ -18,9 +18,8 @@ class QuestaoController extends Controller
         $anos = Ano::all();
         $disciplinas = Disciplina::all();
         $habilidades = Habilidade::all();
-        $unidades = Unidade::all();
-    
-        return view('questoes.create', compact('anos', 'disciplinas', 'habilidades', 'unidades'));
+       
+        return view('questoes.create', compact('anos', 'disciplinas', 'habilidades'));
     }
     // Método para salvar a nova questão
     public function store(Request $request)
@@ -30,7 +29,6 @@ class QuestaoController extends Controller
         'ano_id' => 'required|exists:anos,id',
         'disciplina_id' => 'required|exists:disciplinas,id',
         'habilidade_id' => 'required|exists:habilidades,id',
-        'unidade_id' => 'required|exists:unidades,id',
         'enunciado' => 'required',
         'alternativa_a' => 'required',
         'alternativa_b' => 'required',
@@ -44,7 +42,6 @@ class QuestaoController extends Controller
         'ano_id' => $request->ano_id,
         'disciplina_id' => $request->disciplina_id,
         'habilidade_id' => $request->habilidade_id,
-        'unidade_id' => $request->unidade_id,
         'enunciado' => $request->enunciado,
         'alternativa_a' => $request->alternativa_a,
         'alternativa_b' => $request->alternativa_b,
@@ -62,52 +59,48 @@ class QuestaoController extends Controller
         $questoes = Questao::all();
         return view('questoes.index', compact('questoes'));
     }
+            public function show($id)
+        {
+            $questao = Questao::findOrFail($id);
+            return view('questoes.show', compact('questao'));
+        }
 
-    // Método para exibir o formulário de edição
-    public function edit($id)
-    {
-        $questao = Questao::findOrFail($id);
-        $anos = Ano::all();
-        $disciplinas = Disciplina::all();
-        $habilidades = Habilidade::all();
-        $unidades = Unidade::all();
 
-        return view('questoes.edit', compact('questao', 'anos', 'disciplinas', 'habilidades', 'unidades'));
-    }
+        public function edit(Questao $questao)
+        
+        {
+            $anos = Ano::all();
+            $disciplinas = Disciplina::all();
+            $habilidades = Habilidade::all();
 
-    // Método para atualizar a questão
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'ano_id' => 'required',
-            'disciplina_id' => 'required',
-            'unidade_id' => 'required',
+            return view('questoes.edit', compact('questao', 'anos', 'disciplinas', 'habilidades'));
+        }
 
-            'habilidade_id' => 'required',
-            'enunciado' => 'required',
-            'resposta_correta' => 'required',
-        ]);
-
-        $questao = Questao::findOrFail($id);
-        $questao->update([
-            'ano_id' => $request->ano_id,
-            'disciplina_id' => $request->disciplina_id,
-            'unidade_id' => $request->unidade_id,
-
-            'habilidade_id' => $request->habilidade_id,
-            'enunciado' => $request->enunciado,
-            'resposta_correta' => $request->resposta_correta,
-        ]);
-
-        return redirect()->route('questoes.index')->with('success', 'Questão atualizada com sucesso!');
-    }
-
-    // Método para excluir a questão
-    public function destroy($id)
-    {
-        $questao = Questao::findOrFail($id);
-        $questao->delete();
-
-        return redirect()->route('questoes.index')->with('success', 'Questão excluída com sucesso!');
-    }
+        public function update(Request $request, Questao $questao)
+        {
+            $request->validate([
+                'ano_id' => 'required|exists:anos,id',
+                'disciplina_id' => 'required|exists:disciplinas,id',
+                'habilidade_id' => 'required|exists:habilidades,id',
+                'resposta_correta' => 'required|in:A,B,C,D',
+                'enunciado' => 'required|string',
+                'alternativa_a' => 'required|string',
+                'alternativa_b' => 'required|string',
+                'alternativa_c' => 'required|string',
+                'alternativa_d' => 'required|string',
+            ]);
+        
+            $questao->update($request->all());
+        
+            return redirect()->route('questoes.index')->with('success', 'Questão atualizada com sucesso!');
+        }
+       
+     
+        // Exclui uma questão
+        public function destroy(Questao $questao)
+        {
+            $questao->delete();
+            return redirect()->route('questoes.index')->with('success', 'Questão excluída com sucesso!');
+        }
+        
 }

@@ -47,10 +47,6 @@ Route::middleware('auth')->group(function () {
     Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');
     
 
-    // Rotas para questões
-    Route::get('questoes/{questao}/edit', [ProvaController::class, 'editQuestao'])->name('questoes.edit');
-    Route::put('questoes/{questao}', [ProvaController::class, 'updateQuestao'])->name('questoes.update');
-
     // Rotas para respostas
     Route::get('respostas/professor', [RespostaController::class, 'professorIndex'])->name('respostas.professor.index');
     Route::get('/respostas/{prova}/create', [RespostaController::class, 'create'])->name('respostas.create');
@@ -75,7 +71,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('turmas', TurmaController::class);
     Route::resource('disciplinas', DisciplinaController::class);
     Route::resource('habilidades', HabilidadeController::class);
-    Route::resource('questoes', QuestaoController::class);
+    Route::resource('questoes', QuestaoController::class)->parameters([
+        'questoes' => 'questao', // Altera o parâmetro {questo} para {questao}
+    ]);
     Route::resource('provas', ProvaController::class);
     Route::resource('alunos', AlunoController::class);
     Route::resource('anos', AnoEscolarController::class);

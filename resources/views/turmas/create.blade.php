@@ -8,15 +8,23 @@
     <div class="card-body">
         <form action="{{ route('turmas.store') }}" method="POST">
             @csrf
-            <div class="form-group">
-                <label for="nome_turma">Nome da Turma</label>
-                <input type="text" name="nome_turma" class="form-control" required>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="nome_turma">Nome da Turma</label>
+                        <input type="text" name="nome_turma" class="form-control" placeholder="Digite o nome da turma" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="quantidade_alunos">Quantidade de Alunos</label>
+                        <input type="number" name="quantidade_alunos" class="form-control" placeholder="Digite a quantidade de alunos" required>
+                    </div>
+                </div>
             </div>
             <div class="form-group">
-                <label for="quantidade_alunos">Quantidade de Alunos</label>
-                <input type="number" name="quantidade_alunos" class="form-control" required>
+                <button type="submit" class="btn btn-primary">Cadastrar</button>
             </div>
-            <button type="submit" class="btn btn-primary">Cadastrar</button>
         </form>
     </div>
 </div>

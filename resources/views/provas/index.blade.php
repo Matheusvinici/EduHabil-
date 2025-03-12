@@ -10,7 +10,7 @@
                 <th>Nome</th>
                 <th>Ano</th>
                 <th>Disciplina</th>
-                <th>Unidade</th>
+           
                 <th>Ações</th>
             </tr>
         </thead>
@@ -20,7 +20,7 @@
                     <td>{{ $prova->nome }}</td>
                     <td>{{ $prova->ano->nome }}</td>
                     <td>{{ $prova->disciplina->nome }}</td>
-                    <td>{{ $prova->unidade->nome }}</td>
+                    
                     <td>
                         <a href="{{ route('provas.gerarPDF', $prova) }}" class="btn btn-info">Baixar PDF</a>
                         <form action="{{ route('provas.destroy', $prova) }}" method="POST" style="display:inline;">
