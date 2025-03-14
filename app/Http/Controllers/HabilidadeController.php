@@ -12,9 +12,13 @@ class HabilidadeController extends Controller
     // Função para exibir a lista de habilidades
     public function index()
     {
-        $habilidades = Habilidade::with(['ano', 'disciplina'])->get();
+        $habilidades = Habilidade::with(['ano', 'disciplina'])
+            ->orderBy('created_at', 'desc')  // Ordena pela data de criação em ordem decrescente
+            ->paginate(5);
+    
         return view('habilidades.index', compact('habilidades'));
     }
+    
 
     // Função para mostrar o formulário de criação de habilidades
     public function create()

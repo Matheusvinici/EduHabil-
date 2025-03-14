@@ -20,4 +20,8 @@ class Disciplina extends Model
     {
         return $this->hasMany(Questao::class);
     }
+    public function atividades()
+    {
+        return $this->hasMany(Atividade::class, 'disciplina_id');
+    }
 }

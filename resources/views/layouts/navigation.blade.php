@@ -34,6 +34,14 @@
                     <p>Turmas</p>
                 </a>
             </li>
+
+            <!-- Atividades -->
+            <li class="nav-item">
+                <a href="{{ route('atividades_professores.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-tasks text-white"></i>
+                    <p>Atividades</p>
+                </a>
+            </li>
         @endif
 
         <!-- Verifica se o usuário é um admin -->
@@ -91,6 +99,14 @@
                 <a href="{{ route('users.index') }}" class="nav-link text-white">
                     <i class="nav-icon fas fa-users-cog text-white"></i>
                     <p>Usuários</p>
+                </a>
+            </li>
+
+            <!-- Cadastro de Atividades -->
+            <li class="nav-item">
+                <a href="{{ route('atividades.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-tasks text-white"></i>
+                    <p>Atividades</p>
                 </a>
             </li>
         @endif

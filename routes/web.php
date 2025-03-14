@@ -7,6 +7,8 @@ use App\Http\Controllers\{
     ProfessorController,
     RespostaController,
     EscolaController,
+    AtividadeController,
+    AtividadeProfessorController,
     AlunoController,
     TurmaController,
     ProfileController,
@@ -41,6 +43,8 @@ Route::middleware('auth')->group(function () {
     Route::get('respostas/professor/estatisticas', [RespostaController::class, 'professorEstatisticas'])->name('respostas.professor.estatisticas');
     Route::get('respostas/professor/estatisticas/pdf', [RespostaController::class, 'gerarPdfEstatisticas'])->name('respostas.professor.estatisticas.pdf');
 
+    Route::resource('atividades_professores', AtividadeProfessorController::class);
+    Route::get('atividades_professores/{id}/download', [AtividadeProfessorController::class, 'downloadPdf'])->name('atividades_professores.download');
 
     // Rotas para provas
     Route::resource('provas', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
@@ -74,6 +78,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('questoes', QuestaoController::class)->parameters([
         'questoes' => 'questao', // Altera o parâmetro {questo} para {questao}
     ]);
+    Route::resource('atividades', AtividadeController::class);
+
     Route::resource('provas', ProvaController::class);
     Route::resource('alunos', AlunoController::class);
     Route::resource('anos', AnoEscolarController::class);

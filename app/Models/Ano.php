@@ -11,5 +11,8 @@ class Ano extends Model
 
     protected $fillable = ['nome'];
 
-   
+    public function atividades()
+    {
+        return $this->hasMany(Atividade::class, 'ano_id');
+    }
 }

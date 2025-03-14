@@ -21,7 +21,10 @@ class Habilidade extends Model
         return $this->belongsTo(Disciplina::class);
     }
 
-
+    public function atividades()
+    {
+        return $this->hasMany(Atividade::class, 'habilidade_id');
+    }
 
     public function questoes()
     {
