@@ -5,108 +5,114 @@
         <li class="nav-item">
             <a href="{{ route('home') }}" class="nav-link text-white">
                 <i class="nav-icon fas fa-tachometer-alt text-white"></i>
-                <p>Painel Inicial</p>
+                <p>Início</p>
             </a>
         </li>
 
-        <!-- Avaliação e Respostas - Acesso para todos -->
-        <li class="nav-item">
-            <a href="{{ route('respostas.index') }}" class="nav-link text-white">
-                <i class="nav-icon fas fa-check-circle text-white"></i>
-                <p>Avaliação</p>
-            </a>
-        </li>
-
-        <!-- Verifica se o usuário é um professor -->
-        @if(Auth::check() && Auth::user()->role === 'professor')
-            <!-- Provas -->
+        <!-- Avaliação - Acesso para alunos, professores e coordenadores -->
+        @if(Auth::check() && in_array(Auth::user()->role, ['aluno', 'professor', 'coordenador', 'admin']))
             <li class="nav-item">
-                <a href="{{ route('provas.index') }}" class="nav-link text-white">
-                    <i class="nav-icon fas fa-file-alt text-white"></i>
-                    <p>Provas</p>
-                </a>
-            </li>
-
-            <!-- Turmas -->
-            <li class="nav-item">
-                <a href="{{ route('turmas.index') }}" class="nav-link text-white">
-                    <i class="nav-icon fas fa-users text-white"></i>
-                    <p>Turmas</p>
-                </a>
-            </li>
-
-            <!-- Atividades -->
-            <li class="nav-item">
-                <a href="{{ route('atividades_professores.index') }}" class="nav-link text-white">
-                    <i class="nav-icon fas fa-tasks text-white"></i>
-                    <p>Atividades</p>
+                <a href="{{ route('respostas.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-check-circle text-white"></i>
+                    <p>Minhas Avaliações</p>
                 </a>
             </li>
         @endif
 
-        <!-- Verifica se o usuário é um admin -->
-        @if(Auth::check() && Auth::user()->role === 'admin')
-            <!-- Cadastro de Escolas -->
+        <!-- Provas e Turmas - Acesso para professores, coordenadores e admin -->
+        @if(Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin']))
             <li class="nav-item">
-                <a href="{{ route('escolas.index') }}" class="nav-link text-white">
-                    <i class="nav-icon fas fa-school text-white"></i>
-                    <p>Escolas</p>
+                <a href="{{ route('provas.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-file-alt text-white"></i>
+                    <p>Gerenciar Provas</p>
                 </a>
             </li>
-
-            <!-- Cadastro de Turmas -->
             <li class="nav-item">
                 <a href="{{ route('turmas.index') }}" class="nav-link text-white">
                     <i class="nav-icon fas fa-users text-white"></i>
-                    <p>Turmas</p>
+                    <p>Minhas Turmas</p>
                 </a>
             </li>
+        @endif
 
-            <!-- Cadastro de Disciplinas -->
+        <!-- Atividades - Acesso para professores e admin -->
+        @if(Auth::check() && in_array(Auth::user()->role, ['professor', 'admin']))
+            <li class="nav-item">
+                <a href="{{ route('atividades_professores.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-tasks text-white"></i>
+                    <p>Atividades Pedagógicas</p>
+                </a>
+            </li>
+        @endif
+
+        <!-- Adaptações - Acesso para professores do AEE e admin -->
+        @if(Auth::check() && in_array(Auth::user()->role, ['aee', 'admin']))
+            <li class="nav-item">
+                <a href="{{ route('adaptacoes.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-cogs text-white"></i>
+                    <p>Atividades Adaptadas</p>
+                </a>
+            </li>
+        @endif
+
+        <!-- Características e Deficiências - Acesso para diretoria inclusiva e admin -->
+        @if(Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin']))
+            <li class="nav-item">
+                <a href="{{ route('caracteristicas.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-list text-white"></i>
+                    <p>Perfis de Aprendizagem</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('deficiencias.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-wheelchair text-white"></i>
+                    <p>Tipos de Deficiências</p>
+                </a>
+            </li>
+        @endif
+
+        <!-- Admin - Acesso total -->
+        @if(Auth::check() && Auth::user()->role === 'admin')
+            <li class="nav-item">
+                <a href="{{ route('escolas.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-school text-white"></i>
+                    <p>Gerenciar Escolas</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('users.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-users-cog text-white"></i>
+                    <p>Gerenciar Perfil</p>
+                </a>
+            </li>
             <li class="nav-item">
                 <a href="{{ route('disciplinas.index') }}" class="nav-link text-white">
                     <i class="nav-icon fas fa-book text-white"></i>
                     <p>Disciplinas</p>
                 </a>
             </li>
-
-            <!-- Cadastro de Habilidades -->
             <li class="nav-item">
                 <a href="{{ route('habilidades.index') }}" class="nav-link text-white">
                     <i class="nav-icon fas fa-list-alt text-white"></i>
-                    <p>Habilidades</p>
+                    <p>Habilidades e Competências</p>
                 </a>
             </li>
-
-            <!-- Geração de Questões -->
             <li class="nav-item">
                 <a href="{{ route('questoes.index') }}" class="nav-link text-white">
                     <i class="nav-icon fas fa-question-circle text-white"></i>
-                    <p>Questões</p>
+                    <p>Banco de Questões</p>
                 </a>
             </li>
-
-            <!-- Geração de Provas -->
             <li class="nav-item">
-                <a href="{{ route('provas.index') }}" class="nav-link text-white">
-                    <i class="nav-icon fas fa-file-alt text-white"></i>
-                    <p>Provas</p>
+                <a href="{{ route('anos.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-calendar-alt text-white"></i>
+                    <p>Anos Letivos</p>
                 </a>
             </li>
-
-            <!-- Gestão de Usuários -->
             <li class="nav-item">
-                <a href="{{ route('users.index') }}" class="nav-link text-white">
-                    <i class="nav-icon fas fa-users-cog text-white"></i>
-                    <p>Usuários</p>
-                </a>
-            </li>
-
-            <!-- Cadastro de Atividades -->
-            <li class="nav-item">
-                <a href="{{ route('atividades.index') }}" class="nav-link text-white">
-                    <i class="nav-icon fas fa-tasks text-white"></i>
-                    <p>Atividades</p>
+                <a href="{{ route('recursos.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-toolbox text-white"></i>
+                    <p>Recursos Educacionais</p>
                 </a>
             </li>
         @endif

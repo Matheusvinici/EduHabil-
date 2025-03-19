@@ -27,52 +27,53 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
+        // Validação dos dados do formulário
         $request->validate([
-            'user_type' => 'required|in:aluno,professor,admin', // Adicione 'admin' aqui
             'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
-        // Lógica para alunos
-        if ($request->user_type === 'aluno') {
-            $user = User::where('email', $request->email)
-                        ->where('codigo_acesso', $request->password)
-                        ->where('role', 'aluno')
-                        ->first();
+        // Busca o usuário pelo email
+        $user = User::where('email', $request->email)->first();
 
-            if ($user) {
-                Auth::login($user); // Autentica o aluno
-                $request->session()->regenerate();
-                return redirect()->route('aluno.dashboard'); // Redireciona para o dashboard do aluno
-            }
-
+        // Verifica se o usuário existe
+        if (!$user) {
             return back()->withErrors([
-                'email' => 'Credenciais inválidas para aluno.',
+                'email' => 'E-mail não encontrado.',
             ]);
         }
 
-        // Lógica para professores e administradores
-        $guard = $request->user_type === 'professor' ? 'web' : 'web'; // Use o guard 'web' para ambos
-        if (Auth::guard($guard)->attempt($request->only('email', 'password'))) {
-            $user = Auth::guard($guard)->user();
+        // Lógica para alunos (usam código de acesso como senha)
+        if ($user->role === 'aluno' && $user->codigo_acesso === $request->password) {
+            Auth::login($user); // Autentica o aluno
+            $request->session()->regenerate();
+            return redirect()->route('aluno.dashboard'); // Redireciona para o dashboard do aluno
+        }
 
-            // Verifica se o usuário tem o papel correto
-            if (($request->user_type === 'professor' && $user->role === 'professor') ||
-                ($request->user_type === 'admin' && $user->role === 'admin')) {
-                $request->session()->regenerate();
-                return redirect()->route('home'); // Redireciona para a página inicial
+        // Lógica para outros perfis (professor, admin, etc.)
+        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+            $request->session()->regenerate();
+
+            // Redireciona com base no papel do usuário
+            switch ($user->role) {
+                case 'professor':
+                    return redirect()->route('professor.dashboard');
+                case 'admin':
+                    return redirect()->route('admin.dashboard');
+                case 'coordenador':
+                    return redirect()->route('coordenador.dashboard');
+                case 'aee':
+                    return redirect()->route('aee.dashboard');
+                case 'inclusiva':
+                    return redirect()->route('inclusiva.dashboard');
+                default:
+                    return redirect()->route('home');
             }
-
-            // Se o papel não corresponder, faz logout e exibe erro
-            Auth::guard($guard)->logout();
-            return back()->withErrors([
-                'email' => 'Este usuário não tem permissão para acessar esta área.',
-            ]);
         }
 
         // Se a autenticação falhar, exibe uma mensagem de erro
         return back()->withErrors([
-            'email' => 'Credenciais inválidas. Verifique seu e-mail e senha.',
+            'password' => 'Senha incorreta.',
         ]);
     }
 
@@ -84,17 +85,8 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
-        // Determina o guard com base no tipo de usuário autenticado
-        $user = Auth::user();
-
-        if ($user->role === 'aluno') {
-            $guard = 'aluno';
-        } else {
-            $guard = 'web';
-        }
-
         // Faz o logout do usuário
-        Auth::guard($guard)->logout();
+        Auth::logout();
 
         // Invalida a sessão e regenera o token
         $request->session()->invalidate();

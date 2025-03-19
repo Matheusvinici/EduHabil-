@@ -16,6 +16,16 @@ class DatabaseSeeder extends Seeder
         // Chama o seeder de administrador
         $this->call(AdminUserSeeder::class);
         
-        // Chama o seeder do formador
+        // Chama o seeder das Deficiências
+        $this->call(DeficienciasTableSeeder::class);
+
+        // Chama o seeder das Características
+        $this->call(CaracteristicasTableSeeder::class);
+
+        // Chama o seeder das Habilidades
+        $this->call(HabilidadesTableSeeder::class);
+
+          // Chama o seeder das Escolas
+          $this->call(EscolasTableSeeder::class);
     }
 }

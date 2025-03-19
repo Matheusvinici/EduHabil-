@@ -24,14 +24,6 @@
                                 <label for="password" class="form-label">Senha/Código de Acesso:</label>
                                 <input type="password" name="password" id="password" class="form-control" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="user_type" class="form-label">Tipo de Usuário:</label>
-                                <select name="user_type" id="user_type" class="form-select" required>
-                                    <option value="aluno">Aluno</option>
-                                    <option value="professor">Professor</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">Entrar</button>
                             </div>
