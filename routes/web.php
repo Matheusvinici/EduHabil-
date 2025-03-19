@@ -1,9 +1,13 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     UserController,
     AdminController,
+    RecursoController,
+    AdaptacaoController,
+    DeficienciaController,
+    CaracteristicaController,
+    CoordenadorController,
     ProfessorController,
     RespostaController,
     EscolaController,
@@ -18,6 +22,9 @@ use App\Http\Controllers\{
     HabilidadeController,
     QuestaoController,
     ProvaController,
+    AeeController,
+    InclusivaController,
+    AvaliacaoController // Adicione o controlador de Avaliação
 };
 use Barryvdh\DomPDF\Facade as PDF;
 
@@ -49,7 +56,6 @@ Route::middleware('auth')->group(function () {
     // Rotas para provas
     Route::resource('provas', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');
-    
 
     // Rotas para respostas
     Route::get('respostas/professor', [RespostaController::class, 'professorIndex'])->name('respostas.professor.index');
@@ -63,13 +69,51 @@ Route::middleware('auth')->group(function () {
         ->name('turmas.gerar-codigos-adicionais');
 });
 
+// Rotas para professores do AEE
+Route::middleware('auth')->group(function () {
+    Route::get('/aee/dashboard', [AeeController::class, 'index'])->name('aee.dashboard');
+    Route::resource('adaptacoes', AdaptacaoController::class);
+});
+
+// Rotas para diretoria inclusiva
+Route::middleware('auth')->group(function () {
+    Route::get('/inclusiva/dashboard', [InclusivaController::class, 'index'])->name('inclusiva.dashboard');
+    Route::resource('caracteristicas', CaracteristicaController::class);
+    Route::resource('deficiencias', DeficienciaController::class);
+});
+
+// Rotas para coordenadores
+Route::middleware('auth')->group(function () {
+    Route::get('/coordenador/dashboard', [CoordenadorController::class, 'dashboard'])->name('coordenador.dashboard');
+});
+
 // Rotas para administradores
 Route::middleware('auth')->group(function () {
+    Route::get('/user/create', [UserController::class, 'create'])->name('admin.user.create');
+
+    // Rota para processar a criação do usuário
+    Route::post('/user', [UserController::class, 'store'])->name('admin.user.store');
+
+    // Outras rotas existentes
+    Route::get('/user/{id}/edit', [UserController::class, 'edit'])->name('admin.user.edit');
+    Route::put('/user/{id}', [UserController::class, 'update'])->name('admin.user.update');
+
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('respostas/admin/estatisticas', [RespostaController::class, 'adminEstatisticas'])->name('respostas.admin.estatisticas');
     Route::get('respostas/admin/estatisticas/pdf', [RespostaController::class, 'gerarPdfEstatisticas'])->name('respostas.admin.estatisticas.pdf');
 
+    Route::resource('deficiencias', DeficienciaController::class);
 
+    // Rotas para Características
+    Route::resource('caracteristicas', CaracteristicaController::class);
+
+    // Rotas para Recursos
+    Route::resource('recursos', RecursoController::class);
+
+    // Rotas para Adaptações
+    Route::resource('adaptacoes', AdaptacaoController::class);
+    Route::get('/deficiencias/{deficiencia}/caracteristicas', [DeficienciaController::class, 'caracteristicas']);
+    Route::get('/adaptacoes/{adaptacao}/pdf', [AdaptacaoController::class, 'gerarPdf'])->name('adaptacoes.gerarPDF');
     // Rotas para escolas, turmas, disciplinas, habilidades, questões, provas, alunos, anos, etc.
     Route::resource('escolas', EscolaController::class);
     Route::resource('turmas', TurmaController::class);
@@ -96,4 +140,7 @@ Route::middleware('auth')->group(function () {
     // Perfil do Usuário
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Rota para avaliação
+    Route::get('/avaliacao', [AvaliacaoController::class, 'index'])->name('avaliacao.index');
 });

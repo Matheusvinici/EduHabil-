@@ -20,7 +20,7 @@
                 <div class="col-lg-12">
 
                     <div class="alert alert-info">
-                       Página de Servidores Cadastrados no Sistema de Certificados
+                    Página de Servidores Cadastrados no Eduhabil+
                     </div>
 
                     <!-- Formulário de Pesquisa -->
@@ -34,6 +34,9 @@
                     </form>
 
                     <div class="card">
+                    <div class="card-header">
+        <a href="{{ route('admin.user.create') }}" class="btn btn-success btn-sm">Criar Novo Usuário</a>
+    </div>
                         <div class="card-body p-0">
 
                             <table class="table">
@@ -41,7 +44,8 @@
                                     <tr>
                                         <th>Nome</th>
                                         <th>Email</th>
-                                        <th>Ações</th> <!-- Adicionei a coluna de ações -->
+                                        <th>Papel</th> 
+                                        <th>Ações</th> 
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -49,6 +53,8 @@
                                     <tr>
                                         <td>{{ $user->name }}</td>
                                         <td>{{ $user->email }}</td>
+                                        <td>{{ ucfirst($user->role) }}</td> <!-- Exibe o papel do usuário -->
+
                                         <td>
                                             <!-- Botão de editar, redirecionando para a página de edição -->
                                             <a href="{{ route('admin.user.edit', $user->id) }}" class="btn btn-warning btn-sm">Editar</a>
