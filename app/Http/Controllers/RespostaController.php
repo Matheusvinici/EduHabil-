@@ -7,36 +7,69 @@ use App\Models\Resposta;
 use App\Models\Prova;
 use App\Models\Questao;
 use App\Models\Escola;
-
 use App\Models\User;
-use App\Models\Habilidade; // Modelo para habilidades
-use App\Models\Ano; // Modelo para anos
-
+use App\Models\Habilidade;
+use App\Models\Ano;
 use Illuminate\Support\Facades\Auth;
-use PDF; // Para gerar PDF
+use PDF;
 
 class RespostaController extends Controller
 {
-    // Exibe a lista de provas disponíveis para o aluno responder
-    public function index()
+    /**
+     * Redireciona para o método correto com base no perfil do usuário.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
     {
         $user = Auth::user();
 
-        if ($user->role === 'professor') {
-            // Redireciona o professor para suas estatísticas
-            return redirect()->route('respostas.professor.estatisticas');
-        } elseif ($user->role === 'aluno') {
-            // Aluno só vê as provas criadas pelo professor da sua turma
-            $professorId = $user->turma->professor_id; // Pega o professor_id da turma do aluno
-            $provas = Prova::where('user_id', $professorId)->withCount('questoes')->get();
-            return view('respostas.index', compact('provas'));
-        } else {
-            // Redireciona o admin para as estatísticas gerais
-            return redirect()->route('respostas.admin.estatisticas');
+        // Redireciona para o método correto com base no perfil do usuário
+        switch ($user->role) {
+            case 'admin':
+                return redirect()->route('respostas.admin.estatisticas');
+            case 'professor':
+                return redirect()->route('respostas.professor.index');
+            case 'coordenador':
+                return redirect()->route('respostas.coordenador.estatisticas');
+            case 'aee':
+                return redirect()->route('respostas.aee.index');
+            case 'inclusiva':
+                return redirect()->route('respostas.inclusiva.index');
+            case 'aluno':
+                return redirect()->route('respostas.aluno.index');
+            default:
+                abort(403, 'Acesso não autorizado.');
         }
     }
 
-    // Exibe o formulário para responder uma prova específica
+    /**
+     * Exibe a lista de provas disponíveis para o aluno responder.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function alunoIndex()
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'aluno') {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        // Aluno só vê as provas criadas pelo professor da sua turma
+        $professorId = $user->turma->professor_id; // Pega o professor_id da turma do aluno
+        $provas = Prova::where('user_id', $professorId)->withCount('questoes')->get();
+
+        return view('respostas.aluno.index', compact('provas'));
+    }
+
+    /**
+     * Exibe o formulário para responder uma prova específica.
+     *
+     * @param  \App\Models\Prova  $prova
+     * @return \Illuminate\Http\Response
+     */
     public function create(Prova $prova)
     {
         // Carrega as questões da prova
@@ -45,7 +78,13 @@ class RespostaController extends Controller
         return view('respostas.create', compact('prova', 'questoes'));
     }
 
-    // Salva as respostas do aluno
+    /**
+     * Salva as respostas do aluno.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Prova  $prova
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request, Prova $prova)
     {
         // Validação das respostas
@@ -71,32 +110,90 @@ class RespostaController extends Controller
         return redirect()->route('respostas.index')->with('success', 'Prova finalizada!');
     }
 
-    // Exibe os detalhes de uma prova respondida (para o aluno)
+    /**
+     * Exibe os detalhes de uma prova respondida (para o aluno).
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function show($id)
     {
         $prova = Prova::with('questoes')->findOrFail($id);
         return view('provas.show', compact('prova'));
     }
 
-    // Exibe a lista de respostas dos alunos cadastrados pelo professor
-    public function professorIndex()
+    /**
+     * Exibe a lista de respostas dos alunos cadastrados pelo professor.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function professorIndex(Request $request)
+{
+    $user = Auth::user();
+
+    if ($user->role !== 'professor') {
+        abort(403, 'Acesso não autorizado.');
+    }
+
+    // Filtro pelo nome da prova
+    $provaNome = $request->query('prova_nome');
+
+    // Busca as provas criadas pelo professor
+    $provas = Prova::where('user_id', $user->id)
+        ->when($provaNome, function ($query, $provaNome) {
+            return $query->where('nome', 'like', '%' . $provaNome . '%');
+        })
+        ->with(['respostas.user', 'respostas.questao']) // Carrega as respostas, alunos e questões
+        ->get();
+
+    // Calcula a porcentagem de acertos por prova
+    $porcentagemAcertosPorProva = [];
+    foreach ($provas as $prova) {
+        $totalRespostas = $prova->respostas->count();
+        $totalAcertos = $prova->respostas->where('correta', true)->count();
+        $porcentagemAcertos = $totalRespostas > 0 ? ($totalAcertos / $totalRespostas) * 100 : 0;
+
+        $porcentagemAcertosPorProva[$prova->id] = [
+            'nome' => $prova->nome,
+            'porcentagem' => $porcentagemAcertos,
+        ];
+    }
+
+    return view('respostas.professor.index', compact('provas', 'provaNome', 'porcentagemAcertosPorProva'));
+}
+
+    public function professorShow(Prova $prova, User $aluno)
     {
         $user = Auth::user();
-
+    
         if ($user->role !== 'professor') {
             abort(403, 'Acesso não autorizado.');
         }
-
-        // Busca as respostas dos alunos cadastrados pelo professor
-        $respostas = Resposta::whereHas('user', function ($query) use ($user) {
-            $query->where('professor_id', $user->id);
-        })->get();
-
-        return view('respostas.professor.index', compact('respostas'));
+    
+        // Verifica se a prova pertence ao professor
+        if ($prova->user_id !== $user->id) {
+            abort(403, 'Acesso não autorizado.');
+        }
+    
+        // Busca as respostas do aluno para a prova
+        $respostas = Resposta::where('prova_id', $prova->id)
+            ->where('user_id', $aluno->id)
+            ->with('questao')
+            ->get();
+    
+        // Calcula o total de acertos
+        $acertos = $respostas->where('correta', true)->count();
+        $total = $respostas->count();
+    
+        return view('provas.show', compact('prova', 'aluno', 'respostas', 'acertos', 'total'));
     }
-
-    // Exibe os detalhes das respostas de uma prova específica (para o professor)
-    public function professorShow(Prova $prova)
+    /**
+     * Exibe os detalhes das respostas de uma prova específica (para o professor).
+     *
+     * @param  \App\Models\Prova  $prova
+     * @return \Illuminate\Http\Response
+     */
+    public function showProfessor(Prova $prova)
     {
         $user = Auth::user();
 
@@ -112,8 +209,13 @@ class RespostaController extends Controller
         return view('respostas.professor.show', compact('prova', 'respostas'));
     }
 
-    // Exibe as estatísticas do professor
-    public function professorEstatisticas(Request $request)
+    /**
+     * Exibe as estatísticas do professor.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function estatisticasProfessor(Request $request)
     {
         $user = Auth::user();
 
@@ -125,14 +227,14 @@ class RespostaController extends Controller
         $provaId = $request->input('prova_id');
         $habilidadeId = $request->input('habilidade_id');
         $anoId = $request->input('ano_id');
-      
+
         // Busca as provas criadas pelo professor
         $provas = Prova::where('user_id', $user->id)->get();
 
         // Busca as habilidades, anos para os filtros
-        $habilidades = Habilidade::all(); // Todas as habilidades
-        $anos = Ano::all(); // Todos os anos
-      
+        $habilidades = Habilidade::all();
+        $anos = Ano::all();
+
         // Filtra as respostas dos alunos
         $respostas = Resposta::whereHas('prova', function ($query) use ($user) {
             $query->where('user_id', $user->id);
@@ -143,14 +245,13 @@ class RespostaController extends Controller
         ->when($habilidadeId, function ($query, $habilidadeId) {
             return $query->whereHas('questao', function ($q) use ($habilidadeId) {
                 $q->where('habilidade_id', $habilidadeId);
-            }); // <-- Corrigido: removido o ponto e vírgula e adicionado o fechamento de parêntese
+            });
         })
         ->when($anoId, function ($query, $anoId) {
             return $query->whereHas('prova', function ($q) use ($anoId) {
                 $q->where('ano_id', $anoId);
             });
         })
-       
         ->with(['user', 'prova', 'questao'])
         ->get();
 
@@ -176,35 +277,38 @@ class RespostaController extends Controller
             }
         }
 
-        // Passa as variáveis para a view
         return view('respostas.professor.estatisticas', compact('estatisticas', 'provas', 'habilidades', 'anos'));
     }
 
-  
-    public function adminEstatisticas(Request $request)
+    /**
+     * Exibe as estatísticas gerais (para o admin).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function estatisticasAdmin(Request $request)
     {
         $user = Auth::user();
-    
+
         if ($user->role !== 'admin') {
             abort(403, 'Acesso não autorizado.');
         }
-    
+
         // Filtros
         $escolaId = $request->input('escola_id');
         $habilidadeId = $request->input('habilidade_id');
         $anoId = $request->input('ano_id');
-       
-    
+
         // Busca todas as escolas, habilidades, anos para os filtros
         $escolas = Escola::all();
         $habilidades = Habilidade::all();
         $anos = Ano::all();
-       
+
         // Dados gerais
         $totalProvas = Prova::count();
         $totalProfessores = User::where('role', 'professor')->count();
         $totalQuestoesRespondidas = Resposta::count();
-    
+
         // Estatísticas por escola
         $estatisticasPorEscola = [];
         $respostasPorEscola = Resposta::when($escolaId, function ($query, $escolaId) {
@@ -214,13 +318,13 @@ class RespostaController extends Controller
         })
         ->get()
         ->groupBy('user.escola_id');
-    
+
         foreach ($respostasPorEscola as $escolaId => $respostas) {
             $escola = Escola::find($escolaId);
             $totalQuestoes = $respostas->count();
             $acertos = $respostas->where('correta', true)->count();
             $porcentagemAcertos = ($totalQuestoes > 0) ? ($acertos / $totalQuestoes) * 100 : 0;
-    
+
             $estatisticasPorEscola[] = [
                 'escola' => $escola->nome,
                 'total_questoes' => $totalQuestoes,
@@ -228,7 +332,7 @@ class RespostaController extends Controller
                 'porcentagem_acertos' => $porcentagemAcertos,
             ];
         }
-    
+
         // Estatísticas por habilidade
         $estatisticasPorHabilidade = [];
         $respostasPorHabilidade = Resposta::when($habilidadeId, function ($query, $habilidadeId) {
@@ -238,13 +342,13 @@ class RespostaController extends Controller
         })
         ->get()
         ->groupBy('questao.habilidade_id');
-    
+
         foreach ($respostasPorHabilidade as $habilidadeId => $respostas) {
             $habilidade = Habilidade::find($habilidadeId);
             $totalQuestoes = $respostas->count();
             $acertos = $respostas->where('correta', true)->count();
             $porcentagemAcertos = ($totalQuestoes > 0) ? ($acertos / $totalQuestoes) * 100 : 0;
-    
+
             $estatisticasPorHabilidade[] = [
                 'habilidade' => $habilidade->descricao,
                 'total_questoes' => $totalQuestoes,
@@ -252,8 +356,7 @@ class RespostaController extends Controller
                 'porcentagem_acertos' => $porcentagemAcertos,
             ];
         }
-    
-        // Passa as variáveis para a view
+
         return view('respostas.admin.estatisticas', compact(
             'totalProvas',
             'totalProfessores',
@@ -263,29 +366,105 @@ class RespostaController extends Controller
             'escolas',
             'habilidades',
             'anos',
-            
-            'request' 
+            'request'
         ));
     }
+
+    /**
+     * Exibe a lista de respostas (para o coordenador).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function indexCoordenador(Request $request)
+{
+    $user = Auth::user();
+    $escolaId = $user->escola_id;
+
+    // Filtro por habilidade
+    $habilidadeId = $request->query('habilidade_id');
+
+    // Dados gerais da escola
+    $escola = Escola::findOrFail($escolaId);
+    $totalProvas = Prova::where('escola_id', $escolaId)->count();
+    $totalProfessores = User::where('escola_id', $escolaId)->where('role', 'professor')->count();
+    $totalQuestoesRespondidas = Resposta::whereHas('prova', function ($query) use ($escolaId) {
+        $query->where('escola_id', $escolaId);
+    })->count();
+
+    // Estatísticas da escola
+    $estatisticasEscola = [
+        'total_questoes' => Resposta::whereHas('prova', function ($query) use ($escolaId) {
+            $query->where('escola_id', $escolaId);
+        })->count(),
+        'acertos' => Resposta::whereHas('prova', function ($query) use ($escolaId) {
+            $query->where('escola_id', $escolaId);
+        })->where('correta', true)->count(),
+        'porcentagem_acertos' => Resposta::whereHas('prova', function ($query) use ($escolaId) {
+            $query->where('escola_id', $escolaId);
+        })->avg('correta') * 100,
+    ];
+
+    // Estatísticas por habilidade
+    $estatisticasPorHabilidade = Habilidade::withCount(['respostas' => function ($query) use ($escolaId) {
+        $query->whereHas('prova', function ($query) use ($escolaId) {
+            $query->where('escola_id', $escolaId);
+        });
+    }])->get()->map(function ($habilidade) use ($escolaId) {
+        $acertos = $habilidade->respostas()
+            ->whereHas('prova', function ($query) use ($escolaId) {
+                $query->where('escola_id', $escolaId);
+            })
+            ->where('correta', true)
+            ->count();
+
+        return [
+            'habilidade' => $habilidade->descricao,
+            'total_questoes' => $habilidade->respostas_count,
+            'acertos' => $acertos,
+            'porcentagem_acertos' => $habilidade->respostas_count > 0 ? ($acertos / $habilidade->respostas_count) * 100 : 0,
+        ];
+    });
+
+    // Lista de habilidades para o filtro
+    $habilidades = Habilidade::all();
+
+    return view('respostas.coordenador.estatisticas', compact(
+        'escola',
+        'totalProvas',
+        'totalProfessores',
+        'totalQuestoesRespondidas',
+        'estatisticasEscola',
+        'estatisticasPorHabilidade',
+        'habilidades',
+        'request'
+    ));
+}
+
+    /**
+     * Gera o PDF das estatísticas.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function gerarPdfEstatisticas(Request $request)
     {
         $user = Auth::user();
-    
+
         if ($user->role !== 'admin') {
             abort(403, 'Acesso não autorizado.');
         }
-    
-        // Aplica os mesmos filtros do método adminEstatisticas
+
+        // Aplica os mesmos filtros do método estatisticasAdmin
         $escolaId = $request->input('escola_id');
         $habilidadeId = $request->input('habilidade_id');
         $anoId = $request->input('ano_id');
-     
-    
+
         // Dados gerais
         $totalProvas = Prova::count();
         $totalProfessores = User::where('role', 'professor')->count();
         $totalQuestoesRespondidas = Resposta::count();
-    
+
         // Estatísticas por escola
         $estatisticasPorEscola = [];
         $respostasPorEscola = Resposta::when($escolaId, function ($query, $escolaId) {
@@ -295,13 +474,13 @@ class RespostaController extends Controller
         })
         ->get()
         ->groupBy('user.escola_id');
-    
+
         foreach ($respostasPorEscola as $escolaId => $respostas) {
             $escola = Escola::find($escolaId);
             $totalQuestoes = $respostas->count();
             $acertos = $respostas->where('correta', true)->count();
             $porcentagemAcertos = ($totalQuestoes > 0) ? ($acertos / $totalQuestoes) * 100 : 0;
-    
+
             $estatisticasPorEscola[] = [
                 'escola' => $escola->nome,
                 'total_questoes' => $totalQuestoes,
@@ -309,7 +488,7 @@ class RespostaController extends Controller
                 'porcentagem_acertos' => $porcentagemAcertos,
             ];
         }
-    
+
         // Estatísticas por habilidade
         $estatisticasPorHabilidade = [];
         $respostasPorHabilidade = Resposta::when($habilidadeId, function ($query, $habilidadeId) {
@@ -319,13 +498,13 @@ class RespostaController extends Controller
         })
         ->get()
         ->groupBy('questao.habilidade_id');
-    
+
         foreach ($respostasPorHabilidade as $habilidadeId => $respostas) {
             $habilidade = Habilidade::find($habilidadeId);
             $totalQuestoes = $respostas->count();
             $acertos = $respostas->where('correta', true)->count();
             $porcentagemAcertos = ($totalQuestoes > 0) ? ($acertos / $totalQuestoes) * 100 : 0;
-    
+
             $estatisticasPorHabilidade[] = [
                 'habilidade' => $habilidade->descricao,
                 'total_questoes' => $totalQuestoes,
@@ -333,7 +512,7 @@ class RespostaController extends Controller
                 'porcentagem_acertos' => $porcentagemAcertos,
             ];
         }
-    
+
         // Gera o PDF
         $pdf = PDF::loadView('respostas.pdf.estatisticas', compact(
             'totalProvas',
@@ -342,21 +521,113 @@ class RespostaController extends Controller
             'estatisticasPorEscola',
             'estatisticasPorHabilidade'
         ));
-    
+
         return $pdf->download('estatisticas.pdf');
     }
 
-    // Exibe a lista de todas as respostas (para o admin)
-    public function adminIndex()
+    /**
+     * Exibe a lista de todas as respostas (para o admin).
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function indexAdmin()
     {
         $respostas = Resposta::all();
         return view('respostas.admin.index', compact('respostas'));
     }
 
-    // Exibe os detalhes das respostas de uma prova específica (para o admin)
-    public function adminShow(Prova $prova)
+    /**
+     * Exibe os detalhes das respostas de uma prova específica (para o admin).
+     *
+     * @param  \App\Models\Prova  $prova
+     * @return \Illuminate\Http\Response
+     */
+    public function showAdmin(Prova $prova)
     {
         $respostas = $prova->respostas;
         return view('respostas.admin.show', compact('prova', 'respostas'));
+    }
+    public function adminEstatisticas(Request $request) // Renomeado para adminEstatisticas
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'admin') {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        // Filtros
+        $escolaId = $request->input('escola_id');
+        $habilidadeId = $request->input('habilidade_id');
+        $anoId = $request->input('ano_id');
+
+        // Busca todas as escolas, habilidades, anos para os filtros
+        $escolas = Escola::all();
+        $habilidades = Habilidade::all();
+        $anos = Ano::all();
+
+        // Dados gerais
+        $totalProvas = Prova::count();
+        $totalProfessores = User::where('role', 'professor')->count();
+        $totalQuestoesRespondidas = Resposta::count();
+
+        // Estatísticas por escola
+        $estatisticasPorEscola = [];
+        $respostasPorEscola = Resposta::when($escolaId, function ($query, $escolaId) {
+            return $query->whereHas('user', function ($q) use ($escolaId) {
+                $q->where('escola_id', $escolaId);
+            });
+        })
+        ->get()
+        ->groupBy('user.escola_id');
+
+        foreach ($respostasPorEscola as $escolaId => $respostas) {
+            $escola = Escola::find($escolaId);
+            $totalQuestoes = $respostas->count();
+            $acertos = $respostas->where('correta', true)->count();
+            $porcentagemAcertos = ($totalQuestoes > 0) ? ($acertos / $totalQuestoes) * 100 : 0;
+
+            $estatisticasPorEscola[] = [
+                'escola' => $escola->nome,
+                'total_questoes' => $totalQuestoes,
+                'acertos' => $acertos,
+                'porcentagem_acertos' => $porcentagemAcertos,
+            ];
+        }
+
+        // Estatísticas por habilidade
+        $estatisticasPorHabilidade = [];
+        $respostasPorHabilidade = Resposta::when($habilidadeId, function ($query, $habilidadeId) {
+            return $query->whereHas('questao', function ($q) use ($habilidadeId) {
+                $q->where('habilidade_id', $habilidadeId);
+            });
+        })
+        ->get()
+        ->groupBy('questao.habilidade_id');
+
+        foreach ($respostasPorHabilidade as $habilidadeId => $respostas) {
+            $habilidade = Habilidade::find($habilidadeId);
+            $totalQuestoes = $respostas->count();
+            $acertos = $respostas->where('correta', true)->count();
+            $porcentagemAcertos = ($totalQuestoes > 0) ? ($acertos / $totalQuestoes) * 100 : 0;
+
+            $estatisticasPorHabilidade[] = [
+                'habilidade' => $habilidade->descricao,
+                'total_questoes' => $totalQuestoes,
+                'acertos' => $acertos,
+                'porcentagem_acertos' => $porcentagemAcertos,
+            ];
+        }
+
+        return view('respostas.admin.estatisticas', compact(
+            'totalProvas',
+            'totalProfessores',
+            'totalQuestoesRespondidas',
+            'estatisticasPorEscola',
+            'estatisticasPorHabilidade',
+            'escolas',
+            'habilidades',
+            'anos',
+            'request'
+        ));
     }
 }

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('habilidade_id'); // Chave estrangeira para habilidades
           
             $table->text('enunciado'); // Enunciado da questão
+            
             $table->string('alternativa_a'); // Alternativa A
             $table->string('alternativa_b'); // Alternativa B
             $table->string('alternativa_c'); // Alternativa C
