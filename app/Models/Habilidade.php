@@ -30,4 +30,10 @@ class Habilidade extends Model
     {
         return $this->hasMany(Questao::class);
     }
+    
+    // Relacionamento com a tabela Simulado
+    public function simulados()
+    {
+        return $this->hasMany(Simulado::class);
+    }
 }

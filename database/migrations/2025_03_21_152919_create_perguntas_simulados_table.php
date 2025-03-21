@@ -13,13 +13,7 @@ return new class extends Migration
     {
         Schema::create('perguntas_simulados', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('simulado_id'); // Chave estrangeira para provas
-            $table->unsignedBigInteger('pergunta_id'); // Chave estrangeira para questões
             $table->timestamps();
-
-            // Chaves estrangeiras
-            $table->foreign('simulado_id')->references('id')->on('simulados')->onDelete('cascade');
-            $table->foreign('pergunta_id')->references('id')->on('perguntas')->onDelete('cascade');
         });
     }
 

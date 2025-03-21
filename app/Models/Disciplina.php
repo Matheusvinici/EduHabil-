@@ -24,4 +24,10 @@ class Disciplina extends Model
     {
         return $this->hasMany(Atividade::class, 'disciplina_id');
     }
+
+    // Relacionamento com a tabela Simulado
+    public function simulados()
+    {
+        return $this->hasMany(Simulado::class);
+    }
 }
