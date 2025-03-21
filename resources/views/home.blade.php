@@ -21,7 +21,7 @@
                     <div class="card">
                         <div class="card-body">
                             <p class="card-text">
-                                {{ __('Você está logado no Sistema de Gestão de Certificados da Secretaria de Educação e Juventude!') }}
+                                {{ __('Você está logado no Sistema EduHabil+!') }}
                             </p>
                         </div>
                     </div>

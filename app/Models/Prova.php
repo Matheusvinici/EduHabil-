@@ -17,7 +17,8 @@ class Prova extends Model
         'ano_id',
         'user_id',
         'disciplina_id',
-                'habilidade_id',
+        'habilidade_id',
+        'escola_id',
         'nome',
         'data',
         'observacoes'
@@ -35,13 +36,12 @@ class Prova extends Model
         return $this->belongsTo(Disciplina::class);
     }
 
-  
-
     // Relacionamento com o modelo Habilidade
     public function habilidade(): BelongsTo
     {
-        return $this->belongsTo(Habilidade::class);
+        return $this->belongsTo(Habilidade::class, 'habilidade_id');
     }
+    
 
     // Relacionamento muitos-para-muitos com o modelo Questao
     public function questoes(): BelongsToMany
@@ -60,4 +60,11 @@ class Prova extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    // Relacionamento com a escola
+    public function escola(): BelongsTo
+    {
+        return $this->belongsTo(Escola::class, 'escola_id');
+    }
+    
 }
