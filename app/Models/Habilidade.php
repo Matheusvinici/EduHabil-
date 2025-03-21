@@ -33,6 +33,7 @@ class Habilidade extends Model
         return $this->hasMany(Questao::class);
     }
 
+
     public function provas(): HasMany
     {
         return $this->hasMany(Prova::class, 'habilidade_id');
@@ -55,3 +56,12 @@ class Habilidade extends Model
         );
     }
 }
+
+    
+    // Relacionamento com a tabela Simulado
+    public function simulados()
+    {
+        return $this->hasMany(Simulado::class);
+    }
+}
+
