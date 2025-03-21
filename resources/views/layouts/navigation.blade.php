@@ -19,6 +19,16 @@
             </li>
         @endif
 
+        <!-- Avaliação - Acesso para alunos, professores e coordenadores -->
+        @if(Auth::check() && in_array(Auth::user()->role, ['aluno', 'professor', 'coordenador', 'admin']))
+            <li class="nav-item">
+                <a href="{{ route('simulados.index') }}" class="nav-link text-white">
+                    <i class="nav-icon fas fa-check-circle text-white"></i>
+                    <p>Simulados</p>
+                </a>
+            </li>
+        @endif
+
         <!-- Provas e Turmas - Acesso para professores, coordenadores e admin -->
         @if(Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin']))
             <li class="nav-item">

@@ -24,7 +24,9 @@ use App\Http\Controllers\{
     ProvaController,
     AeeController,
     InclusivaController,
-    AvaliacaoController // Adicione o controlador de Avaliação
+    AvaliacaoController, // Adicione o controlador de Avaliação
+    SimuladoController
+
 };
 use Barryvdh\DomPDF\Facade as PDF;
 
@@ -37,6 +39,9 @@ Auth::routes();
 
 // Rota para a página inicial autenticada
 Route::get('/home', [HomeController::class, 'index'])->name('home');
+
+// Rotas para simulados
+Route::resource('simulados', SimuladoController::class);
 
 // Rotas para alunos
 Route::middleware('auth')->group(function () {
