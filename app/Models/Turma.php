@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,25 +11,23 @@ class Turma extends Model
     protected $fillable = [
         'escola_id',
         'professor_id',
-        'nome_turma', // Certifique-se de que está aqui
+        'nome_turma',
         'quantidade_alunos',
         'codigo_turma',
     ];
+
     public function escola()
     {
         return $this->belongsTo(Escola::class);
     }
 
-// No modelo Turma.php
-public function professor()
-{
-    return $this->belongsTo(User::class, 'professor_id');
-}
+    public function professor()
+    {
+        return $this->belongsTo(User::class, 'professor_id');
+    }
 
-  
     public function alunos()
-{
-    return $this->hasMany(User::class, 'turma_id')->where('role', 'aluno');
-}
-
+    {
+        return $this->hasMany(User::class, 'turma_id')->where('role', 'aluno');
+    }
 }

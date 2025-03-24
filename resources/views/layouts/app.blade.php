@@ -55,7 +55,7 @@
     <!-- Main Sidebar Container -->
     <aside class="main-sidebar text-white elevation-4" style="background-color: #2B5598;">
         <a href="/" class="brand-link text-white">
-            <h3 class="text-center">SGC</h3>
+            <h3 class="text-center">EduHabil+</h3>
         </a>
         @include('layouts.navigation')
     </aside>
@@ -96,7 +96,11 @@
         });
     }
 </script>
+<!-- jQuery -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
+<!-- AdminLTE -->
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 @yield('scripts')
 </body>
 </html>
