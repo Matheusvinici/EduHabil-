@@ -26,8 +26,9 @@ use App\Http\Controllers\{
     AeeController,
     InclusivaController,
     AvaliacaoController,
-    SimuladoController
-
+    SimuladoController,
+    PerguntaController,
+    RespostaSimuladoController
 
 };
 use Barryvdh\DomPDF\Facade as PDF;
@@ -42,8 +43,6 @@ Auth::routes();
 // Rota para a página inicial autenticada
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-// Rotas para simulados
-Route::resource('simulados', SimuladoController::class);
 
 // Rotas para alunos
 Route::middleware('auth')->group(function () {
@@ -51,7 +50,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('respostas', RespostaController::class)->only(['index', 'create', 'store', 'show']);
     Route::get('respostas/aluno/index', [RespostaController::class, 'alunoIndex'])->name('respostas.aluno.index');
 
-
+    Route::resource('respostas_simulados', RespostaSimuladoController::class);
+    Route::get('/respostas_simulados/aluno/index', [RespostaSimuladoController::class, 'alunoIndex'])->name('respostas_simulados.aluno.index');
+    Route::get('/respostas_simulados/create/{simulado}', [RespostaSimuladoController::class, 'create'])->name('respostas_simulados.create');
+    Route::post('/respostas_simulados/store/{simulado}', [RespostaSimuladoController::class, 'store'])->name('respostas_simulados.store');    Route::get('/respostas_simulados/show/{simulado}', [RespostaSimuladoController::class, 'show'])->name('respostas_simulados.show');
 });
 
 // Rotas para professores
@@ -65,11 +67,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('atividades_professores', AtividadeProfessorController::class);
     Route::get('atividades_professores/{id}/download', [AtividadeProfessorController::class, 'downloadPdf'])->name('atividades_professores.download');
     Route::get('/turmas/professor/index', [TurmaController::class, 'indexProfessor'])->name('turmas.professor.index');
+    Route::get('/respostas_simulados/professor/index', [RespostaSimuladoController::class, 'estatisticasProfessor'])->name('respostas_simulados.professor.index');
+
+    Route::get('/respostas_simulados/professor/{simulado}/{aluno}', [RespostaSimuladoController::class, 'showProfessor'])->name('respostas_simulados.professor.show');
+    Route::get('/respostas_simulados/professor/estatisticas', [RespostaSimuladoController::class, 'estatisticasProfessor'])->name('respostas_simulados.professor.estatisticas');
+
 
     // Rotas para provas
     Route::resource('provas', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');
-
+    
     // Rotas para respostas
     Route::get('respostas/professor/index', [RespostaController::class, 'professorIndex'])->name('respostas.professor.index');
     Route::get('/respostas/professor/{prova}/{aluno}', [RespostaController::class, 'professorShow'])
@@ -107,6 +114,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/provas/coordenador/index', [ProvaController::class, 'indexCoordenador'])->name('provas.coordenador.index');
     Route::get('/turmas/coordenador/index', [TurmaController::class, 'indexCoordenador'])->name('turmas.coordenador.index');
     Route::get('/respostas/coordenador/estatisticas', [RespostaController::class, 'indexCoordenador'])->name('respostas.coordenador.estatisticas');
+    Route::get('/respostas_simulados/coordenador/index', [RespostaSimuladoController::class, 'indexCoordenador'])->name('respostas_simulados.coordenador.index');
 
     // Rota para gerar PDF das estatísticas do coordenador
     Route::get('/respostas/coordenador/pdf', [RespostaController::class, 'pdfCoordenadorEstatisticas'])->name('respostas.coordenador.index.pdf');
@@ -121,8 +129,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/turmas/admin/index', [TurmaController::class, 'indexAdmin'])->name('turmas.admin.index');
     Route::get('/provas/admin/pdf/escolas/sem/provas', [ProvaController::class, 'pdfEscolasSemProvas'])->name('provas.admin.pdf.escolas.sem.provas');
     Route::get('/provas/admin/pdf/escolas/com/provas', [ProvaController::class, 'pdfEscolasComProvas'])->name('provas.admin.pdf.escolas.com.provas');
-    
-    // Rota para processar a criação do usuário
+    Route::get('/respostas_simulados/admin/estatisticas', [RespostaSimuladoController::class, 'estatisticasAdmin'])->name('respostas_simulados.admin.estatisticas');
+    // Rotas para simulados
+        Route::resource('simulados', SimuladoController::class);
+        Route::get('simulados/{simulado}/gerar-pdf', [SimuladoController::class, 'gerarPdf'])->name('simulados.gerarPdf');
+        Route::get('/simulados/{simulado}/gerar-pdf-braille', [SimuladoController::class, 'gerarPdfBraille'])->name('simulados.gerar-pdf-braille');
+        Route::get('/simulados/{simulado}/baixa-visao', [SimuladoController::class, 'gerarPdfBaixaVisao'])
+        ->name('simulados.baixa-visao');
+
+// Rota para processar a criação do usuário
     Route::post('/user', [UserController::class, 'store'])->name('admin.user.store');
 
     // Outras rotas existentes
@@ -158,6 +173,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('provas', ProvaController::class);
     Route::resource('alunos', AlunoController::class);
     Route::resource('anos', AnoEscolarController::class);
+    Route::resource('perguntas', PerguntaController::class);
+
 
     // Geração de PDF
     Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');

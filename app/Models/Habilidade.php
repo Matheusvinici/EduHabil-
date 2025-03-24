@@ -55,7 +55,7 @@ class Habilidade extends Model
             'id'             // Chave local no modelo intermediário (Questao)
         );
     }
-}
+
 
     
     // Relacionamento com a tabela Simulado

@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="card-body login-card-body">
-        <p class="login-box-msg">{{ __('Realize o seu cadastro e tenha acesso aos encontros formativos e certificados') }}</p>
+        <p class="login-box-msg">{{ __('Realize o seu cadastro e tenha acesso ao EduHabil+') }}</p>
 
         <form method="POST" action="{{ route('register') }}">
             @csrf

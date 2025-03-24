@@ -1,27 +1,32 @@
 <?php
-
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Simulado extends Model
+{
+    use HasFactory;
+
+    protected $table = 'simulados';
+    protected $fillable = [
+        'nome',
+        'descricao',
+        'ano_id',
+    ];
+
+    public function perguntas()
     {
-        protected $fillable = [
-            'user_id',       // Adicionando 'user_id' para permitir a atribuição em massa
-            'ano_id',
-            'disciplina_id',
-            'nome',
-            'data',
-            'observacoes',
-        ];
-
-        public function disciplinas()
-        {
-            return $this->belongsToMany(Disciplina::class)->withPivot('habilidade_id');
-        }
-
-        public function questoes()
-        {
-            return $this->belongsToMany(Questao::class);
-        }
+        return $this->belongsToMany(Pergunta::class, 'perguntas_simulados');
     }
+
+    public function respostas()
+    {
+        return $this->hasMany(RespostaSimulado::class);
+    }
+
+    public function ano()
+    {
+        return $this->belongsTo(Ano::class);
+    }
+}
