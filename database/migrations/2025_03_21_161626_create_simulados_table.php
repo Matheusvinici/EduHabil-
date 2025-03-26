@@ -17,10 +17,10 @@ return new class extends Migration
             $table->string('nome');
             $table->text('descricao')->nullable();
             $table->timestamps();
-        
+
             // Chave estrangeira para anos
             $table->foreign('ano_id')->references('id')->on('anos')->onDelete('cascade');
-            
+
         });
     }
 

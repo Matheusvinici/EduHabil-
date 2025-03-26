@@ -76,7 +76,7 @@ Route::middleware('auth')->group(function () {
     // Rotas para provas
     Route::resource('provas', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');
-    
+
     // Rotas para respostas
     Route::get('respostas/professor/index', [RespostaController::class, 'professorIndex'])->name('respostas.professor.index');
     Route::get('/respostas/professor/{prova}/{aluno}', [RespostaController::class, 'professorShow'])
@@ -174,6 +174,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('alunos', AlunoController::class);
     Route::resource('anos', AnoEscolarController::class);
     Route::resource('perguntas', PerguntaController::class);
+    Route::post('/perguntas/save-content', [PerguntaController::class, 'saveContent'])->name('perguntas.saveContent');
+
 
 
     // Geração de PDF
