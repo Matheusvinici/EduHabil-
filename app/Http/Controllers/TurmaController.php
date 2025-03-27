@@ -20,7 +20,7 @@ class TurmaController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-    
+
         // Redireciona para o método correto com base no perfil do usuário
         switch ($user->role) {
             case 'admin':
@@ -34,6 +34,44 @@ class TurmaController extends Controller
             default:
                 abort(403, 'Acesso não autorizado.');
         }
+    }
+
+    public function indexAdminList(Request $request)
+    {
+    $user = Auth::user();
+    $escolaId = $user->escola_id;
+
+    // Filtro por nome da turma
+    $nomeTurma = $request->query('nome_turma');
+
+    // Query base
+    $turmas = Turma::where('escola_id', $escolaId)
+        ->when($nomeTurma, function ($query, $nomeTurma) {
+            return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
+        })
+        ->with(['escola', 'professor'])
+        ->paginate(10);  // Paginação
+
+    return view('turmas.admin.index', compact('turmas', 'nomeTurma'));
+    }
+
+    public function indexCoordenadorList(Request $request)
+    {
+    $user = Auth::user();
+    $escolaId = $user->escola_id;
+
+    // Filtro por nome da turma
+    $nomeTurma = $request->query('nome_turma');
+
+    // Query base
+    $turmas = Turma::where('escola_id', $escolaId)
+        ->when($nomeTurma, function ($query, $nomeTurma) {
+            return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
+        })
+        ->with(['escola', 'professor'])
+        ->paginate(10);  // Paginação
+
+    return view('turmas.coordenador.index', compact('turmas', 'nomeTurma'));
     }
 
     /**
@@ -88,12 +126,12 @@ class TurmaController extends Controller
             'nome_turma' => 'required|string|max:255',
             'quantidade_alunos' => 'required|integer|min:1',
         ]);
-    
+
         $user = Auth::user();
-    
+
         // Gera um código único para a turma
         $codigoTurma = Str::random(8);
-    
+
         // Cria a turma
         $turma = Turma::create([
             'nome_turma' => $request->input('nome_turma'),
@@ -102,7 +140,7 @@ class TurmaController extends Controller
             'professor_id' => $user->id, // Vincula ao professor logado
             'codigo_turma' => $codigoTurma, // Define o código da turma
         ]);
-    
+
         // Gera códigos de acesso para os alunos
         $alunos = [];
         for ($i = 1; $i <= $request->input('quantidade_alunos'); $i++) {
@@ -118,12 +156,12 @@ class TurmaController extends Controller
                 'password' => Hash::make($codigoAcesso), // Senha é o código de acesso
             ];
         }
-    
+
         // Insere os alunos no banco de dados
         User::insert($alunos);
-    
-       
-    
+
+
+
         return redirect()->route('turmas.index')
                          ->with('success', 'Turma e alunos cadastrados com sucesso!');
     }
@@ -308,7 +346,7 @@ class TurmaController extends Controller
     public function indexAdmin(Request $request)
 {
     // Quantitativo de turmas por escola
-    $escolas = Escola::withCount('turmas')->get();
+    $escolas = Escola::withCount('turmas')->paginate(10);
 
     return view('turmas.admin.index', compact('escolas'));
 }
@@ -326,7 +364,7 @@ public function indexCoordenador(Request $request)
             return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
         })
         ->with(['escola', 'professor'])
-        ->paginate(10);
+        ->paginate(5);
 
     return view('turmas.coordenador.index', compact('turmas', 'nomeTurma'));
 }
@@ -345,7 +383,7 @@ public function indexCoordenador(Request $request)
                         return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
                     })
                     ->with(['escola', 'professor'])
-                    ->paginate(10);
+                    ->paginate(5);
 
                 return view('turmas.aee.index', compact('turmas', 'nomeTurma'));
             }

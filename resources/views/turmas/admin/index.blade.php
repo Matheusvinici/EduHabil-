@@ -26,6 +26,11 @@
                     @endforelse
                 </tbody>
             </table>
+
+            <!-- Adicionando a paginação -->
+            <div class="d-flex justify-content-center mt-4">
+                {{ $escolas->links() }}
+            </div>
         </div>
     </div>
 </div>
