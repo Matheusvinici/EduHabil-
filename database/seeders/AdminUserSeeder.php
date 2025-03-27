@@ -29,6 +29,20 @@ class AdminUserSeeder extends Seeder
         'password' => Hash::make('12345678'), // Senha criptografada
         'role' => 'professor', // Papel do usuário
     ]);
+
+    User::create([
+        'name' => 'Coordenador SEDUC',
+        'email' => 'coordenador@gmail.com',
+        'password' => Hash::make('12345678'), // Senha criptografada
+        'role' => 'coordenador', // Papel do usuário
+    ]);
+
+    User::create([
+        'name' => 'AEE SEDUC',
+        'email' => 'aee@gmail.com',
+        'password' => Hash::make('12345678'), // Senha criptografada
+        'role' => 'aee', // Papel do usuário
+    ]);
             $this->command->info('Usuário administrador criado com sucesso!');
     }
 }
