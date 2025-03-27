@@ -65,7 +65,8 @@ class PerguntaController extends Controller
     // Listar todas as perguntas
     public function index()
     {
-        $perguntas = Pergunta::all();
+        // Paginação de 10 perguntas por página
+        $perguntas = Pergunta::paginate(10);
         return view('perguntas.index', compact('perguntas'));
     }
 
