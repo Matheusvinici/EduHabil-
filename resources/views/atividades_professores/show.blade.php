@@ -2,19 +2,78 @@
 
 @section('content')
 <div class="container">
-    <h1>{{ $atividadeProfessor->atividade->titulo }}</h1>
-    <p><strong>Disciplina:</strong> {{ $atividadeProfessor->atividade->disciplina->nome }}</p>
-    <p><strong>Ano:</strong> {{ $atividadeProfessor->atividade->ano->nome }}</p>
-    <p><strong>Habilidade:</strong> {{ $atividadeProfessor->atividade->habilidade->nome }}</p>
-    <p><strong>Objetivo:</strong> {{ $atividadeProfessor->atividade->objetivo }}</p>
-    <p><strong>Metodologia:</strong> {{ $atividadeProfessor->atividade->metodologia }}</p>
-    <p><strong>Materiais Necessários:</strong> {{ $atividadeProfessor->atividade->materiais }}</p>
-    <p><strong>Resultados Esperados:</strong> {{ $atividadeProfessor->atividade->resultados_esperados }}</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Detalhes da Atividade</h1>
+        <div>
+            <a href="{{ route('atividades_professores.index') }}" class="btn btn-secondary">
+                Voltar para Minhas Atividades
+            </a>
+            <a href="{{ route('atividades_professores.download', $atividadeProfessor->id) }}" class="btn btn-success">
+                Baixar PDF
+            </a>
+        </div>
+    </div>
 
+    <div class="card shadow-sm mb-5">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">{{ $atividadeProfessor->atividade->titulo }}</h3>
+        </div>
+        <div class="card-body">
+            <!-- Informações Básicas -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <h5 class="text-primary">Disciplina</h5>
+                    <p>{{ $atividadeProfessor->atividade->disciplina->nome }}</p>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="text-primary">Ano/Série</h5>
+                    <p>{{ $atividadeProfessor->atividade->ano->nome }}</p>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="text-primary">Habilidade</h5>
+                    <p>{{ $atividadeProfessor->atividade->habilidade->descricao }}</p>
+                </div>
+            </div>
 
-    <!-- Botão para voltar -->
-    <a href="{{ route('atividades_professores.index') }}" class="btn btn-secondary">
-        Voltar
-    </a>
+            <!-- Objetivo -->
+            <div class="mb-4">
+                <h4 class="text-primary border-bottom pb-2">Objetivo</h4>
+                <div class="p-3 bg-light rounded">
+                    {!! nl2br(e($atividadeProfessor->atividade->objetivo)) !!}
+                </div>
+            </div>
+
+            <!-- Conteúdo em 2 colunas -->
+            <div class="row">
+                <!-- Metodologia -->
+                <div class="col-md-6 mb-4">
+                    <h4 class="text-primary border-bottom pb-2">Etapas da Aula</h4>
+                    <div class="p-3 bg-light rounded">
+                        {!! nl2br(e($atividadeProfessor->atividade->metodologia)) !!}
+                    </div>
+                </div>
+
+                <!-- Materiais Necessários -->
+                <div class="col-md-6 mb-4">
+                    <h4 class="text-primary border-bottom pb-2">Materiais Necessários</h4>
+                    <div class="p-3 bg-light rounded">
+                        {!! nl2br(e($atividadeProfessor->atividade->materiais)) !!}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resultados Esperados -->
+            <div class="mb-4">
+                <h4 class="text-primary border-bottom pb-2">Atividade Proposta</h4>
+                <div class="p-3 bg-light rounded">
+                    {!! nl2br(e($atividadeProfessor->atividade->resultados_esperados)) !!}
+                </div>
+            </div>
+        </div>
+        <div class="card-footer text-muted">
+            Atividade gerada em: {{ $atividadeProfessor->created_at->format('d/m/Y H:i') }} | 
+            Última atualização: {{ $atividadeProfessor->updated_at->format('d/m/Y H:i') }}
+        </div>
+    </div>
 </div>
 @endsection

@@ -101,23 +101,7 @@
                     <input type="file" name="imagem" id="imagem" class="form-control" accept="image/*" onchange="previewImage()">
                 </div>
 
-                <div class="form-group">
-                    <label for="imagem_tamanho">Tamanho da Imagem</label>
-                    <select name="imagem_tamanho" id="imagem_tamanho" class="form-control">
-                        <option value="200x200">Pequeno (200x200)</option>
-                        <option value="400x400">Médio (400x400)</option>
-                        <option value="600x600">Grande (600x600)</option>
-                        <option value="800x800">Muito Grande (800x800)</option>
-                    </select>
-                </div>
-
-                <!-- Prévia da imagem -->
-                <div class="form-group text-center mt-3">
-                    <label>Prévia da Imagem:</label>
-                    <br>
-                    <img id="preview" class="img-fluid" style="max-width: 100%; height: auto; display: none;">
-                </div>
-
+               
                 <div class="form-group text-right">
                     <button type="submit" class="btn btn-primary">Cadastrar Pergunta</button>
                 </div>

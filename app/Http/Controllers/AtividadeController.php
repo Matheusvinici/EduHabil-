@@ -11,7 +11,9 @@ class AtividadeController extends Controller
 {
     public function index()
     {
-        $atividades = Atividade::all();
+        // Ordena por data de criação decrescente (último primeiro) e paginação
+        $atividades = Atividade::orderBy('created_at', 'desc')->paginate(10);
+        
         return view('atividades.index', compact('atividades'));
     }
 
@@ -47,31 +49,40 @@ class AtividadeController extends Controller
     }
 
     public function edit(Atividade $atividade)
-    {
-        $disciplinas = Disciplina::all();
-        $anos = Ano::all();
-        $habilidades = Habilidade::all();
-        return view('atividades.edit', compact('atividade', 'disciplinas', 'anos', 'habilidades'));
-    }
+{
+    // Carrega os dados necessários para os selects
+    $disciplinas = Disciplina::all();
+    $anos = Ano::all();
+    $habilidades = Habilidade::all();
 
-    public function update(Request $request, Atividade $atividade)
-    {
-        $request->validate([
-            'disciplina_id' => 'required|exists:disciplinas,id',
-            'ano_id' => 'required|exists:anos,id',
-            'habilidade_id' => 'required|exists:habilidades,id',
-            'titulo' => 'required|string|max:255',
-            'objetivo' => 'required|string',
-            'metodologia' => 'required|string',
-            'materiais' => 'required|string',
-            'resultados_esperados' => 'required|string',
-        ]);
+    return view('atividades.edit', compact('atividade', 'disciplinas', 'anos', 'habilidades'));
+}
 
+public function update(Request $request, Atividade $atividade)
+{
+    $request->validate([
+        'disciplina_id' => 'required|exists:disciplinas,id',
+        'ano_id' => 'required|exists:anos,id',
+        'habilidade_id' => 'required|exists:habilidades,id',
+        'titulo' => 'required|string|max:255',
+        'objetivo' => 'required|string',
+        'metodologia' => 'required|string',
+        'materiais' => 'required|string',
+        'resultados_esperados' => 'required|string',
+    ]);
+
+    try {
         $atividade->update($request->all());
-
-        return redirect()->route('atividades.index')->with('success', 'Atividade atualizada com sucesso!');
+        
+        return redirect()->route('atividades.index', $atividade->id)
+               ->with('success', 'Atividade atualizada com sucesso!');
+               
+    } catch (\Exception $e) {
+        return redirect()->back()
+               ->with('error', 'Erro ao atualizar atividade: ' . $e->getMessage())
+               ->withInput();
     }
-
+}
     public function destroy(Atividade $atividade)
     {
         $atividade->delete();

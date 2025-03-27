@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('atividades_professores', function (Blueprint $table) {
         $table->id();
         $table->foreignId('professor_id')->constrained('users')->onDelete('cascade'); // Relacionamento com usuário (professor)
-        $table->foreignId('atividade_id')->constrained('atividades')->onDelete('cascade'); // Relacionamento com atividade
+        $table->foreignId('atividade_id')->constrained('atividades'); // Relacionamento com atividade
         $table->timestamps(); // Created_at e updated_at
         });
     }
