@@ -36,26 +36,14 @@ class TurmaController extends Controller
         }
     }
 
-    public function indexAdminList(Request $request)
+    public function indexAdmin(Request $request)
     {
-    $user = Auth::user();
-    $escolaId = $user->escola_id;
+    // Quantitativo de turmas por escola
+    $escolas = Escola::withCount('turmas')->paginate(10);
 
-    // Filtro por nome da turma
-    $nomeTurma = $request->query('nome_turma');
-
-    // Query base
-    $turmas = Turma::where('escola_id', $escolaId)
-        ->when($nomeTurma, function ($query, $nomeTurma) {
-            return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
-        })
-        ->with(['escola', 'professor'])
-        ->paginate(10);  // Paginação
-
-    return view('turmas.admin.index', compact('turmas', 'nomeTurma'));
+    return view('turmas.admin.index', compact('escolas'));
     }
-
-    public function indexCoordenadorList(Request $request)
+    public function indexCoordenador(Request $request)
     {
     $user = Auth::user();
     $escolaId = $user->escola_id;
@@ -69,10 +57,48 @@ class TurmaController extends Controller
             return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
         })
         ->with(['escola', 'professor'])
-        ->paginate(10);  // Paginação
+        ->paginate(5);
 
     return view('turmas.coordenador.index', compact('turmas', 'nomeTurma'));
     }
+
+            public function indexAEE(Request $request)
+            {
+                $user = Auth::user();
+                $escolaId = $user->escola_id;
+
+                // Filtro por nome da turma
+                $nomeTurma = $request->query('nome_turma');
+
+                // Query base
+                $turmas = Turma::where('escola_id', $escolaId)
+                    ->when($nomeTurma, function ($query, $nomeTurma) {
+                        return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
+                    })
+                    ->with(['escola', 'professor'])
+                    ->paginate(5);
+
+                return view('turmas.aee.index', compact('turmas', 'nomeTurma'));
+            }
+
+                public function indexProfessor(Request $request)
+            {
+                $user = Auth::user();
+
+                // Filtro por nome da turma
+                $nomeTurma = $request->query('nome_turma');
+
+                // Query base: apenas turmas cadastradas pelo professor
+                $turmas = Turma::where('professor_id', $user->id)
+                    ->when($nomeTurma, function ($query, $nomeTurma) {
+                        return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
+                    })
+                    ->with(['escola', 'professor'])
+                    ->paginate(5);
+
+                return view('turmas.professor.index', compact('turmas', 'nomeTurma'));
+            }
+
 
     /**
      * Exibe o formulário de criação de turmas.
@@ -343,66 +369,5 @@ class TurmaController extends Controller
         return redirect()->route('turmas.show', $turma->id)
                          ->with('success', "{$quantidadeAdicionais} códigos adicionais gerados com sucesso!");
     }
-    public function indexAdmin(Request $request)
-{
-    // Quantitativo de turmas por escola
-    $escolas = Escola::withCount('turmas')->paginate(10);
 
-    return view('turmas.admin.index', compact('escolas'));
-}
-public function indexCoordenador(Request $request)
-{
-    $user = Auth::user();
-    $escolaId = $user->escola_id;
-
-    // Filtro por nome da turma
-    $nomeTurma = $request->query('nome_turma');
-
-    // Query base
-    $turmas = Turma::where('escola_id', $escolaId)
-        ->when($nomeTurma, function ($query, $nomeTurma) {
-            return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
-        })
-        ->with(['escola', 'professor'])
-        ->paginate(5);
-
-    return view('turmas.coordenador.index', compact('turmas', 'nomeTurma'));
-}
-
-            public function indexAEE(Request $request)
-            {
-                $user = Auth::user();
-                $escolaId = $user->escola_id;
-
-                // Filtro por nome da turma
-                $nomeTurma = $request->query('nome_turma');
-
-                // Query base
-                $turmas = Turma::where('escola_id', $escolaId)
-                    ->when($nomeTurma, function ($query, $nomeTurma) {
-                        return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
-                    })
-                    ->with(['escola', 'professor'])
-                    ->paginate(5);
-
-                return view('turmas.aee.index', compact('turmas', 'nomeTurma'));
-            }
-
-                public function indexProfessor(Request $request)
-            {
-                $user = Auth::user();
-
-                // Filtro por nome da turma
-                $nomeTurma = $request->query('nome_turma');
-
-                // Query base: apenas turmas cadastradas pelo professor
-                $turmas = Turma::where('professor_id', $user->id)
-                    ->when($nomeTurma, function ($query, $nomeTurma) {
-                        return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
-                    })
-                    ->with(['escola', 'professor'])
-                    ->paginate(5);
-
-                return view('turmas.professor.index', compact('turmas', 'nomeTurma'));
-            }
 }
