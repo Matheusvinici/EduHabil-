@@ -33,7 +33,7 @@
                                     <td>{{ Str::limit($questao->enunciado, 50) }}</td>
                                     <td>{{ $questao->resposta_correta }}</td>
                                     <td>
-                                        <a href="{{ route('questoes.show', $questao->id) }}" class="btn btn-info btn-sm">Ver Detalhes</a>
+                                        <a href="{{ route('questoes.show', $questao->id) }}" class="btn btn-info btn-sm">Detalhes</a>
                                         <a href="{{ route('questoes.edit', $questao->id) }}" class="btn btn-primary btn-sm">Editar</a>
 
                                         <form action="{{ route('questoes.destroy', $questao->id) }}" method="POST" style="display:inline-block;">

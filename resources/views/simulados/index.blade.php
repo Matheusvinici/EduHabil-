@@ -33,7 +33,7 @@
                         <tr>
                             <td>{{ $simulado->id }}</td>
                             <td>{{ $simulado->nome }}</td>
-                      
+
                             <td>
                                 <a href="{{ route('simulados.show', $simulado->id) }}" class="btn btn-info btn-sm" title="Ver">
                                     <i class="fas fa-eye"></i>
@@ -44,7 +44,7 @@
                                 <a href="{{ route('simulados.gerarPdf', $simulado->id) }}" class="btn btn-success btn-sm" title="Baixar PDF">
                                     <i class="fas fa-download"></i>
                                 </a>
-                               
+
                                 <form action="{{ route('simulados.destroy', $simulado->id) }}" method="POST" style="display: inline-block;">
                                     @csrf
                                     @method('DELETE')

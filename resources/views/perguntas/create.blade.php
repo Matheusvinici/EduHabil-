@@ -98,7 +98,24 @@
 
                 <div class="form-group">
                     <label for="imagem">Imagem (Opcional)</label>
-                    <input type="file" name="imagem" id="imagem" class="form-control">
+                    <input type="file" name="imagem" id="imagem" class="form-control" accept="image/*" onchange="previewImage()">
+                </div>
+
+                <div class="form-group">
+                    <label for="imagem_tamanho">Tamanho da Imagem</label>
+                    <select name="imagem_tamanho" id="imagem_tamanho" class="form-control">
+                        <option value="200x200">Pequeno (200x200)</option>
+                        <option value="400x400">Médio (400x400)</option>
+                        <option value="600x600">Grande (600x600)</option>
+                        <option value="800x800">Muito Grande (800x800)</option>
+                    </select>
+                </div>
+
+                <!-- Prévia da imagem -->
+                <div class="form-group text-center mt-3">
+                    <label>Prévia da Imagem:</label>
+                    <br>
+                    <img id="preview" class="img-fluid" style="max-width: 100%; height: auto; display: none;">
                 </div>
 
                 <div class="form-group text-right">
@@ -108,4 +125,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    function previewImage() {
+        var file = document.getElementById("imagem").files[0];
+        var preview = document.getElementById("preview");
+
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.style.display = "block";
+            }
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = "none";
+        }
+    }
+
+    function updateImageSize() {
+        var preview = document.getElementById("preview");
+        var tamanho = document.getElementById("imagem_tamanho").value;
+
+        preview.className = tamanho + " mt-2"; // Atualiza a classe da imagem para refletir o tamanho escolhido
+    }
+</script>
 @endsection

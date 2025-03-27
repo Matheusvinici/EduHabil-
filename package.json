@@ -19,7 +19,9 @@
         "vite": "^6.0"
     },
     "dependencies": {
+        "@ckeditor/ckeditor5-build-classic": "^44.3.0",
         "@popperjs/core": "^2.11.8",
+        "quill": "^2.0.3",
         "sass": "^1.83.4"
     }
 }

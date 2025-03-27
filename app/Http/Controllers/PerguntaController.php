@@ -23,47 +23,50 @@ class PerguntaController extends Controller
     // Salvar nova pergunta
     public function store(Request $request)
     {
-        // Validação dos dados
-        $request->validate([
-            'ano_id' => 'required|exists:anos,id',
-            'disciplina_id' => 'required|exists:disciplinas,id',
-            'habilidade_id' => 'required|exists:habilidades,id',
-            'enunciado' => 'required',
-            'alternativa_a' => 'required',
-            'alternativa_b' => 'required',
-            'alternativa_c' => 'required',
-            'alternativa_d' => 'required',
-            'resposta_correta' => 'required|in:A,B,C,D',
-            'imagem' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validação da imagem
-        ]);
+    // Validação dos dados
+    $request->validate([
+        'ano_id' => 'required|exists:anos,id',
+        'disciplina_id' => 'required|exists:disciplinas,id',
+        'habilidade_id' => 'required|exists:habilidades,id',
+        'enunciado' => 'required',
+        'alternativa_a' => 'required',
+        'alternativa_b' => 'required',
+        'alternativa_c' => 'required',
+        'alternativa_d' => 'required',
+        'resposta_correta' => 'required|in:A,B,C,D',
+        'imagem' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validação da imagem
+        'imagem_tamanho' => 'nullable|in:img-fluid,w-25,w-50,w-75,w-100', // Validação do tamanho
+    ]);
 
-        // Upload da imagem (se existir)
-        $imagemPath = null;
-        if ($request->hasFile('imagem')) {
-            $imagemPath = $request->file('imagem')->store('perguntas', 'public');
-        }
+    // Upload da imagem (se existir)
+    $imagemPath = null;
+    if ($request->hasFile('imagem')) {
+        $imagemPath = $request->file('imagem')->store('perguntas', 'public');
+    }
 
-        // Cria a pergunta
-        Pergunta::create([
-            'ano_id' => $request->ano_id,
-            'disciplina_id' => $request->disciplina_id,
-            'habilidade_id' => $request->habilidade_id,
-            'enunciado' => $request->enunciado,
-            'alternativa_a' => $request->alternativa_a,
-            'alternativa_b' => $request->alternativa_b,
-            'alternativa_c' => $request->alternativa_c,
-            'alternativa_d' => $request->alternativa_d,
-            'resposta_correta' => $request->resposta_correta,
-            'imagem' => $imagemPath, // Salva o caminho da imagem
-        ]);
+    // Cria a pergunta
+    Pergunta::create([
+        'ano_id' => $request->ano_id,
+        'disciplina_id' => $request->disciplina_id,
+        'habilidade_id' => $request->habilidade_id,
+        'enunciado' => $request->enunciado,
+        'alternativa_a' => $request->alternativa_a,
+        'alternativa_b' => $request->alternativa_b,
+        'alternativa_c' => $request->alternativa_c,
+        'alternativa_d' => $request->alternativa_d,
+        'resposta_correta' => $request->resposta_correta,
+        'imagem' => $imagemPath, // Salva o caminho da imagem
+        'imagem_tamanho' => $request->imagem_tamanho, // Salva o tamanho escolhido
+    ]);
 
-        return redirect()->route('perguntas.index')->with('success', 'Pergunta cadastrada com sucesso!');
+    return redirect()->route('perguntas.index')->with('success', 'Pergunta cadastrada com sucesso!');
     }
 
     // Listar todas as perguntas
     public function index()
     {
-        $perguntas = Pergunta::all();
+        // Paginação de 10 perguntas por página
+        $perguntas = Pergunta::paginate(10);
         return view('perguntas.index', compact('perguntas'));
     }
 
