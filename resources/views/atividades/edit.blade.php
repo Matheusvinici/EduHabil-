@@ -6,12 +6,13 @@
         <div class="col-md-10">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h2 class="h4 mb-0"><i class="bi bi-file-earmark-plus"></i> Criar Nova Atividade</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-pencil-square"></i> Editar Atividade</h2>
                 </div>
                 
                 <div class="card-body">
-                    <form action="{{ route('atividades.store') }}" method="POST">
+                    <form action="{{ route('atividades.update', $atividade->id) }}" method="POST">
                         @csrf
+                        @method('PUT')
                         
                         <!-- Primeira linha com 3 colunas -->
                         <div class="row mb-4">
@@ -19,9 +20,11 @@
                                 <div class="form-group">
                                     <label for="disciplina_id" class="form-label">Disciplina</label>
                                     <select name="disciplina_id" id="disciplina_id" class="form-select" required>
-                                        <option value="" disabled selected>Selecione uma disciplina</option>
+                                        <option value="" disabled>Selecione uma disciplina</option>
                                         @foreach($disciplinas as $disciplina)
-                                        <option value="{{ $disciplina->id }}">{{ $disciplina->nome }}</option>
+                                        <option value="{{ $disciplina->id }}" {{ $atividade->disciplina_id == $disciplina->id ? 'selected' : '' }}>
+                                            {{ $disciplina->nome }}
+                                        </option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -31,9 +34,11 @@
                                 <div class="form-group">
                                     <label for="ano_id" class="form-label">Ano/Série</label>
                                     <select name="ano_id" id="ano_id" class="form-select" required>
-                                        <option value="" disabled selected>Selecione o ano/série</option>
+                                        <option value="" disabled>Selecione o ano/série</option>
                                         @foreach($anos as $ano)
-                                        <option value="{{ $ano->id }}">{{ $ano->nome }}</option>
+                                        <option value="{{ $ano->id }}" {{ $atividade->ano_id == $ano->id ? 'selected' : '' }}>
+                                            {{ $ano->nome }}
+                                        </option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -43,9 +48,11 @@
                                 <div class="form-group">
                                     <label for="habilidade_id" class="form-label">Habilidade</label>
                                     <select name="habilidade_id" id="habilidade_id" class="form-select" required>
-                                        <option value="" disabled selected>Selecione a habilidade</option>
+                                        <option value="" disabled>Selecione a habilidade</option>
                                         @foreach($habilidades as $habilidade)
-                                        <option value="{{ $habilidade->id }}">{{ $habilidade->descricao }}</option>
+                                        <option value="{{ $habilidade->id }}" {{ $atividade->habilidade_id == $habilidade->id ? 'selected' : '' }}>
+                                            {{ $habilidade->descricao }}
+                                        </option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -56,15 +63,13 @@
                         <div class="form-group mb-4">
                             <label for="titulo" class="form-label">Título da Atividade</label>
                             <input type="text" name="titulo" id="titulo" class="form-control" 
-                                   placeholder="Ex: Introdução à Fotossíntese - 7º ano" required>
+                                   value="{{ old('titulo', $atividade->titulo) }}" required>
                         </div>
                         
                         <!-- Objetivo -->
                         <div class="form-group mb-4">
                             <label for="objetivo" class="form-label">Objetivo de Aprendizagem</label>
-                            <textarea name="objetivo" id="objetivo" class="form-control" rows="3"
-                                      placeholder="Descreva os objetivos desta atividade. O que os alunos devem aprender?"
-                                      required></textarea>
+                            <textarea name="objetivo" id="objetivo" class="form-control" rows="3" required>{{ old('objetivo', $atividade->objetivo) }}</textarea>
                         </div>
                         
                         <!-- Metodologia e Materiais (2 colunas) -->
@@ -72,26 +77,14 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="metodologia" class="form-label">Etapas da Aula</label>
-                                    <textarea name="metodologia" id="metodologia" class="form-control" rows="5"
-                                              placeholder="Descreva passo a passo como a aula será conduzida:
-1. Aquecimento inicial
-2. Exposição teórica
-3. Atividade prática
-4. Discussão final"
-                                              required></textarea>
+                                    <textarea name="metodologia" id="metodologia" class="form-control" rows="5" required>{{ old('metodologia', $atividade->metodologia) }}</textarea>
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="materiais" class="form-label">Materiais Necessários</label>
-                                    <textarea name="materiais" id="materiais" class="form-control" rows="5"
-                                              placeholder="Liste todos os materiais necessários:
-- Papel A4
-- Lápis de cor
-- Tesoura
-- Cola"
-                                              required></textarea>
+                                    <textarea name="materiais" id="materiais" class="form-control" rows="5" required>{{ old('materiais', $atividade->materiais) }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -99,21 +92,15 @@
                         <!-- Atividade Proposta -->
                         <div class="form-group mb-4">
                             <label for="resultados_esperados" class="form-label">Atividade Proposta</label>
-                            <textarea name="resultados_esperados" id="resultados_esperados" class="form-control" rows="5"
-                                      placeholder="Descreva detalhadamente a atividade que os alunos realizarão:
-- Objetivo específico
-- Passo a passo
-- Critérios de avaliação
-- Tempo estimado"
-                                      required></textarea>
+                            <textarea name="resultados_esperados" id="resultados_esperados" class="form-control" rows="5" required>{{ old('resultados_esperados', $atividade->resultados_esperados) }}</textarea>
                         </div>
                         
                         <!-- Botão de submit -->
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <button type="submit" class="btn btn-primary px-4 py-2">
-                                <i class="bi bi-save me-2"></i> Salvar Atividade
+                                <i class="bi bi-save me-2"></i> Atualizar Atividade
                             </button>
-                            <a href="{{ url()->previous() }}" class="btn btn-secondary px-4 py-2">
+                            <a href="{{ route('atividades.show', $atividade->id) }}" class="btn btn-secondary px-4 py-2">
                                 <i class="bi bi-x-circle me-2"></i> Cancelar
                             </a>
                         </div>
@@ -154,5 +141,4 @@
         border-radius: 0.5rem 0.5rem 0 0 !important;
     }
 </style>
-
 @endsection

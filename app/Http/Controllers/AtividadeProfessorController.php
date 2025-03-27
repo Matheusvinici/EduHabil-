@@ -15,8 +15,40 @@ class AtividadeProfessorController extends Controller
 {
     public function index()
     {
-        $atividadesProfessores = AtividadeProfessor::where('professor_id', auth()->id())->get();
+        $atividadesProfessores = AtividadeProfessor::where('professor_id', auth()->id())
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+            
         return view('atividades_professores.index', compact('atividadesProfessores'));
+    }
+    
+    public function store(Request $request)
+    {
+        $request->validate([
+            'disciplina_id' => 'required|exists:disciplinas,id',
+            'ano_id' => 'required|exists:anos,id',
+            'habilidade_id' => 'required|exists:habilidades,id',
+        ]);
+    
+        $atividade = Atividade::where('disciplina_id', $request->disciplina_id)
+            ->where('ano_id', $request->ano_id)
+            ->where('habilidade_id', $request->habilidade_id)
+            ->inRandomOrder()
+            ->first();
+    
+        if (!$atividade) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Nenhuma atividade encontrada com os filtros selecionados.');
+        }
+    
+        AtividadeProfessor::create([
+            'professor_id' => auth()->id(),
+            'atividade_id' => $atividade->id,
+        ]);
+    
+        return redirect()->route('atividades_professores.index')
+            ->with('success', 'Atividade gerada com sucesso!');
     }
 
     public function create()
@@ -30,32 +62,7 @@ class AtividadeProfessorController extends Controller
         return view('atividades_professores.create', compact('disciplinas', 'anos', 'habilidades'));
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'disciplina_id' => 'required|exists:disciplinas,id',
-            'ano_id' => 'required|exists:anos,id',
-            'habilidade_id' => 'required|exists:habilidades,id',
-        ]);
     
-        // Busca uma atividade aleatória com base nos filtros
-        $atividade = Atividade::where('disciplina_id', $request->disciplina_id)
-            ->where('ano_id', $request->ano_id)
-            ->where('habilidade_id', $request->habilidade_id)
-            ->inRandomOrder()
-            ->first();
-    
-        if ($atividade) {
-            AtividadeProfessor::create([
-                'professor_id' => auth()->id(),
-                'atividade_id' => $atividade->id,
-            ]);
-    
-            return redirect()->route('atividades_professores.index')->with('success', 'Atividade gerada com sucesso!');
-        }
-    
-        return redirect()->back()->with('error', 'Nenhuma atividade encontrada com os filtros selecionados.');
-    }
 
     public function show($id)
     {
@@ -63,10 +70,16 @@ class AtividadeProfessorController extends Controller
         return view('atividades_professores.show', compact('atividadeProfessor'));
     }
 
-    public function destroy(AtividadeProfessor $atividadeProfessor)
+    public function destroy($id)
     {
-        $atividadeProfessor->delete();
-        return redirect()->route('atividades_professores.index')->with('success', 'Atividade removida com sucesso!');
+        $relacao = AtividadeProfessor::where('id', $id)
+                  ->where('professor_id', auth()->id())
+                  ->firstOrFail();
+                  
+        $relacao->delete();
+        
+        return redirect()->route('atividades_professores.index')
+               ->with('success', 'Atividade removida da sua lista!');
     }
     public function downloadPdf($id)
 {
