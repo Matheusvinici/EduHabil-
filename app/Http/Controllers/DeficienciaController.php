@@ -7,10 +7,9 @@ use Illuminate\Http\Request;
 
 class DeficienciaController extends Controller
 {
-    // Exibir lista de deficiências
     public function index()
     {
-        $deficiencias = Deficiencia::all();
+        $deficiencias = Deficiencia::paginate(10); // 10 deficiências por página
         return view('deficiencias.index', compact('deficiencias'));
     }
 
