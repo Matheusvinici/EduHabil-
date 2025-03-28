@@ -15,7 +15,7 @@ class Escola extends Model
         'nome',
         'endereco',
         'telefone',
-        // Outros campos, se houver
+        'codigo_escola'
     ];
 
     // Relacionamento com o modelo Turma
