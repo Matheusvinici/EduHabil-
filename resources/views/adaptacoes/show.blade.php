@@ -1,70 +1,149 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Atividade Gerada</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { color: #0d6efd; margin-bottom: 20px; }
-        .card { margin-bottom: 20px; }
-        .card-header { background-color: #0d6efd; color: white; }
-        .list-group-item { border: none; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1 class="text-center">Atividade Gerada</h1>
+@extends('layouts.app')
 
-        <!-- Informações do Recurso -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Recurso</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Nome:</strong> {{ $adaptacao->recurso->nome }}</p>
-                <p><strong>Descrição:</strong> {{ $adaptacao->recurso->descricao }}</p>
-                <p><strong>Como Trabalhar:</strong> {{ $adaptacao->recurso->como_trabalhar }}</p>
-                <p><strong>Direcionamentos:</strong> {{ $adaptacao->recurso->direcionamentos }}</p>
+@section('content')
+<div class="container py-4">
+    <div class="card shadow-lg">
+        <!-- Cabeçalho -->
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-universal-access me-2"></i>Detalhes da Adaptação #{{ $adaptacao->id }}
+                </h2>
+                <a href="{{ route('adaptacoes.index') }}" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i> Voltar
+                </a>
             </div>
         </div>
 
-        <!-- Lista de Deficiências -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Deficiências</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-group">
-                    @foreach ($adaptacao->deficiencias as $deficiencia)
-                        <li class="list-group-item">{{ $deficiencia->nome }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
+        <!-- Corpo do Card -->
+        <div class="card-body">
+            <!-- Seção Superior - Grid de 2 colunas -->
+            <div class="row g-4 mb-4">
+                <!-- Coluna do Recurso -->
+                <div class="col-lg-6">
+                    <div class="card h-100 border-info">
+                        <div class="card-header bg-info text-white d-flex align-items-center">
+                            <i class="fas fa-tools me-2"></i>
+                            <h3 class="h5 mb-0">Recurso Educacional</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4 class="text-primary">{{ $adaptacao->recurso->nome }}</h4>
+                            <div class="mb-3">
+                                <h5 class="h6 text-muted">Descrição:</h5>
+                                <p class="ps-3">{{ $adaptacao->recurso->descricao }}</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h5 class="h6 text-muted">Como trabalhar:</h5>
+                                <div class="bg-light p-3 rounded">
+                                    {!! nl2br(e($adaptacao->recurso->como_trabalhar)) !!}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h5 class="h6 text-muted">Direcionamentos:</h5>
+                                <div class="bg-light p-3 rounded">
+                                    {!! nl2br(e($adaptacao->recurso->direcionamentos)) !!}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Lista de Características -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Características</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-group">
-                    @foreach ($adaptacao->caracteristicas as $caracteristica)
-                        <li class="list-group-item">{{ $caracteristica->nome }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
+                <!-- Coluna de Deficiências e Características -->
+                <div class="col-lg-6">
+                    <div class="h-100 d-flex flex-column gap-3">
+                        <!-- Card de Deficiências -->
+                        <div class="card flex-grow-1 border-primary">
+                            <div class="card-header bg-primary text-white d-flex align-items-center">
+                                <i class="fas fa-wheelchair me-2"></i>
+                                <h3 class="h5 mb-0">Deficiências Atendidas</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    @forelse($adaptacao->deficiencias as $deficiencia)
+                                        <span class="badge bg-primary py-2 px-3">
+                                            <i class="fas fa-fw fa-user-shield me-1"></i>
+                                            {{ $deficiencia->nome }}
+                                        </span>
+                                    @empty
+                                        <div class="text-muted">Nenhuma deficiência associada</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
 
-        <!-- Botão Voltar -->
-        <div class="text-center mt-4">
-            <a href="{{ route('adaptacoes.index') }}" class="btn btn-primary">
-                <i class="fas fa-arrow-left"></i> Voltar
-            </a>
+                        <!-- Card de Características -->
+                        <div class="card flex-grow-1 border-success">
+                            <div class="card-header bg-success text-white d-flex align-items-center">
+                                <i class="fas fa-list-alt me-2"></i>
+                                <h3 class="h5 mb-0">Características</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    @forelse($adaptacao->caracteristicas as $caracteristica)
+                                        <span class="badge bg-success py-2 px-3">
+                                            <i class="fas fa-fw fa-tag me-1"></i>
+                                            {{ $caracteristica->nome }}
+                                        </span>
+                                    @empty
+                                        <div class="text-muted">Nenhuma característica associada</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área de Ações -->
+            <div class="d-flex justify-content-between align-items-center border-top pt-4">
+                <a href="{{ route('adaptacoes.gerarPDF', $adaptacao->id) }}" 
+                   class="btn btn-info px-4">
+                    <i class="fas fa-file-pdf me-2"></i>Gerar PDF
+                </a>
+
+                <form action="{{ route('adaptacoes.destroy', $adaptacao->id) }}" method="POST" 
+                      class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir permanentemente esta adaptação?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="fas fa-trash-alt me-2"></i>Excluir Adaptação
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Adicionando Font Awesome para ícones -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-</body>
-</html>
+<style>
+    .card {
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .card-header {
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+        padding: 1rem 1.25rem;
+    }
+    
+    .badge {
+        font-size: 0.85rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        border-radius: 0.375rem;
+    }
+    
+    .bg-light {
+        background-color: #f8fafc !important;
+    }
+    
+    .rounded {
+        border-radius: 0.5rem !important;
+    }
+    
+    .text-muted {
+        color: #6c757d !important;
+    }
+</style>
+@endsection

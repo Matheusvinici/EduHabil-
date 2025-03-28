@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,21 +13,25 @@ class Adaptacao extends Model
 
     protected $fillable = ['recurso_id'];
 
-    // Relacionamento Many-to-Many com Deficiências
     public function deficiencias()
     {
-        return $this->belongsToMany(Deficiencia::class, 'adaptacao_deficiencia');
+        return $this->belongsToMany(Deficiencia::class, 'adaptacao_deficiencia')
+            ->withTimestamps();
     }
 
-    // Relacionamento Many-to-Many com Características
     public function caracteristicas()
     {
-        return $this->belongsToMany(Caracteristica::class, 'adaptacao_caracteristica');
+        return $this->belongsToMany(Caracteristica::class, 'adaptacao_caracteristica')
+            ->withTimestamps();
     }
 
-    // Relacionamento com Recurso
     public function recurso()
     {
-        return $this->belongsTo(Recurso::class);
+        return $this->belongsTo(Recurso::class)->withDefault([
+            'nome' => 'Recurso não encontrado',
+            'descricao' => '',
+            'como_trabalhar' => '',
+            'direcionamentos' => ''
+        ]);
     }
 }

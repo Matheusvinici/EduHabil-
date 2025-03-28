@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('adaptacoes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('recurso_id')->constrained('recursos')->onDelete('cascade');
+            $table->foreignId('recurso_id')->constrained('recursos');
             $table->timestamps();
         });
     }

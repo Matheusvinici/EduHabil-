@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('adaptacao_caracteristica', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('adaptacao_id')->constrained('adaptacoes')->onDelete('cascade');
-            $table->foreignId('caracteristica_id')->constrained('caracteristicas')->onDelete('cascade');
+            $table->foreignId('adaptacao_id')->constrained('adaptacoes');
+            $table->foreignId('caracteristica_id')->constrained('caracteristicas');
             $table->timestamps();
         });
     }
