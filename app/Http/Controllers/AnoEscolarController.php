@@ -55,11 +55,7 @@ class AnoEscolarController extends Controller
      * @param  \App\Models\Ano  $ano
      * @return \Illuminate\View\View
      */
-    public function edit(Ano $ano)
-    {
-        return view('anos.edit', compact('ano')); // Exibe a tela de edição do ano
-    }
-
+   
     /**
      * Atualiza um ano escolar no banco de dados.
      *
@@ -67,18 +63,28 @@ class AnoEscolarController extends Controller
      * @param  \App\Models\Ano  $ano
      * @return \Illuminate\Http\RedirectResponse
      */
+    public function edit(Ano $ano)
+    {
+        return view('anos.edit', compact('ano'));
+    }
+    
     public function update(Request $request, Ano $ano)
     {
-        // Valida os dados recebidos
         $request->validate([
-            'nome' => 'required|string|max:255',
+            'nome' => 'required|string|max:255|unique:anos,nome,'.$ano->id,
         ]);
-
-        // Atualiza o ano escolar
-        $ano->update($request->all());
-
-        // Redireciona para a tela de listagem de anos
-        return redirect()->route('anos.index')->with('success', 'Ano escolar atualizado com sucesso!');
+    
+        try {
+            $ano->update($request->all());
+            
+            return redirect()->route('anos.index')
+                   ->with('success', 'Ano escolar atualizado com sucesso!');
+                   
+        } catch (\Exception $e) {
+            return redirect()->back()
+                   ->with('error', 'Erro ao atualizar ano escolar: ' . $e->getMessage())
+                   ->withInput();
+        }
     }
 
     /**
