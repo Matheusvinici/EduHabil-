@@ -8,10 +8,9 @@ use Illuminate\Http\Request;
 
 class CaracteristicaController extends Controller
 {
-    // Exibir lista de características
     public function index()
     {
-        $caracteristicas = Caracteristica::with('deficiencia')->get();
+        $caracteristicas = Caracteristica::with('deficiencia')->paginate(10); // 10 itens por página
         return view('caracteristicas.index', compact('caracteristicas'));
     }
 
