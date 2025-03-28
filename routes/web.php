@@ -178,6 +178,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('perguntas', PerguntaController::class);
     Route::post('/perguntas/save-content', [PerguntaController::class, 'saveContent'])->name('perguntas.saveContent');
 
+    Route::resource('users', UserController::class);
+    Route::get('users/pdf/{role?}/{escola_id?}', [UserController::class, 'generatePdf'])->name('users.pdf');
 
 
     // Geração de PDF

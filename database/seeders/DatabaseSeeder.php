@@ -28,6 +28,8 @@ class DatabaseSeeder extends Seeder
           // Chama o seeder das Escolas
           $this->call(EscolasTableSeeder::class);
 
-          
+             // Chama o seeder das Escolas
+             $this->call(QuestoesTableSeeder::class);
+
     }
 }
