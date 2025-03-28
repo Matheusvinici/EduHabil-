@@ -158,6 +158,8 @@ Route::middleware('auth')->group(function () {
 
     // Rotas para Adaptações
     Route::resource('adaptacoes', AdaptacaoController::class);
+    Route::delete('/adaptacoes/{adaptacao}', [AdaptacaoController::class, 'destroy'])
+    ->name('adaptacoes.destroy');
     Route::get('/deficiencias/{deficiencia}/caracteristicas', [DeficienciaController::class, 'caracteristicas']);
     Route::get('/adaptacoes/{adaptacao}/pdf', [AdaptacaoController::class, 'gerarPdf'])->name('adaptacoes.gerarPDF');
     // Rotas para escolas, turmas, disciplinas, habilidades, questões, provas, alunos, anos, etc.

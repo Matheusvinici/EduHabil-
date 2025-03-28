@@ -43,16 +43,15 @@
                             <a href="{{ route('adaptacoes.show', $adaptacao->id) }}" class="btn btn-info btn-sm">
                                 <i class="fas fa-eye"></i> Ver
                             </a>
-                            <a href="{{ route('adaptacoes.edit', $adaptacao->id) }}" class="btn btn-warning btn-sm">
-                                <i class="fas fa-edit"></i> Editar
-                            </a>
-                            <form action="{{ route('adaptacoes.destroy', $adaptacao->id) }}" method="POST" style="display:inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir?')">
-                                    <i class="fas fa-trash"></i> Excluir
-                                </button>
-                            </form>
+                            
+                            <form action="{{ route('adaptacoes.destroy', $adaptacao->id) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deseja realmente excluir?')">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </form>
+
                         </td>
                     </tr>
                 @endforeach

@@ -62,12 +62,22 @@ class AdaptacaoController extends Controller
         return redirect()->route('adaptacoes.index')->with('success', 'Atividade gerada com sucesso!');
     }
 
-    // Exibir detalhes de uma adaptação
-    public function show(Adaptacao $adaptacao)
-    {
-        return view('adaptacoes.show', compact('adaptacao'));
-    }
+    public function show($id)
+{
+    try {
+        $adaptacao = Adaptacao::with([
+            'recurso', 
+            'deficiencias', 
+            'caracteristicas'
+        ])->findOrFail($id);
 
+        return view('adaptacoes.show', compact('adaptacao'));
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return redirect()->route('adaptacoes.index')
+               ->with('error', 'Adaptação não encontrada.');
+    }
+}
     // Exibir formulário de edição
     public function edit(Adaptacao $adaptacao)
     {
@@ -91,11 +101,26 @@ class AdaptacaoController extends Controller
         return redirect()->route('adaptacoes.index')->with('success', 'Adaptação atualizada com sucesso!');
     }
 
-    // Excluir adaptação
-    public function destroy(Adaptacao $adaptacao)
+    public function destroy($id)
     {
-        $adaptacao->delete();
-        return redirect()->route('adaptacoes.index')->with('success', 'Adaptação excluída com sucesso!');
+        try {
+            // Encontra a adaptação apenas pelo ID
+            $adaptacao = Adaptacao::findOrFail($id);
+            
+            // Remove as relações many-to-many
+            $adaptacao->deficiencias()->detach();
+            $adaptacao->caracteristicas()->detach();
+            
+            // Exclui a adaptação
+            $adaptacao->delete();
+            
+            return redirect()->route('adaptacoes.index')
+                   ->with('success', 'Adaptação excluída com sucesso!');
+                   
+        } catch (\Exception $e) {
+            return redirect()->back()
+                   ->with('error', 'Erro ao excluir: ' . $e->getMessage());
+        }
     }
     public function gerarPdf(Adaptacao $adaptacao)
     {
