@@ -19,6 +19,7 @@
                     <div class="form-group">
                         <label for="codigo_escola">Código INEP</label>
                         <input type="text" name="codigo_escola" class="form-control" placeholder="Digite o código INEP" required>
+                  
                     </div>
                 </div>
             </div>

@@ -13,10 +13,10 @@ class EscolaController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function index()
-    {
-        $escolas = Escola::all();
-        return view('escolas.index', compact('escolas'));
-    }
+{
+    $escolas = Escola::orderBy('id', 'desc')->paginate(10);
+    return view('escolas.index', compact('escolas'));
+}
 
     /**
      * Exibe o formulário de criação de escolas.
@@ -35,19 +35,24 @@ class EscolaController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
-    {
-        $request->validate([
-            'nome' => 'required|string|max:255',
-            'endereco' => 'nullable|string|max:255',
-            'telefone' => 'nullable|string|max:20',
-            'codigo_escola' => 'required|string|unique:escolas,codigo_escola',
-        ]);
+{
+    $validatedData = $request->validate([
+        'nome' => 'required|string|max:255',
+        'endereco' => 'nullable|string|max:255',
+        'telefone' => 'nullable|string|max:20',
+        'codigo_escola' => 'required|string|unique:escolas,codigo_escola',
+    ]);
 
-        Escola::create($request->all());
+    Escola::create([
+        'nome' => $validatedData['nome'],
+        'endereco' => $validatedData['endereco'],
+        'telefone' => $validatedData['telefone'],
+        'codigo_escola' => $validatedData['codigo_escola']
+    ]);
 
-        return redirect()->route('escolas.index')
-                         ->with('success', 'Escola cadastrada com sucesso!');
-    }
+    return redirect()->route('escolas.index')
+                     ->with('success', 'Escola cadastrada com sucesso!');
+}
 
     /**
      * Exibe os detalhes de uma escola.
