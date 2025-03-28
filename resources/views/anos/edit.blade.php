@@ -6,22 +6,23 @@
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h2 class="h4 mb-0"><i class="bi bi-calendar-plus"></i> Criar Novo Ano Escolar</h2>
+                    <h2 class="h4 mb-0"><i class="bi bi-pencil-square"></i> Editar Ano Escolar</h2>
                 </div>
                 
                 <div class="card-body">
-                    <form action="{{ route('anos.store') }}" method="POST">
+                    <form action="{{ route('anos.update', $ano->id) }}" method="POST">
                         @csrf
+                        @method('PUT')
                         
                         <div class="form-group mb-4">
                             <label for="nome" class="form-label">Nome do Ano Escolar</label>
                             <input type="text" name="nome" id="nome" class="form-control" 
-                                   placeholder="Ex: 1º Ano do Ensino Fundamental" required>
+                                   value="{{ old('nome', $ano->nome) }}" required>
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <button type="submit" class="btn btn-primary px-4 py-2">
-                                <i class="bi bi-save me-2"></i> Salvar
+                                <i class="bi bi-save me-2"></i> Atualizar
                             </button>
                             <a href="{{ route('anos.index') }}" class="btn btn-secondary px-4 py-2">
                                 <i class="bi bi-x-circle me-2"></i> Cancelar
