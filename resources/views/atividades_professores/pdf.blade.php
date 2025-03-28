@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ $atividadeProfessor->atividade->titulo }} - Prefeitura de Juazeiro-BA</title>
+    <title>Relatório de Usuários - Prefeitura de Juazeiro-BA</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -52,44 +52,68 @@
             margin-top: 25px;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
+            text-align: center;
         }
         
-        .info-aluno {
+        .filters {
             background-color: #f5f5f5;
             padding: 15px;
             border-radius: 5px;
             margin: 20px 0;
         }
         
-        .info-aluno label {
+        .filters p {
+            margin: 5px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th {
+            background-color: #0066cc;
+            color: white;
+            text-align: left;
+            padding: 10px;
+        }
+        
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .badge {
             display: inline-block;
-            width: 80px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
             font-weight: bold;
         }
         
-        .info-aluno input {
-            border: none;
-            border-bottom: 1px solid #ccc;
-            width: 200px;
-            margin-right: 30px;
-            background-color: transparent;
+        .badge-admin {
+            background-color: #dc3545;
+            color: white;
         }
         
-        .section {
-            margin-bottom: 25px;
+        .badge-coordenador {
+            background-color: #ffc107;
+            color: #212529;
         }
         
-        .section-title {
-            color: #0066cc;
-            font-size: 16px;
-            margin-bottom: 8px;
-            border-left: 4px solid #0066cc;
-            padding-left: 10px;
+        .badge-professor {
+            background-color: #17a2b8;
+            color: white;
         }
         
-        .section-content {
-            padding-left: 14px;
-            text-align: justify;
+        .badge-default {
+            background-color: #6c757d;
+            color: white;
         }
         
         .footer {
@@ -122,64 +146,59 @@
         </div>
     </div>
     
-    <!-- Dados do Aluno -->
-    <div class="info-aluno">
-       
-        
-        <label for="turma">Turma:</label>
-        <input type="text" id="turma" name="turma">
-        
-        <label for="ano">Ano:</label>
-        <input type="text" id="ano" name="ano" value="{{ $atividadeProfessor->atividade->ano->nome }}">
+    <!-- Título do Relatório -->
+    <h1>Relatório de Usuários Cadastrados</h1>
+    
+    <!-- Filtros Aplicados -->
+    @if($escola || $role)
+    <div class="filters">
+        <h3>Filtros Aplicados:</h3>
+        @if($escola)
+            <p><strong>Escola:</strong> {{ $escola->nome }}</p>
+        @endif
+        @if($role)
+            <p><strong>Papel:</strong> {{ $role }}</p>
+        @endif
     </div>
+    @endif
     
-    <!-- Título da Atividade -->
-    <h1>{{ $atividadeProfessor->atividade->titulo }}</h1>
+    <!-- Tabela de Usuários -->
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Papel</th>
+                <th>Escola</th>
+                <th>CPF</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($users as $user)
+            <tr>
+                <td>{{ $user->name }}</td>
+                <td>{{ $user->email }}</td>
+                <td>
+                    <span class="badge badge-{{ $user->role == 'admin' ? 'admin' : ($user->role == 'coordenador' ? 'coordenador' : ($user->role == 'professor' ? 'professor' : 'default')) }}">
+                        {{ ucfirst($user->role) }}
+                    </span>
+                </td>
+                <td>{{ $user->escola->nome ?? 'N/A' }}</td>
+                <td>{{ $user->cpf ?? 'N/A' }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
     
-    <!-- Informações Básicas -->
-    <div class="section">
-        <div class="section-title">Informações Básicas</div>
-        <div class="section-content">
-            <p><strong>Disciplina:</strong> {{ $atividadeProfessor->atividade->disciplina->nome }}</p>
-            <p><strong>Habilidade:</strong> {{ $atividadeProfessor->atividade->habilidade->descricao }}</p>
-        </div>
-    </div>
-    
-    <!-- Objetivo -->
-    <div class="section">
-        <div class="section-title">Objetivo</div>
-        <div class="section-content">
-            <p>{{ $atividadeProfessor->atividade->objetivo }}</p>
-        </div>
-    </div>
-    
-    <!-- Etapas da Aula -->
-    <div class="section">
-        <div class="section-title">Etapas da Aula</div>
-        <div class="section-content">
-            <p>{!! nl2br(e($atividadeProfessor->atividade->metodologia)) !!}</p>
-        </div>
-    </div>
-    
-    <!-- Materiais Necessários -->
-    <div class="section">
-        <div class="section-title">Materiais Necessários</div>
-        <div class="section-content">
-            <p>{!! nl2br(e($atividadeProfessor->atividade->materiais)) !!}</p>
-        </div>
-    </div>
-    
-    <!-- Atividade Proposta -->
-    <div class="section">
-        <div class="section-title">Atividade Proposta</div>
-        <div class="section-content">
-            <p>{!! nl2br(e($atividadeProfessor->atividade->resultados_esperados)) !!}</p>
-        </div>
+    <!-- Resumo -->
+    <div style="margin-top: 20px; text-align: right;">
+        <p><strong>Total de usuários:</strong> {{ $users->count() }}</p>
+        <p><strong>Gerado em:</strong> {{ now()->format('d/m/Y H:i') }}</p>
     </div>
     
     <!-- Rodapé -->
     <div class="footer">
-        <p>EduHabil+ - Sistema de Geração de Atividades Educacionais</p>
+        <p>EduHabil+ - Sistema de Gestão Educacional</p>
         <p>Prefeitura Municipal de Juazeiro - Secretaria de Educação</p>
     </div>
 </body>
