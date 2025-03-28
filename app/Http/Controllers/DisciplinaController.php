@@ -14,7 +14,9 @@ class DisciplinaController extends Controller
      */
     public function index()
     {
-        $disciplinas = Disciplina::all();
+        // Ordena por ID decrescente (último primeiro) e paginação
+        $disciplinas = Disciplina::orderBy('id', 'desc')->paginate(10);
+        
         return view('disciplinas.index', compact('disciplinas'));
     }
 
