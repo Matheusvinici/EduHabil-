@@ -72,6 +72,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/respostas_simulados/professor/{simulado}/{aluno}', [RespostaSimuladoController::class, 'showProfessor'])->name('respostas_simulados.professor.show');
     Route::get('/respostas_simulados/professor/estatisticas', [RespostaSimuladoController::class, 'estatisticasProfessor'])->name('respostas_simulados.professor.estatisticas');
 
+    Route::get('/professor/estatisticas/export/pdf', [RespostaSimuladoController::class, 'exportProfessorPdf'])
+    ->name('respostas_simulados.professor.export.pdf');
+
+Route::get('/professor/estatisticas/export/excel', [RespostaSimuladoController::class, 'exportProfessorExcel'])
+    ->name('respostas_simulados.professor.export.excel');
 
     // Rotas para provas
     Route::resource('provas', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
@@ -110,6 +115,19 @@ Route::middleware('auth')->group(function () {
 
 // Rotas para coordenadores
 Route::middleware('auth')->group(function () {
+
+    Route::get('/estatisticas', [RespostaSimuladoController::class, 'indexCoordenador'])
+    ->name('respostas_simulados.coordenador.index');
+
+Route::get('/estatisticas/detalhes-turma/{turma_id}', [RespostaSimuladoController::class, 'detalhesTurma'])
+    ->name('respostas_simulados.coordenador.detalhes-turma');
+
+Route::get('/estatisticas/export/pdf', [RespostaSimuladoController::class, 'exportCoordenadorPdf'])
+    ->name('respostas_simulados.coordenador.export.pdf');
+
+Route::get('/estatisticas/export/excel', [RespostaSimuladoController::class, 'exportCoordenadorExcel'])
+    ->name('respostas_simulados.coordenador.export.excel');
+
     Route::get('/coordenador/dashboard', [CoordenadorController::class, 'dashboard'])->name('coordenador.dashboard');
     Route::get('/provas/coordenador/index', [ProvaController::class, 'indexCoordenador'])->name('provas.coordenador.index');
     Route::get('/turmas/coordenador/index', [TurmaController::class, 'indexCoordenador'])->name('turmas.coordenador.index');
@@ -123,6 +141,13 @@ Route::middleware('auth')->group(function () {
 
 // Rotas para administradores
 Route::middleware('auth')->group(function () {
+    Route::get('/admin/estatisticas/export/pdf', [RespostaSimuladoController::class, 'exportAdminPdf'])
+    ->name('respostas_simulados.admin.export.pdf');
+Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::class, 'exportAdminExcel'])
+    ->name('respostas_simulados.admin.export.excel');
+    Route::get('/respostas-simulados/admin/detalhes-escola/{escola_id}', [RespostaSimuladoController::class, 'detalhesEscola'])
+    ->name('respostas_simulados.admin.detalhes-escola');
+
     Route::get('/user/create', [UserController::class, 'create'])->name('admin.user.create');
     Route::get('/provas', [ProvaController::class, 'index'])->name('provas.index');
     Route::get('/provas/admin/index', [ProvaController::class, 'indexAdmin'])->name('provas.admin.index');
