@@ -134,6 +134,38 @@
         </div>
     </div>
 
+        <!-- Estatísticas por Raça/Cor -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">Estatísticas por Raça/Cor</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="thead-primary bg-primary text-white">
+                    <tr>
+                        <th>Raça/Cor</th>
+                        <th>Total de Respostas</th>
+                        <th>Acertos</th>
+                        <th>% de Acertos</th>
+                        <th>Média Final (0-10)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($estatisticasPorRaca as $estatistica)
+                        <tr>
+                            <td>{{ $estatistica['raca'] }}</td>
+                            <td>{{ $estatistica['total_respostas'] }}</td>
+                            <td>{{ $estatistica['acertos'] }}</td>
+                            <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
+                            <td>{{ number_format($estatistica['media_final'], 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
     <!-- Estatísticas por Escola -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">

@@ -13,6 +13,8 @@ class Simulado extends Model
         'nome',
         'descricao',
         'ano_id',
+        'tempo_limite'
+
     ];
 
     public function perguntas()

@@ -200,6 +200,30 @@
         </div>
     </div>
     
+        <!-- Estatísticas por Raça (Sempre exibido) -->
+<h2>Estatísticas por Raça/Cor</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Raça/Cor</th>
+            <th>Total Respostas</th>
+            <th>Acertos</th>
+            <th>% Acertos</th>
+            <th>Média (0-10)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($estatisticasPorRaca as $estatistica)
+        <tr>
+            <td>{{ $estatistica['raca'] }}</td>
+            <td>{{ $estatistica['total_respostas'] }}</td>
+            <td>{{ $estatistica['acertos'] }}</td>
+            <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
+            <td>{{ number_format($estatistica['media_final'], 2) }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
     <!-- Médias Gerais (Sempre exibido junto com Dados Gerais) -->
     <h2>Médias Gerais</h2>
     <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">

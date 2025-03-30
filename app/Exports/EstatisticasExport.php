@@ -167,6 +167,43 @@ class EstatisticasExport implements WithMultipleSheets
             };
         }
         
+        // Sheet por raça (nova adição)
+        if (!empty($this->data['estatisticasPorRaca'])) {
+            $sheets[] = new class($this->data['estatisticasPorRaca']) implements FromArray, WithTitle, WithHeadings, ShouldAutoSize {
+                protected $data;
+                
+                public function __construct($data)
+                {
+                    $this->data = $data;
+                }
+                
+                public function array(): array
+                {
+                    $result = [];
+                    foreach ($this->data as $item) {
+                        $result[] = [
+                            $item['raca'],
+                            $item['total_respostas'],
+                            $item['acertos'],
+                            number_format($item['porcentagem_acertos'], 2) . '%',
+                            number_format($item['media_final'], 2)
+                        ];
+                    }
+                    return $result;
+                }
+                
+                public function title(): string
+                {
+                    return 'Por Raça/Cor';
+                }
+                
+                public function headings(): array
+                {
+                    return ['Raça/Cor', 'Total Respostas', 'Acertos', '% Acertos', 'Média Final'];
+                }
+            };
+        }
+        
         return $sheets;
     }
 }

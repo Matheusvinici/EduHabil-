@@ -25,28 +25,29 @@ class SimuladoController extends Controller
         return view('simulados.create', compact('perguntas', 'anos'));
     }
 
-    // Armazenar novo simulado
     public function store(Request $request)
-    {
-        $request->validate([
-            'nome' => 'required|string|max:255',
-            'descricao' => 'nullable|string',
-            'perguntas' => 'required|string', 
-            'ano_id' => 'required|string',
-        ]);
-    
-        $perguntasIds = explode(',', $request->perguntas);
-    
-        $simulado = Simulado::create([
-            'nome' => $request->nome,
-            'descricao' => $request->descricao,
-            'ano_id' => $request->ano_id,
-        ]);
-    
-        $simulado->perguntas()->attach($perguntasIds);
-    
-        return redirect()->route('simulados.index')->with('success', 'Simulado criado com sucesso!');
-    }
+{
+    $request->validate([
+        'nome' => 'required|string|max:255',
+        'descricao' => 'nullable|string',
+        'perguntas' => 'required|string',
+        'ano_id' => 'required|exists:anos,id',
+        'tempo_limite' => 'nullable|integer|min:1'
+    ]);
+
+    $perguntasIds = explode(',', $request->perguntas);
+
+    $simulado = Simulado::create([
+        'nome' => $request->nome,
+        'descricao' => $request->descricao,
+        'ano_id' => $request->ano_id,
+        'tempo_limite' => $request->tempo_limite
+    ]);
+
+    $simulado->perguntas()->attach($perguntasIds);
+
+    return redirect()->route('simulados.index')->with('success', 'Simulado criado com sucesso!');
+}
 
     // Exibir detalhes de um simulado
     public function show(Simulado $simulado)

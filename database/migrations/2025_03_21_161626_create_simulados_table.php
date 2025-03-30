@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('ano_id'); // Chave estrangeira para anos
             $table->string('nome');
             $table->text('descricao')->nullable();
+            $table->integer('tempo_limite')->nullable()->comment('Tempo em minutos');
             $table->timestamps();
 
             // Chave estrangeira para anos

@@ -14,6 +14,11 @@
                     <label for="nome">Nome do Simulado</label>
                     <input type="text" name="nome" id="nome" class="form-control" required>
                 </div>
+                            <div class="form-group">
+                <label for="tempo_limite">Tempo Limite (minutos)</label>
+                <input type="number" name="tempo_limite" id="tempo_limite" class="form-control" 
+                    min="1" placeholder="Deixe em branco para sem limite">
+            </div>
                 <div class="form-group">
                     <label for="ano_id">Ano:</label>
                     <select name="ano_id" id="ano_id" class="form-control" required>
