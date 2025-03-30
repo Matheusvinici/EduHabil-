@@ -18,7 +18,9 @@ class RespostaSimulado extends Model
         'pergunta_id',
         'resposta',
         'correta',
-    ];
+         'raca',
+         'tempo_resposta'
+        ];
 
     public function user()
     {

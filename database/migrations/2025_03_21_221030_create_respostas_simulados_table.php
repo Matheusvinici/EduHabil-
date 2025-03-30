@@ -20,6 +20,9 @@ return new class extends Migration
             $table->unsignedBigInteger('pergunta_id'); // Pergunta respondida
             $table->enum('resposta', ['A', 'B', 'C', 'D']); // Resposta do aluno
             $table->boolean('correta'); // Indica se a resposta está correta
+                $table->string('raca')->nullable(); // Adicionando campo de raça
+                $table->integer('tempo_resposta')->nullable()->comment('Tempo em segundos que o aluno levou para responder TODO o simulado');
+
             $table->timestamps();
         
             // Chaves estrangeiras
