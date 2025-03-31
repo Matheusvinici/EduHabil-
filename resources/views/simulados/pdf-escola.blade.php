@@ -215,9 +215,7 @@
                     <p class="option">C) {{ $pergunta->alternativa_c }}</p>
                     <p class="option">D) {{ $pergunta->alternativa_d }}</p>
                 </div>
-                <div class="correct-answer">
-                    <strong>Resposta:</strong> {{ $pergunta->resposta_correta }}
-                </div>
+              
             </div>
         @endforeach
     </div>

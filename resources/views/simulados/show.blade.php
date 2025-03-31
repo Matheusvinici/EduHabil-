@@ -2,47 +2,54 @@
 
 @section('content')
 <div class="container">
-    <h1>{{ $simulado->nome }}</h1>
-    <p>Ano: {{ $simulado->ano->nome }}</p>
-    <p>Descrição: {{ $simulado->descricao }}</p>
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title m-0">Detalhes do Simulado</h3>
+        </div>
+        <div class="card-body">
+            <h4 class="mb-4">{{ $simulado->nome }}</h4>
 
-    <h2>Questões</h2>
-    <form action="#" method="POST">
-        @csrf
-        @foreach ($simulado->perguntas as $index => $pergunta)
-            <div class="mb-4">
-                <p><strong>{{ $index + 1 }}. {{ $pergunta->enunciado }}</strong></p>
-
-                <!-- Verifica se a pergunta tem imagem associada -->
-                @if ($pergunta->imagem)
-                    <div class="mb-3">
-                        <img src="{{ Storage::url($pergunta->imagem) }}" alt="Imagem da Pergunta" class="img-fluid">
-                    </div>
-                @endif
-
-                <div>
-                    <input type="radio" id="q{{ $index }}_a" name="respostas[{{ $pergunta->id }}]" value="A">
-                    <label for="q{{ $index }}_a">A) {{ $pergunta->alternativa_a }}</label>
-                </div>
-                <div>
-                    <input type="radio" id="q{{ $index }}_b" name="respostas[{{ $pergunta->id }}]" value="B">
-                    <label for="q{{ $index }}_b">B) {{ $pergunta->alternativa_b }}</label>
-                </div>
-                <div>
-                    <input type="radio" id="q{{ $index }}_c" name="respostas[{{ $pergunta->id }}]" value="C">
-                    <label for="q{{ $index }}_c">C) {{ $pergunta->alternativa_c }}</label>
-                </div>
-                <div>
-                    <input type="radio" id="q{{ $index }}_d" name="respostas[{{ $pergunta->id }}]" value="D">
-                    <label for="q{{ $index }}_d">D) {{ $pergunta->alternativa_d }}</label>
-                </div>
-                <div>
-                    <input type="radio" id="q{{ $index }}_e" name="respostas[{{ $pergunta->id }}]" value="E">
-                    <label for="q{{ $index }}_e">E) {{ $pergunta->alternativa_e }}</label>
-                </div>
+            <div class="mb-3">
+                <strong>Tempo Limite:</strong>
+                {{ $simulado->tempo_limite ? $simulado->tempo_limite . ' minutos' : 'Sem limite' }}
             </div>
-        @endforeach
-        <button type="submit" class="btn btn-success">Enviar Respostas</button>
-    </form>
+
+            <div class="mb-3">
+                <strong>Ano:</strong>
+                {{ $simulado->ano->nome }}
+            </div>
+
+            <div class="mb-3">
+                <strong>Descrição:</strong>
+                <p>{{ $simulado->descricao }}</p>
+            </div>
+
+            <div class="mb-3">
+                <strong>Perguntas:</strong>
+                <ul class="list-group">
+                    @foreach ($simulado->perguntas as $pergunta)
+                        <li class="list-group-item">
+                            <strong>{{ $pergunta->enunciado }}</strong>
+                            @if ($pergunta->imagem)
+                                <div class="text-center mt-2">
+                                    <img src="{{ asset('storage/' . $pergunta->imagem) }}" alt="Imagem da pergunta" class="img-fluid" style="max-width: 500px;">
+                                </div>
+                            @endif
+                            <div class="mt-2">
+                                <p>A) {{ $pergunta->alternativa_a }}</p>
+                                <p>B) {{ $pergunta->alternativa_b }}</p>
+                                <p>C) {{ $pergunta->alternativa_c }}</p>
+                                <p>D) {{ $pergunta->alternativa_d }}</p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+
+            <div class="text-end">
+                <a href="{{ route('simulados.index') }}" class="btn btn-secondary">Voltar</a>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
