@@ -12,7 +12,7 @@ class SimuladoController extends Controller
     // Exibir todos os simulados
     public function index()
     {
-        $simulados = Simulado::all();
+        $simulados = Simulado::orderBy('created_at', 'desc')->paginate(10);
         return view('simulados.index', compact('simulados'));
     }
 
@@ -58,26 +58,29 @@ class SimuladoController extends Controller
     // Exibir formulário de edição
     public function edit(Simulado $simulado)
     {
+        $anos = Ano::all();
         $perguntas = Pergunta::all();
-        return view('simulados.edit', compact('simulado', 'perguntas'));
+        return view('simulados.edit', compact('simulado', 'anos', 'perguntas'));
     }
 
-    // Atualizar simulado
     public function update(Request $request, Simulado $simulado)
     {
         $request->validate([
-            'nome' => 'required|string|max:255',
-            'descricao' => 'nullable|string',
-            'perguntas' => 'required|array',
-            'perguntas.*' => 'exists:perguntas,id',
+            'nome' => 'required',
+            'ano_id' => 'required|exists:anos,id',
+            'tempo_limite' => 'nullable|integer|min:1',
         ]);
 
         $simulado->update([
             'nome' => $request->nome,
+            'ano_id' => $request->ano_id,
             'descricao' => $request->descricao,
+            'tempo_limite' => $request->tempo_limite,
         ]);
 
-        $simulado->perguntas()->sync($request->perguntas);
+        // Sincroniza as perguntas selecionadas
+        $perguntaIds = explode(',', $request->perguntas);
+        $simulado->perguntas()->sync($perguntaIds);
 
         return redirect()->route('simulados.index')->with('success', 'Simulado atualizado com sucesso!');
     }
@@ -98,6 +101,13 @@ class SimuladoController extends Controller
         return $pdf->download('simulado_' . $simulado->id . '.pdf');
     }
 
+
+    public function gerarPdfEscolas(Simulado $simulado)
+    {
+        $simulado->load('perguntas');
+        $pdf = Pdf::loadView('simulados.pdf-escola', compact('simulado'));
+        return $pdf->download('simulado_' . $simulado->id . '.pdf');
+    }
     // Teste de conversão para Braille
     public function testBrailleConversion()
     {
@@ -218,6 +228,13 @@ public function converterParaBraille($texto)
         {
             $simulado->load('perguntas');
             $pdf = Pdf::loadView('simulados.pdf-baixa-visao', compact('simulado'));
+            return $pdf->download('simulado_' . $simulado->id . '.pdf');
+        }
+
+        public function gerarPdfBaixaVisaoEscola(Simulado $simulado)
+        {
+            $simulado->load('perguntas');
+            $pdf = Pdf::loadView('simulados.pdf-baixa-visao-escola', compact('simulado'));
             return $pdf->download('simulado_' . $simulado->id . '.pdf');
         }
 }

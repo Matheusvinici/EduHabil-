@@ -3,170 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulado - {{ $simulado->nome }}</title>
+    <title>Simulado - {{ $simulado->nome }} - Versão Ampliada</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #333;
-            line-height: 1.3;
-            font-size: 11px;
+            margin: 20px;
+            padding: 20px;
+            color: #000; /* Preto para alto contraste */
+            line-height: 1.6; /* Aumento do espaçamento entre linhas */
+            font-size: 18px; /* Aumento do tamanho da fonte */
+            background-color: #fff; /* Branco para alto contraste */
         }
         .header {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column; /* Coloca os elementos em coluna para melhor leitura */
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             border-bottom: 3px solid #0066cc;
-            padding-bottom: 15px;
-        }
-        .logo-container {
-            display: flex;
-            align-items: center;
+            padding-bottom: 20px;
         }
         .logo {
-            height: 80px;
-            margin-right: 15px;
+            max-width: 200px; /* Aumento do tamanho da logo */
+            margin-bottom: 15px;
         }
         .header-text {
-            text-align: right;
+            text-align: center;
         }
         .municipio {
-            font-size: 14px;
+            font-size: 20px;
             color: #555;
             font-style: italic;
         }
         .sistema {
-            font-size: 12px;
+            font-size: 16px;
             color: #777;
-            margin-top: 5px;
+            margin-top: 10px;
         }
         .main-title {
             color: #0066cc;
-            font-size: 16px;
-            margin: 10px 0;
+            font-size: 24px;
+            margin: 20px 0;
             text-align: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
         }
         .student-form table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 20px;
         }
         .student-form td {
-            padding: 5px;
+            padding: 10px;
         }
         .form-label {
             display: block;
             font-weight: bold;
             color: #0066cc;
-            font-size: 10px;
-            margin-bottom: 2px;
+            font-size: 16px;
+            margin-bottom: 5px;
         }
         .form-input {
             width: 100%;
             border: none;
-            border-bottom: 1px solid #999;
-            padding: 3px 0;
-            font-size: 11px;
+            border-bottom: 2px solid #999;
+            padding: 8px 0;
+            font-size: 18px;
         }
         .questions-container {
-            column-count: 1;
+            column-count: 1; /* Garante que as perguntas não sejam divididas em colunas */
         }
         .question {
-            margin-bottom: 12px;
-            page-break-inside: avoid;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 8px;
+            margin-bottom: 20px;
+            page-break-inside: avoid; /* Evita que as perguntas sejam divididas entre páginas */
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
             background-color: #f9f9f9;
         }
         .question-text {
             font-weight: bold;
-            margin-bottom: 6px;
-            font-size: 12px;
+            margin-bottom: 10px;
+            font-size: 20px;
         }
         .options {
-            margin-left: 8px;
+            margin-left: 15px;
         }
         .option {
-            margin: 3px 0;
-            font-size: 11px;
+            margin: 8px 0;
+            font-size: 18px;
         }
         .image-container {
             text-align: center;
-            margin: 6px 0;
+            margin: 10px 0;
         }
         .question-image {
-            max-width: 100%;
-            max-height: 350px;
+            max-width: 90%; /* Aumento do tamanho da imagem */
+            max-height: 500px;
             height: auto;
-            border: 1px solid #ddd;
-            border-radius: 3px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
         }
         .correct-answer {
-            margin-top: 6px;
-            padding: 4px;
+            margin-top: 10px;
+            padding: 8px;
             background-color: #f8f9fa;
-            border-left: 3px solid #0066cc;
-            font-size: 11px;
+            border-left: 5px solid #0066cc;
+            font-size: 18px;
         }
         .skills {
             background-color: #f0f7ff;
-            border: 1px solid #cce5ff;
-            border-radius: 4px;
-            padding: 8px 10px;
-            margin: 12px 0;
-            font-size: 10px;
+            border: 2px solid #cce5ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 16px;
         }
         .skills-title {
             color: #0066cc;
-            margin: 0 0 5px 0;
-            font-size: 12px;
-            border-bottom: 1px solid #cce5ff;
-            padding-bottom: 3px;
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            border-bottom: 2px solid #cce5ff;
+            padding-bottom: 5px;
         }
         .footer {
             text-align: center;
-            margin-top: 12px;
-            font-size: 9px;
+            margin-top: 20px;
+            font-size: 16px;
             color: #777;
-            border-top: 1px solid #eee;
-            padding-top: 4px;
+            border-top: 2px solid #eee;
+            padding-top: 8px;
         }
         .questions-count {
             text-align: right;
-            margin: 5px 0;
-            font-size: 11px;
+            margin: 10px 0;
+            font-size: 18px;
             font-weight: bold;
         }
         @media print {
             body {
-                font-size: 10pt;
-            }
-            .question {
-                margin-bottom: 10pt;
+                font-size: 16pt;
             }
             .question-image {
-                max-height: 180pt;
+                max-height: 400pt;
             }
             @page {
-                margin: 1cm;
+                margin: 2cm;
             }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="logo-container">
-            <img src="{{ public_path('images/logoprefeitura.png') }}" class="logo" alt="Prefeitura de Juazeiro-BA">
-            <div>
-                <h2>Secretaria Municipal de Educação</h2>
-                <p class="municipio">Prefeitura de Juazeiro-BA, presente no futuro da gente.</p>
-            </div>
-        </div>
+        <img src="{{ public_path('images/logoprefeitura.png') }}" class="logo" alt="Logo da Prefeitura de Juazeiro-BA (Imagem ampliada)">
         <div class="header-text">
+            <h2>Secretaria Municipal de Educação</h2>
+            <p class="municipio">Prefeitura de Juazeiro-BA, presente no futuro da gente.</p>
             <p class="sistema">Gerado pelo sistema EduHabil+</p>
             <p>{{ now()->format('d/m/Y H:i') }}</p>
         </div>
@@ -206,7 +197,7 @@
                 </div>
                 @if ($pergunta->imagem && file_exists(storage_path('app/public/' . $pergunta->imagem)))
                     <div class="image-container">
-                        <img src="{{ storage_path('app/public/' . $pergunta->imagem) }}" class="question-image" alt="Imagem da pergunta {{ $loop->iteration }}">
+                        <img src="{{ storage_path('app/public/' . $pergunta->imagem) }}" class="question-image" alt="Imagem da pergunta {{ $loop->iteration }} (Imagem ampliada)">
                     </div>
                 @endif
                 <div class="options">
@@ -215,9 +206,7 @@
                     <p class="option">C) {{ $pergunta->alternativa_c }}</p>
                     <p class="option">D) {{ $pergunta->alternativa_d }}</p>
                 </div>
-                <div class="correct-answer">
-                    <strong>Resposta:</strong> {{ $pergunta->resposta_correta }}
-                </div>
+               
             </div>
         @endforeach
     </div>

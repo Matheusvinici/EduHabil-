@@ -24,8 +24,9 @@
                         <th>ID</th>
                         <th>Nome</th>
                         <th>Ações</th>
-                        <th>Acessibilidade</th>
-
+                        <th>Simulados com Gabarito</th>
+                        <th>Simulados sem Gabarito</th>
+                       
                     </tr>
                 </thead>
                 <tbody>
@@ -33,7 +34,6 @@
                         <tr>
                             <td>{{ $simulado->id }}</td>
                             <td>{{ $simulado->nome }}</td>
-
                             <td>
                                 <a href="{{ route('simulados.show', $simulado->id) }}" class="btn btn-info btn-sm" title="Ver">
                                     <i class="fas fa-eye"></i>
@@ -41,10 +41,6 @@
                                 <a href="{{ route('simulados.edit', $simulado->id) }}" class="btn btn-warning btn-sm" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{{ route('simulados.gerarPdf', $simulado->id) }}" class="btn btn-success btn-sm" title="Baixar PDF">
-                                    <i class="fas fa-download"></i>
-                                </a>
-
                                 <form action="{{ route('simulados.destroy', $simulado->id) }}" method="POST" style="display: inline-block;">
                                     @csrf
                                     @method('DELETE')
@@ -54,15 +50,30 @@
                                 </form>
                             </td>
                             <td>
-                            <a href="{{ route('simulados.gerar-pdf-braille', $simulado->id) }}" class="btn btn-secondary">Prova em Braille</a>
-                                <a href="{{ route('simulados.baixa-visao', $simulado->id) }}" class="btn btn-primary">
-                                    Alunos com Baixa Visão
+                                <a href="{{ route('simulados.gerarPdf', $simulado->id) }}" class="btn btn-success btn-sm" title="Baixar PDF">
+                                    Simulado
                                 </a>
+                                
                             </td>
+                            
+                            <td>
+                                <a href="{{ route('simulados.gerarPdfEscolas', $simulado->id) }}" class="btn btn-success btn-sm" title="Baixar PDF">
+                                    Simulado
+                                </a>
+                                <a href="{{ route('simulados.baixa-visao-escola', $simulado->id) }}" class="btn btn-primary btn-sm">
+                                    Prova Ampliada
+                                </a>
+                                <a href="{{ route('simulados.gerar-pdf-braille', $simulado->id) }}" class="btn btn-secondary btn-sm">Prova em Braille</a>
+
+                            </td>
+                           
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+            <div class="d-flex justify-content-center">
+                {{ $simulados->links() }}
+            </div>
         </div>
     </div>
 </div>

@@ -16,8 +16,20 @@
             line-height: 1.4;
         }
         .header {
-            text-align: center;
-            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 15px;
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        .logo {
+            height: 80px;
+            margin-right: 15px;
         }
         .pergunta {
             margin-bottom: 15px;
@@ -49,6 +61,16 @@
     </style>
 </head>
 <body>
+<div class="header">
+        <div class="logo-container">
+            <img src="{{ public_path('images/logoprefeitura.png') }}" class="logo" alt="Prefeitura de Juazeiro-BA">
+            <div>
+                <h2>Secretaria Municipal de Educação</h2>
+                <p class="municipio">Prefeitura de Juazeiro-BA, presente no futuro da gente.</p>
+            </div>
+        </div>
+       
+    </div>
     <div class="header">
         <h1 class="braille-text">{{ $converterParaBraille('SIMULADO: ' . $simulado->nome) }}</h1>
         @if($simulado->descricao)

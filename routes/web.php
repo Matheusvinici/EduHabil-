@@ -158,9 +158,17 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     // Rotas para simulados
         Route::resource('simulados', SimuladoController::class);
         Route::get('simulados/{simulado}/gerar-pdf', [SimuladoController::class, 'gerarPdf'])->name('simulados.gerarPdf');
+        Route::get('simulados/{simulado}/gerar-pdf-Escola', [SimuladoController::class, 'gerarPdfEscolas'])->name('simulados.gerarPdfEscolas');
+       
+
         Route::get('/simulados/{simulado}/gerar-pdf-braille', [SimuladoController::class, 'gerarPdfBraille'])->name('simulados.gerar-pdf-braille');
+     
         Route::get('/simulados/{simulado}/baixa-visao', [SimuladoController::class, 'gerarPdfBaixaVisao'])
         ->name('simulados.baixa-visao');
+        Route::get('/simulados/{simulado}/baixa-visao-escola', [SimuladoController::class, 'gerarPdfBaixaVisaoEscola'])
+        ->name('simulados.baixa-visao-escola');
+
+        
 
 // Rota para processar a criação do usuário
     Route::post('/user', [UserController::class, 'store'])->name('admin.user.store');
