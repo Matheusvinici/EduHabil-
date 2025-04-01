@@ -39,7 +39,10 @@
                             <select name="pergunta_id" id="pergunta_id" class="form-control">
                                 <option value="">Selecione uma pergunta</option>
                                 @foreach ($perguntas as $pergunta)
-                                    <option value="{{ $pergunta->id }}" data-enunciado="{{ $pergunta->enunciado }}" data-imagem="{{ $pergunta->imagem ? asset('storage/' . $pergunta->imagem) : '' }}">
+                                    <option value="{{ $pergunta->id }}"
+                                            data-enunciado="{{ $pergunta->enunciado }}"
+                                            data-imagem="{{ $pergunta->imagem ? asset('storage/' . $pergunta->imagem) : '' }}"
+                                            data-peso="{{ $pergunta->peso }}">
                                         {{ $pergunta->enunciado }}
                                     </option>
                                 @endforeach
@@ -55,7 +58,17 @@
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <h5>Perguntas Adicionadas</h5>
-                        <ul id="lista-perguntas" class="list-group"></ul>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Peso</th>
+                                    <th>Enunciado</th>
+                                    <th>Imagem</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-perguntas"></tbody>
+                        </table>
                         <input type="hidden" name="perguntas" id="perguntas-selecionadas">
                     </div>
                 </div>
@@ -81,18 +94,21 @@
                 const perguntaId = selectedOption.value;
                 const enunciado = selectedOption.getAttribute('data-enunciado');
                 const imagem = selectedOption.getAttribute('data-imagem');
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.innerHTML = `
-                    <div>
-                        <strong>${enunciado}</strong>
-                        ${imagem ? `<br><img src="${imagem}" alt="Imagem da pergunta" style="max-width: 100px;">` : ''}
-                    </div>
-                    <button type="button" class="btn btn-danger btn-sm remover-pergunta" data-id="${perguntaId}">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                const peso = selectedOption.getAttribute('data-peso');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${peso}</td>
+                    <td>${enunciado}</td>
+                    <td>${imagem ? `<img src="${imagem}" alt="Imagem da pergunta" style="max-width: 100px;">` : 'Sem imagem'}</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm remover-pergunta" data-id="${perguntaId}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 `;
-                listaPerguntas.appendChild(li);
+
+                listaPerguntas.appendChild(tr);
                 perguntasAdicionadas.add(perguntaId);
                 inputPerguntasSelecionadas.value = Array.from(perguntasAdicionadas).join(',');
                 selectPergunta.selectedIndex = 0;
@@ -102,8 +118,8 @@
         listaPerguntas.addEventListener('click', function (event) {
             if (event.target.classList.contains('remover-pergunta')) {
                 const perguntaId = event.target.getAttribute('data-id');
-                const li = event.target.closest('li');
-                li.remove();
+                const tr = event.target.closest('tr');
+                tr.remove();
                 perguntasAdicionadas.delete(perguntaId);
                 inputPerguntasSelecionadas.value = Array.from(perguntasAdicionadas).join(',');
             }
@@ -111,4 +127,3 @@
     });
 </script>
 @endsection
-
