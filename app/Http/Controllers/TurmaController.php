@@ -147,50 +147,49 @@ class TurmaController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
-    {
-        $request->validate([
-            'nome_turma' => 'required|string|max:255',
-            'quantidade_alunos' => 'required|integer|min:1',
-        ]);
+{
+    $request->validate([
+        'nome_turma' => 'required|string|max:255',
+        'alunos' => 'required|array|min:1',
+        'alunos.*' => 'required|string|max:255',
+    ]);
 
-        $user = Auth::user();
+    $user = Auth::user();
 
-        // Gera um código único para a turma
-        $codigoTurma = Str::random(8);
+    // Gera um código único para a turma
+    $codigoTurma = Str::random(8);
 
-        // Cria a turma
-        $turma = Turma::create([
-            'nome_turma' => $request->input('nome_turma'),
-            'quantidade_alunos' => $request->input('quantidade_alunos'),
-            'escola_id' => $user->escola_id, // Vincula à escola do professor logado
-            'professor_id' => $user->id, // Vincula ao professor logado
-            'codigo_turma' => $codigoTurma, // Define o código da turma
-        ]);
+    // Cria a turma
+    $turma = Turma::create([
+        'nome_turma' => $request->input('nome_turma'),
+        'quantidade_alunos' => count($request->input('alunos')), // Conta a quantidade de alunos
+        'escola_id' => $user->escola_id,
+        'professor_id' => $user->id,
+        'codigo_turma' => $codigoTurma,
+    ]);
 
-        // Gera códigos de acesso para os alunos
-        $alunos = [];
-        for ($i = 1; $i <= $request->input('quantidade_alunos'); $i++) {
-            $codigoAcesso = Str::random(8); // Gera um código aleatório
-            $email = "{$codigoAcesso}@juazeiro.ba.gov.br"; // E-mail único
-            $alunos[] = [
-                'name' => "Aluno {$i} - {$turma->nome_turma}",
-                'email' => $email,
-                'codigo_acesso' => $codigoAcesso,
-                'escola_id' => $user->escola_id, // Vincula à escola do professor
-                'turma_id' => $turma->id, // Vincula à turma
-                'role' => 'aluno',
-                'password' => Hash::make($codigoAcesso), // Senha é o código de acesso
-            ];
-        }
-
-        // Insere os alunos no banco de dados
-        User::insert($alunos);
-
-
-
-        return redirect()->route('turmas.index')
-                         ->with('success', 'Turma e alunos cadastrados com sucesso!');
+    // Gera códigos de acesso para os alunos
+    $alunos = [];
+    foreach ($request->input('alunos') as $nomeAluno) {
+        $codigoAcesso = Str::random(8); // Gera um código aleatório
+        $email = "{$codigoAcesso}@juazeiro.ba.gov.br"; // E-mail único
+        $alunos[] = [
+            'name' => $nomeAluno, // Usa o nome real do aluno
+            'email' => $email,
+            'codigo_acesso' => $codigoAcesso,
+            'escola_id' => $user->escola_id,
+            'turma_id' => $turma->id,
+            'role' => 'aluno',
+            'password' => Hash::make($codigoAcesso),
+        ];
     }
+
+    // Insere os alunos no banco de dados
+    User::insert($alunos);
+
+    return redirect()->route('turmas.index')
+                     ->with('success', 'Turma e alunos cadastrados com sucesso!');
+}
 
     /**
      * Exibe os detalhes de uma turma.
@@ -324,50 +323,45 @@ class TurmaController extends Controller
     public function gerarCodigosAdicionais(Request $request, Turma $turma)
     {
         $user = Auth::user();
-
+    
+        // Verificação de permissões
         if ($user->role === 'admin') {
-            // Admin pode gerar códigos para qualquer turma
+            // Admin pode adicionar alunos a qualquer turma
         } elseif ($user->role === 'professor') {
-            // Professor só pode gerar códigos para as turmas que ele cadastrou
             if ($turma->professor_id !== $user->id) {
                 abort(403, 'Acesso não autorizado.');
             }
         } else {
-            // Outros papéis (se houver) não têm permissão
             abort(403, 'Acesso não autorizado.');
         }
-
+    
         $request->validate([
-            'quantidade_adicionais' => 'required|integer|min:1',
+            'alunos' => 'required|array|min:1',
+            'alunos.*' => 'required|string|max:255',
         ]);
-
-        $quantidadeAdicionais = $request->input('quantidade_adicionais');
-
-        // Gera códigos de acesso para os novos alunos
+    
         $alunos = [];
-        for ($i = 1; $i <= $quantidadeAdicionais; $i++) {
-            $codigoAcesso = Str::random(8); // Gera um código aleatório
-            $email = "{$codigoAcesso}@juazeiro.ba.gov.br"; // E-mail único
+        foreach ($request->input('alunos') as $nomeAluno) {
+            $codigoAcesso = Str::random(8);
+            $email = "{$codigoAcesso}@juazeiro.ba.gov.br";
             $alunos[] = [
-                'name' => "Aluno Adicional {$i} - {$turma->nome_turma}",
+                'name' => $nomeAluno,
                 'email' => $email,
                 'codigo_acesso' => $codigoAcesso,
-                'escola_id' => $user->escola_id, // Vincula à escola do professor
-                'turma_id' => $turma->id, // Vincula à turma
+                'escola_id' => $user->escola_id,
+                'turma_id' => $turma->id,
                 'role' => 'aluno',
-                'password' => Hash::make($codigoAcesso), // Senha é o código de acesso
+                'password' => Hash::make($codigoAcesso),
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
         }
-
-        // Insere os novos alunos no banco de dados
+    
         User::insert($alunos);
-
-        // Atualiza a quantidade de alunos na turma
-        $turma->quantidade_alunos += $quantidadeAdicionais;
-        $turma->save();
-
+        $turma->increment('quantidade_alunos', count($alunos));
+    
         return redirect()->route('turmas.show', $turma->id)
-                         ->with('success', "{$quantidadeAdicionais} códigos adicionais gerados com sucesso!");
+                       ->with('success', count($alunos) . ' alunos adicionados com sucesso!');
     }
 
 }

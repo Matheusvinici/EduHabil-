@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="card">
-<div class="card-header">
+    <div class="card-header">
         <h3 class="card-title">Listagem de Turmas</h3>
         <div class="card-tools">
             <a href="{{ route('turmas.create') }}" class="btn btn-primary">Nova Turma</a>
@@ -25,27 +25,31 @@
                     <td>{{ $turma->quantidade_alunos }}</td>
                     <td>{{ $turma->codigo_turma }}</td>
                     <td>
-                      
+                     
 
-                        <!-- Modal para gerar códigos adicionais -->
-                        <div class="modal fade" id="modalGerarCodigos{{ $turma->id }}" tabindex="-1" role="dialog" aria-labelledby="modalGerarCodigosLabel{{ $turma->id }}" aria-hidden="true">
+                        <!-- Modal para adicionar novos alunos -->
+                        <div class="modal fade" id="modalAdicionarAlunos{{ $turma->id }}" tabindex="-1" role="dialog" aria-labelledby="modalAdicionarAlunosLabel{{ $turma->id }}" aria-hidden="true">
                             <div class="modal-dialog" role="document">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="modalGerarCodigosLabel{{ $turma->id }}">Gerar Códigos Adicionais</h5>
+                                        <h5 class="modal-title" id="modalAdicionarAlunosLabel{{ $turma->id }}">Adicionar Alunos à Turma</h5>
                                         <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
                                     </div>
                                     <div class="modal-body">
-                                        <form action="{{ route('turmas.gerar-codigos-adicionais', $turma->id) }}" method="POST">
-                                            @csrf
-                                            <div class="form-group">
-                                                <label for="quantidade_adicionais">Quantidade de Códigos Adicionais:</label>
-                                                <input type="number" name="quantidade_adicionais" class="form-control" required>
+                                    <form action="{{ route('turmas.gerar-codigos-adicionais', $turma->id) }}" method="POST" id="formAdicionarAlunos{{ $turma->id }}">
+                                        @csrf
+                                        <div id="alunos-container-{{ $turma->id }}">
+                                            <div class="input-group mb-2 aluno-input">
+                                                <input type="text" name="alunos[]" class="form-control" placeholder="Digite o nome do aluno" required>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-danger remover-aluno" type="button">Remover</button>
+                                                </div>
                                             </div>
-                                            <button type="submit" class="btn btn-primary">Gerar Códigos</button>
-                                        </form>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary mt-2">Salvar</button>
+                                    </form>
                                     </div>
                                 </div>
                             </div>
@@ -61,7 +65,7 @@
                         <form action="{{ route('turmas.destroy', $turma->id) }}" method="POST" style="display: inline;">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta turma?')">Excluir</button>
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta turma? Todos os alunos vinculados também serão removidos.')">Excluir</button>
                         </form>
                     </td>
                 </tr>
@@ -70,4 +74,38 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Adiciona novo campo de aluno nos modais
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('adicionar-aluno')) {
+            const containerId = e.target.getAttribute('data-container');
+            const container = document.getElementById(containerId);
+            const novoInput = document.createElement('div');
+            novoInput.className = 'input-group mb-2 aluno-input';
+            novoInput.innerHTML = `
+                <input type="text" name="alunos[]" class="form-control" placeholder="Digite o nome do aluno" required>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-danger remover-aluno" type="button">Remover</button>
+                </div>
+            `;
+            container.appendChild(novoInput);
+        }
+    });
+
+    // Remove campo de aluno
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remover-aluno')) {
+            const inputGroup = e.target.closest('.aluno-input');
+            // Não permitir remover o último campo
+            if (inputGroup.parentElement.querySelectorAll('.aluno-input').length > 1) {
+                inputGroup.remove();
+            } else {
+                alert('É necessário ter pelo menos um aluno cadastrado.');
+            }
+        }
+    });
+});
+</script>
 @endsection
