@@ -16,7 +16,7 @@ return new class extends Migration
         $table->string('name');
         $table->string('email')->unique(); // E-mail único para todos (opcional)
         $table->string('password');
-        $table->enum('role', ['admin', 'professor', 'aluno', 'aee', 'inclusiva', 'coordenador'])->default('professor');
+        $table->enum('role', ['admin', 'gestor', 'aplicador', 'professor', 'aluno', 'aee', 'inclusiva', 'coordenador'])->default('professor');
         $table->unsignedBigInteger('escola_id')->nullable(); // Chave estrangeira para escolas
         
         $table->string('codigo_acesso')->nullable(); // Código de acesso do aluno
