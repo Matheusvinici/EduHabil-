@@ -93,6 +93,58 @@ class ProvaController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+
+     public function edit(Prova $prova)
+     {
+         if ($prova->user_id != Auth::id()) {
+             abort(403, 'Acesso não autorizado');
+         }
+     
+         return view('provas.edit', [
+             'prova' => $prova,
+             'anos' => Ano::all(),
+             'disciplinas' => Disciplina::all(),
+             'habilidades' => Habilidade::all()
+         ]);
+     }
+     
+     public function show(Prova $prova)
+     {
+         // Verifica se o usuário tem permissão
+         if ($prova->user_id != auth()->id()) {
+             abort(403, 'Acesso não autorizado');
+         }
+     
+         // Carrega todos os relacionamentos necessários
+         $prova->load(['escola', 'ano', 'disciplina', 'habilidade', 'questoes']);
+     
+         // Retorna a view correta com o caminho completo
+         return view('provas.show', compact('prova'));
+     }
+     
+     public function update(Request $request, Prova $prova)
+     {
+         if ($prova->user_id != Auth::id()) {
+             abort(403, 'Acesso não autorizado');
+         }
+     
+         $validated = $request->validate([
+             'nome' => 'required|string|max:255',
+             'ano_id' => 'required|exists:anos,id',
+             'disciplina_id' => 'required|exists:disciplinas,id',
+             'habilidade_id' => 'required|exists:habilidades,id',
+             'data' => 'required|date',
+             'observacoes' => 'nullable|string'
+         ]);
+     
+         $prova->update($validated);
+     
+         return redirect()->route('provas.index')
+                         ->with('success', 'Prova atualizada com sucesso!');
+     }
+     
+     // Mostrar formulário de edição
+
     public function store(Request $request)
     {
         $request->validate([
@@ -200,6 +252,28 @@ class ProvaController extends Controller
         'totalEscolasSemProvas',
         'escolaId'
     ));
+}   
+
+
+            /**
+ * Remove the specified resource from storage.
+ */
+public function destroy(Prova $prova)
+{
+    // Verificação básica de permissão
+    if ($prova->user_id != auth()->id()) {
+        return back()->with('error', 'Você não tem permissão para excluir esta prova');
+    }
+
+    try {
+        // Remove apenas a prova (as questões permanecem no banco)
+        $prova->delete();
+        
+        return redirect()->route('provas.indexProfessor')
+                       ->with('success', 'Prova excluída com sucesso');
+    } catch (\Exception $e) {
+        return back()->with('error', 'Falha ao excluir prova: ' . $e->getMessage());
+    }
 }
     /**
      * Gera o PDF das escolas que não geraram provas.
@@ -234,12 +308,16 @@ class ProvaController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function indexProfessor()
-    {
-        $user = Auth::user();
-        $provas = Prova::where('user_id', $user->id)->with(['escola', 'ano', 'disciplina'])->get();
-        return view('provas.professor.index', compact('provas'));
-    }
+                public function indexProfessor()
+            {
+                $user = Auth::user();
+                $provas = Prova::where('user_id', $user->id)
+                            ->with(['escola', 'ano', 'disciplina'])
+                            ->orderBy('created_at', 'desc') // Ordena do mais recente para o mais antigo
+                            ->paginate(10); // Paginação com 10 itens por página
+                            
+                return view('provas.professor.index', compact('provas'));
+            }
 
     /**
      * Exibe a listagem de provas para o perfil do coordenador.
@@ -300,20 +378,7 @@ class ProvaController extends Controller
      * @param  \App\Models\Prova  $prova
      * @return \Illuminate\Http\Response
      */
-    public function show(Prova $prova)
-    {
-        $user = Auth::user();
-
-        // Verifica se o usuário tem permissão para acessar a prova
-        if ($user->role === 'professor' && $prova->user_id !== $user->id) {
-            abort(403, 'Acesso não autorizado.');
-        }
-
-        // Carrega as questões associadas à prova
-        $prova->load('questoes');
-
-        return view('provas.show', compact('prova'));
-    }
+   
 
     /**
      * Gera o PDF de uma prova.
@@ -335,6 +400,27 @@ class ProvaController extends Controller
 
         // Gera o PDF
         $pdf = Pdf::loadView('provas.pdf', [
+            'prova' => $prova,
+            'user' => $user,
+        ]);
+
+        return $pdf->download('prova_' . $prova->id . '.pdf');
+    }
+
+    public function gerarPDFGabarito(Prova $prova)
+    {
+        $user = Auth::user();
+
+        // Verifica se o usuário tem permissão para acessar a prova
+        if ($user->role === 'professor' && $prova->user_id !== $user->id) {
+            abort(403, 'Acesso não autorizado.');
+        }
+
+        // Carrega as questões associadas à prova
+        $prova->load('questoes');
+
+        // Gera o PDF
+        $pdf = Pdf::loadView('provas.pdf-gabarito', [
             'prova' => $prova,
             'user' => $user,
         ]);

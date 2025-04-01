@@ -20,7 +20,7 @@
                                 <th scope="col">Ano</th>
                                 <th scope="col">Disciplina</th>
                                 <th scope="col">Enunciado</th>
-                                <th scope="col">Resposta Correta</th>
+                                <th scope="col">Peso</th>
                                 <th scope="col">Imagem</th>
                                 <th scope="col">Ações</th>
                             </tr>
@@ -32,7 +32,7 @@
                                     <td>{{ $pergunta->ano->nome }}</td>
                                     <td>{{ $pergunta->disciplina->nome }}</td>
                                     <td>{{ Str::limit($pergunta->enunciado, 50) }}</td>
-                                    <td>{{ $pergunta->resposta_correta }}</td>
+                                    <td>{{ $pergunta->peso }}</td>
                                     <td>
                                         @if ($pergunta->imagem)
                                             <a href="{{ asset('storage/' . $pergunta->imagem) }}" target="_blank" title="Abrir imagem em nova guia">

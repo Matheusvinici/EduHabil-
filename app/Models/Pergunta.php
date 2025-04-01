@@ -20,6 +20,7 @@ class Pergunta extends Model
         'alternativa_d',
         'resposta_correta',
         'imagem', // Campo para a imagem
+        'peso', 
     ];
 
     // Relacionamentos

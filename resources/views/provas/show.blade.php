@@ -2,24 +2,81 @@
 
 @section('content')
 <div class="container">
-    <h1>{{ $prova->nome }}</h1>
-    <p>Data: {{ $prova->data }}</p>
-    <p>Observações: {{ $prova->observacoes }}</p>
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Detalhes da Prova</h3>
+                <a href="{{ route('provas.professor.index') }}" class="btn btn-light btn-sm">
+                    Voltar para Lista
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Informações Básicas</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <strong>Nome:</strong> {{ $prova->nome }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Escola:</strong> {{ $prova->escola->nome }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Ano:</strong> {{ $prova->ano->nome }}
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>Detalhes Acadêmicos</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <strong>Disciplina:</strong> {{ $prova->disciplina->nome }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Habilidade:</strong> {{ $prova->habilidade->descricao }}
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Data:</strong> {{ $prova->data->format('d/m/Y') }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
-    <h2>Questões</h2>
-    <ul>
-        @foreach ($prova->questoes as $questao)
-            <li>
-                <p>{{ $questao->enunciado }}</p>
-                <p>A) {{ $questao->alternativa_a }}</p>
-                <p>B) {{ $questao->alternativa_b }}</p>
-                <p>C) {{ $questao->alternativa_c }}</p>
-                <p>D) {{ $questao->alternativa_d }}</p>
-                <p>E) {{ $questao->alternativa_e }}</p>
-                <p>Resposta correta: {{ $questao->resposta_correta }}</p>
-                <a href="{{ route('questoes.edit', $questao->id) }}" class="btn btn-primary">Editar Questão</a>
-            </li>
-        @endforeach
-    </ul>
+            @if($prova->observacoes)
+            <div class="mb-4">
+                <h5>Observações</h5>
+                <div class="card">
+                    <div class="card-body">
+                        {{ $prova->observacoes }}
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                    <a href="{{ route('provas.professor.edit', $prova) }}" class="btn btn-warning">
+                        Editar Prova
+                    </a>
+                    <a href="{{ route('provas.professor.pdf', $prova) }}" class="btn btn-info">
+                        Baixar PDF
+                    </a>
+                    <a href="{{ route('provas.professor.pdf-gabarito', $prova) }}" class="btn btn-secondary">
+                        Baixar Gabarito
+                    </a>
+                </div>
+                
+                <form action="{{ route('provas.professor.destroy', $prova) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger" 
+                            onclick="return confirm('Tem certeza que deseja excluir esta prova?')">
+                        Excluir Prova
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
