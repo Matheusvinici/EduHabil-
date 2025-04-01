@@ -81,7 +81,7 @@ Route::get('/professor/estatisticas/export/excel', [RespostaSimuladoController::
     // Rotas para provas
     Route::resource('provas', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
     Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');
-
+        
     // Rotas para respostas
     Route::get('respostas/professor/index', [RespostaController::class, 'professorIndex'])->name('respostas.professor.index');
     Route::get('/respostas/professor/{prova}/{aluno}', [RespostaController::class, 'professorShow'])
@@ -206,6 +206,9 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     Route::resource('atividades', AtividadeController::class);
 
     Route::resource('provas', ProvaController::class);
+    Route::delete('/{prova}', [ProvaController::class, 'destroy'])
+    ->name('provas.destroy');
+
     Route::resource('alunos', AlunoController::class);
     Route::resource('anos', AnoEscolarController::class);
     Route::resource('perguntas', PerguntaController::class);
@@ -217,6 +220,7 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
 
     // Geração de PDF
     Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');
+    Route::get('provas/{prova}/pdf-com-gabarito', [ProvaController::class, 'gerarPDFGabarito'])->name('provas.gerarPDFGabarito');
 
     // Gestão de Usuários
     Route::resource('users', UserController::class)->except(['create', 'store']);

@@ -36,6 +36,8 @@ class PerguntaController extends Controller
         'resposta_correta' => 'required|in:A,B,C,D',
         'imagem' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validação da imagem
         'imagem_tamanho' => 'nullable|in:img-fluid,w-25,w-50,w-75,w-100', // Validação do tamanho
+        'peso' => 'required|integer|min:1|max:10', 
+
     ]);
 
     // Upload da imagem (se existir)
@@ -55,6 +57,7 @@ class PerguntaController extends Controller
         'alternativa_c' => $request->alternativa_c,
         'alternativa_d' => $request->alternativa_d,
         'resposta_correta' => $request->resposta_correta,
+        'peso' => $request->peso, 
         'imagem' => $imagemPath, // Salva o caminho da imagem
         'imagem_tamanho' => $request->imagem_tamanho, // Salva o tamanho escolhido
     ]);

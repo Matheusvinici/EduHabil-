@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('alternativa_d');
             $table->enum('resposta_correta', ['A', 'B', 'C', 'D']);
             $table->string('imagem')->nullable(); // Coluna para a imagem (opcional)
+            $table->integer('peso')->default(1);
             $table->timestamps();
         });
     }
