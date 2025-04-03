@@ -35,6 +35,8 @@ class RespostaSimuladoController extends Controller
         switch ($user->role) {
             case 'admin':
                 return redirect()->route('respostas_simulados.admin.estatisticas');
+                case 'inclusiva':
+                    return redirect()->route('respostas_simulados.inclusiva.estatisticas');
             case 'professor':
                 return redirect()->route('respostas_simulados.professor.index');
             case 'coordenador':
@@ -1117,6 +1119,254 @@ class RespostaSimuladoController extends Controller
     /**
      * Exibe as estatísticas gerais (para o admin).
      */
+
+     public function estatisticasInclusiva(Request $request)
+     {
+         $user = Auth::user();
+     
+         if ($user->role !== 'admin') {
+             abort(403, 'Acesso não autorizado.');
+         }
+     
+         // Filtros
+         $filtros = [
+             'escola_id' => $request->input('escola_id'),
+             'ano_id' => $request->input('ano_id'),
+             'simulado_id' => $request->input('simulado_id'),
+             'habilidade_id' => $request->input('habilidade_id'),
+             'deficiencia' => $request->input('deficiencia')
+         ];
+     
+         // Busca todas as escolas, anos, simulados e habilidades para os filtros
+         $escolas = Escola::all();
+         $anos = Ano::all();
+         $simulados = Simulado::all();
+         $habilidades = Habilidade::all();
+     
+         // Query base para usuários com filtros de escola
+         $baseUserQuery = User::query()
+             ->when($filtros['escola_id'], function ($query) use ($filtros) {
+                 return $query->where('escola_id', $filtros['escola_id']);
+             });
+     
+         // Dados gerais COM FILTROS
+         $totalSimulados = Simulado::when($filtros['ano_id'], function($query) use ($filtros) {
+                 return $query->where('ano_id', $filtros['ano_id']);
+             })->count();
+     
+         $totalProfessores = (clone $baseUserQuery)->where('role', 'professor')->count();
+         $totalAlunos = (clone $baseUserQuery)->where('role', 'aluno')->count();
+         
+         $totalAlunosComDeficiencia = (clone $baseUserQuery)
+             ->where('role', 'aluno')
+             ->when($filtros['deficiencia'] && $filtros['deficiencia'] !== 'ND', function($query) use ($filtros) {
+                 return $query->where('deficiencia', $filtros['deficiencia']);
+             })
+             ->when($filtros['deficiencia'] === 'ND', function($query) {
+                 return $query->whereNull('deficiencia');
+             })
+             ->when(!$filtros['deficiencia'], function($query) {
+                 return $query->whereNotNull('deficiencia');
+             })
+             ->count();
+     
+         // Query base para estatísticas de respostas (com correção para coluna ambígua)
+         $baseQuery = RespostaSimulado::query()
+             ->when($filtros['escola_id'], function ($query) use ($filtros) {
+                 return $query->where('respostas_simulados.escola_id', $filtros['escola_id']);
+             })
+             ->when($filtros['simulado_id'], function ($query) use ($filtros) {
+                 return $query->where('simulado_id', $filtros['simulado_id']);
+             })
+             ->when($filtros['ano_id'], function ($query) use ($filtros) {
+                 return $query->whereHas('simulado', function ($q) use ($filtros) {
+                     $q->where('ano_id', $filtros['ano_id']);
+                 });
+             })
+             ->when($filtros['habilidade_id'], function ($query) use ($filtros) {
+                 return $query->whereHas('pergunta', function ($q) use ($filtros) {
+                     $q->where('habilidade_id', $filtros['habilidade_id']);
+                 });
+             })
+             ->when($filtros['deficiencia'], function ($query) use ($filtros) {
+                 if ($filtros['deficiencia'] === 'ND') {
+                     return $query->whereHas('user', function($q) {
+                         $q->whereNull('deficiencia');
+                     });
+                 }
+                 return $query->whereHas('user', function($q) use ($filtros) {
+                     $q->where('deficiencia', $filtros['deficiencia']);
+                 });
+             });
+     
+         // Totais que responderam
+         $totalRespostas = $baseQuery->count();
+         
+         $professoresResponderam = (clone $baseUserQuery)
+             ->where('role', 'professor')
+             ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
+                 $q->whereIn('id', $baseQuery->select('id')->getQuery());
+             })->count();
+     
+         $alunosResponderam = (clone $baseUserQuery)
+             ->where('role', 'aluno')
+             ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
+                 $q->whereIn('id', $baseQuery->select('id')->getQuery());
+             })->count();
+     
+         // Estatísticas por escola (com correção para coluna ambígua)
+         $estatisticasPorEscola = $baseQuery->clone()
+             ->select(
+                 DB::raw('escolas.nome as escola'),
+                 DB::raw('COUNT(*) as total_respostas'),
+                 DB::raw('SUM(correta) as acertos')
+             )
+             ->join('escolas', 'respostas_simulados.escola_id', '=', 'escolas.id')
+             ->groupBy('escolas.nome')
+             ->get()
+             ->map(function ($item) {
+                 return [
+                     'escola' => $item->escola,
+                     'total_respostas' => $item->total_respostas,
+                     'acertos' => $item->acertos,
+                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
+                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                 ];
+             })->toArray();
+     
+         // Estatísticas por ano
+         $estatisticasPorAno = $baseQuery->clone()
+             ->select(
+                 DB::raw('anos.nome as ano'),
+                 DB::raw('COUNT(*) as total_respostas'),
+                 DB::raw('SUM(correta) as acertos')
+             )
+             ->join('simulados', 'respostas_simulados.simulado_id', '=', 'simulados.id')
+             ->join('anos', 'simulados.ano_id', '=', 'anos.id')
+             ->groupBy('anos.nome')
+             ->get()
+             ->map(function ($item) {
+                 return [
+                     'ano' => $item->ano,
+                     'total_respostas' => $item->total_respostas,
+                     'acertos' => $item->acertos,
+                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
+                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                 ];
+             })->toArray();
+     
+         // Estatísticas por habilidade
+         $estatisticasPorHabilidade = $baseQuery->clone()
+             ->select(
+                 DB::raw('habilidades.descricao as habilidade'),
+                 DB::raw('COUNT(*) as total_respostas'),
+                 DB::raw('SUM(correta) as acertos')
+             )
+             ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
+             ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
+             ->groupBy('habilidades.descricao')
+             ->get()
+             ->map(function ($item) {
+                 return [
+                     'habilidade' => $item->habilidade,
+                     'total_respostas' => $item->total_respostas,
+                     'acertos' => $item->acertos,
+                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0
+                 ];
+             })->toArray();
+     
+         // Estatísticas por raça (corrigido para usar a coluna da tabela respostas_simulados)
+         $estatisticasPorRaca = $baseQuery->clone()
+             ->select(
+                 DB::raw('COALESCE(raca, "Não informado") as raca'),
+                 DB::raw('COUNT(*) as total_respostas'),
+                 DB::raw('SUM(correta) as acertos')
+             )
+             ->groupBy(DB::raw('COALESCE(raca, "Não informado")'))
+             ->orderBy('raca')
+             ->get()
+             ->map(function ($item) {
+                 return [
+                     'raca' => $item->raca,
+                     'total_respostas' => $item->total_respostas,
+                     'acertos' => $item->acertos,
+                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
+                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                 ];
+             })->toArray();
+     
+         // Estatísticas por deficiência (com correção para coluna ambígua)
+         $estatisticasPorDeficiencia = $baseQuery->clone()
+             ->select(
+                 DB::raw('COALESCE(users.deficiencia, "ND") as deficiencia'),
+                 DB::raw('COUNT(*) as total_respostas'),
+                 DB::raw('SUM(correta) as acertos')
+             )
+             ->join('users', 'respostas_simulados.user_id', '=', 'users.id')
+             ->groupBy('users.deficiencia')
+             ->orderBy('users.deficiencia')
+             ->get()
+             ->map(function ($item) {
+                 return [
+                     'deficiencia' => $item->deficiencia,
+                     'total_respostas' => $item->total_respostas,
+                     'acertos' => $item->acertos,
+                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
+                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                 ];
+             })->toArray();
+     
+         // Alunos por deficiência (quantidade)
+         $alunosPorDeficiencia = (clone $baseUserQuery)
+             ->where('role', 'aluno')
+             ->select('deficiencia', DB::raw('count(*) as total'))
+             ->groupBy('deficiencia')
+             ->orderBy('deficiencia')
+             ->get()
+             ->map(function ($item) {
+                 return [
+                     'deficiencia' => $item->deficiencia ?? 'ND',
+                     'total' => $item->total
+                 ];
+             })->toArray();
+     
+         // Médias gerais com filtros
+         $mediaGeral1a5 = (clone $baseQuery)
+             ->whereHas('simulado', function ($q) {
+                 $q->whereIn('ano_id', range(1, 5));
+             })
+             ->avg('correta') * 10;
+     
+         $mediaGeral6a9 = (clone $baseQuery)
+             ->whereHas('simulado', function ($q) {
+                 $q->whereIn('ano_id', range(6, 9));
+             })
+             ->avg('correta') * 10;
+     
+         return view('respostas_simulados.inclusiva.estatisticas', compact(
+             'totalSimulados',
+             'totalProfessores',
+             'totalAlunos',
+             'totalRespostas',
+             'professoresResponderam',
+             'alunosResponderam',
+             'estatisticasPorEscola',
+             'estatisticasPorAno',
+             'estatisticasPorHabilidade',
+             'estatisticasPorRaca',
+             'mediaGeral1a5',
+             'mediaGeral6a9',
+             'totalAlunosComDeficiencia',
+             'alunosPorDeficiencia',
+             'estatisticasPorDeficiencia',
+             'escolas',
+             'anos',
+             'simulados',
+             'habilidades',
+             'filtros',
+             'request'
+         ));
+     }
     public function estatisticasAdmin(Request $request)
     {
         $user = Auth::user();
@@ -1126,10 +1376,13 @@ class RespostaSimuladoController extends Controller
         }
     
         // Filtros
-        $escolaId = $request->input('escola_id');
-        $anoId = $request->input('ano_id');
-        $simuladoId = $request->input('simulado_id');
-        $habilidadeId = $request->input('habilidade_id');
+        $filtros = [
+            'escola_id' => $request->input('escola_id'),
+            'ano_id' => $request->input('ano_id'),
+            'simulado_id' => $request->input('simulado_id'),
+            'habilidade_id' => $request->input('habilidade_id'),
+            'deficiencia' => $request->input('deficiencia')
+        ];
     
         // Busca todas as escolas, anos, simulados e habilidades para os filtros
         $escolas = Escola::all();
@@ -1137,58 +1390,85 @@ class RespostaSimuladoController extends Controller
         $simulados = Simulado::all();
         $habilidades = Habilidade::all();
     
-        // Dados gerais
-        $totalSimulados = Simulado::count();
-        $totalProfessores = User::where('role', 'professor')->count();
-        $totalAlunos = User::where('role', 'aluno')->count();
-        $totalRespostas = RespostaSimulado::count();
+        // Query base para usuários com filtros de escola
+        $baseUserQuery = User::query()
+            ->when($filtros['escola_id'], function ($query) use ($filtros) {
+                return $query->where('escola_id', $filtros['escola_id']);
+            });
     
-        // Total de professores e alunos que responderam o simulado
-        $professoresResponderam = User::where('role', 'professor')
-            ->whereHas('respostasSimulado')
+        // Dados gerais COM FILTROS
+        $totalSimulados = Simulado::when($filtros['ano_id'], function($query) use ($filtros) {
+                return $query->where('ano_id', $filtros['ano_id']);
+            })->count();
+    
+        $totalProfessores = (clone $baseUserQuery)->where('role', 'professor')->count();
+        $totalAlunos = (clone $baseUserQuery)->where('role', 'aluno')->count();
+        
+        $totalAlunosComDeficiencia = (clone $baseUserQuery)
+            ->where('role', 'aluno')
+            ->when($filtros['deficiencia'] && $filtros['deficiencia'] !== 'ND', function($query) use ($filtros) {
+                return $query->where('deficiencia', $filtros['deficiencia']);
+            })
+            ->when($filtros['deficiencia'] === 'ND', function($query) {
+                return $query->whereNull('deficiencia');
+            })
+            ->when(!$filtros['deficiencia'], function($query) {
+                return $query->whereNotNull('deficiencia');
+            })
             ->count();
-        $alunosResponderam = User::where('role', 'aluno')
-            ->whereHas('respostasSimulado')
-            ->count();
     
-        // Inicializa as variáveis de estatísticas
-        $estatisticasPorEscola = [];
-        $estatisticasPorAno = [];
-        $estatisticasPorHabilidade = [];
-        $estatisticasPorRaca = [];
-        $mediaGeral1a5 = 0;
-        $mediaGeral6a9 = 0;
-    
-        // Query base para estatísticas
+        // Query base para estatísticas de respostas (com correção para coluna ambígua)
         $baseQuery = RespostaSimulado::query()
-            ->when($escolaId, function ($query, $escolaId) {
-                return $query->whereHas('user', function ($q) use ($escolaId) {
-                    $q->where('escola_id', $escolaId);
+            ->when($filtros['escola_id'], function ($query) use ($filtros) {
+                return $query->where('respostas_simulados.escola_id', $filtros['escola_id']);
+            })
+            ->when($filtros['simulado_id'], function ($query) use ($filtros) {
+                return $query->where('simulado_id', $filtros['simulado_id']);
+            })
+            ->when($filtros['ano_id'], function ($query) use ($filtros) {
+                return $query->whereHas('simulado', function ($q) use ($filtros) {
+                    $q->where('ano_id', $filtros['ano_id']);
                 });
             })
-            ->when($simuladoId, function ($query, $simuladoId) {
-                return $query->where('simulado_id', $simuladoId);
-            })
-            ->when($anoId, function ($query, $anoId) {
-                return $query->whereHas('simulado', function ($q) use ($anoId) {
-                    $q->where('ano_id', $anoId);
+            ->when($filtros['habilidade_id'], function ($query) use ($filtros) {
+                return $query->whereHas('pergunta', function ($q) use ($filtros) {
+                    $q->where('habilidade_id', $filtros['habilidade_id']);
                 });
             })
-            ->when($habilidadeId, function ($query, $habilidadeId) {
-                return $query->whereHas('pergunta', function ($q) use ($habilidadeId) {
-                    $q->where('habilidade_id', $habilidadeId);
+            ->when($filtros['deficiencia'], function ($query) use ($filtros) {
+                if ($filtros['deficiencia'] === 'ND') {
+                    return $query->whereHas('user', function($q) {
+                        $q->whereNull('deficiencia');
+                    });
+                }
+                return $query->whereHas('user', function($q) use ($filtros) {
+                    $q->where('deficiencia', $filtros['deficiencia']);
                 });
             });
     
-        // Estatísticas por escola
+        // Totais que responderam
+        $totalRespostas = $baseQuery->count();
+        
+        $professoresResponderam = (clone $baseUserQuery)
+            ->where('role', 'professor')
+            ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
+                $q->whereIn('id', $baseQuery->select('id')->getQuery());
+            })->count();
+    
+        $alunosResponderam = (clone $baseUserQuery)
+            ->where('role', 'aluno')
+            ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
+                $q->whereIn('id', $baseQuery->select('id')->getQuery());
+            })->count();
+    
+        // Estatísticas por escola (com correção para coluna ambígua)
         $estatisticasPorEscola = $baseQuery->clone()
             ->select(
                 DB::raw('escolas.nome as escola'),
                 DB::raw('COUNT(*) as total_respostas'),
                 DB::raw('SUM(correta) as acertos')
             )
-            ->join('users', 'respostas_simulados.user_id', '=', 'users.id')
-            ->join('escolas', 'users.escola_id', '=', 'escolas.id')
+            ->join('escolas', 'respostas_simulados.escola_id', '=', 'escolas.id')
             ->groupBy('escolas.nome')
             ->get()
             ->map(function ($item) {
@@ -1242,7 +1522,7 @@ class RespostaSimuladoController extends Controller
                 ];
             })->toArray();
     
-        // Estatísticas por raça
+        // Estatísticas por raça (corrigido para usar a coluna da tabela respostas_simulados)
         $estatisticasPorRaca = $baseQuery->clone()
             ->select(
                 DB::raw('COALESCE(raca, "Não informado") as raca'),
@@ -1262,14 +1542,53 @@ class RespostaSimuladoController extends Controller
                 ];
             })->toArray();
     
-        // Médias gerais
-        $mediaGeral1a5 = RespostaSimulado::whereHas('simulado', function ($q) {
-                $q->whereIn('ano_id', range(1, 5));
-            })->avg('correta') * 10;
+        // Estatísticas por deficiência (com correção para coluna ambígua)
+        $estatisticasPorDeficiencia = $baseQuery->clone()
+            ->select(
+                DB::raw('COALESCE(users.deficiencia, "ND") as deficiencia'),
+                DB::raw('COUNT(*) as total_respostas'),
+                DB::raw('SUM(correta) as acertos')
+            )
+            ->join('users', 'respostas_simulados.user_id', '=', 'users.id')
+            ->groupBy('users.deficiencia')
+            ->orderBy('users.deficiencia')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'deficiencia' => $item->deficiencia,
+                    'total_respostas' => $item->total_respostas,
+                    'acertos' => $item->acertos,
+                    'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
+                    'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                ];
+            })->toArray();
     
-        $mediaGeral6a9 = RespostaSimulado::whereHas('simulado', function ($q) {
+        // Alunos por deficiência (quantidade)
+        $alunosPorDeficiencia = (clone $baseUserQuery)
+            ->where('role', 'aluno')
+            ->select('deficiencia', DB::raw('count(*) as total'))
+            ->groupBy('deficiencia')
+            ->orderBy('deficiencia')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'deficiencia' => $item->deficiencia ?? 'ND',
+                    'total' => $item->total
+                ];
+            })->toArray();
+    
+        // Médias gerais com filtros
+        $mediaGeral1a5 = (clone $baseQuery)
+            ->whereHas('simulado', function ($q) {
+                $q->whereIn('ano_id', range(1, 5));
+            })
+            ->avg('correta') * 10;
+    
+        $mediaGeral6a9 = (clone $baseQuery)
+            ->whereHas('simulado', function ($q) {
                 $q->whereIn('ano_id', range(6, 9));
-            })->avg('correta') * 10;
+            })
+            ->avg('correta') * 10;
     
         return view('respostas_simulados.admin.estatisticas', compact(
             'totalSimulados',
@@ -1284,10 +1603,14 @@ class RespostaSimuladoController extends Controller
             'estatisticasPorRaca',
             'mediaGeral1a5',
             'mediaGeral6a9',
+            'totalAlunosComDeficiencia',
+            'alunosPorDeficiencia',
+            'estatisticasPorDeficiencia',
             'escolas',
             'anos',
             'simulados',
             'habilidades',
+            'filtros',
             'request'
         ));
     }

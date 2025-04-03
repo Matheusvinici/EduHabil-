@@ -105,7 +105,12 @@ class TurmaController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+                    /**
+ * Exibe o formulário de criação de turmas.
+ *
+ * @return \Illuminate\Http\Response
+ */
+public function create()
 {
     $user = Auth::user();
 
@@ -217,70 +222,8 @@ class TurmaController extends Controller
         $alunos = User::where('turma_id', $turma->id)->get();
         return view('turmas.show', compact('turma', 'alunos'));
     }
-
-    /**
-     * Exibe o formulário de edição de uma turma.
-     *
-     * @param  \App\Models\Turma  $turma
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Turma $turma)
-    {
-        $user = Auth::user();
-
-        if ($user->role === 'admin') {
-            // Admin pode editar qualquer turma
-        } elseif ($user->role === 'professor') {
-            // Professor só pode editar as turmas que ele cadastrou
-            if ($turma->professor_id !== $user->id) {
-                abort(403, 'Acesso não autorizado.');
-            }
-        } else {
-            // Outros papéis (se houver) não têm permissão
-            abort(403, 'Acesso não autorizado.');
-        }
-
-        return view('turmas.edit', compact('turma'));
-    }
-
-    /**
-     * Atualiza uma turma no banco de dados.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Turma  $turma
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Turma $turma)
-    {
-        $user = Auth::user();
-
-        if ($user->role === 'admin') {
-            // Admin pode editar qualquer turma
-        } elseif ($user->role === 'professor') {
-            // Professor só pode editar as turmas que ele cadastrou
-            if ($turma->professor_id !== $user->id) {
-                abort(403, 'Acesso não autorizado.');
-            }
-        } else {
-            // Outros papéis (se houver) não têm permissão
-            abort(403, 'Acesso não autorizado.');
-        }
-
-        $request->validate([
-            'nome_turma' => 'required|string|max:255',
-            'quantidade_alunos' => 'required|integer|min:1',
-        ]);
-
-        // Atualiza a turma
-        $turma->update([
-            'nome_turma' => $request->input('nome_turma'),
-            'quantidade_alunos' => $request->input('quantidade_alunos'),
-        ]);
-
-        return redirect()->route('turmas.index')
-                         ->with('success', 'Turma atualizada com sucesso!');
-    }
-
+   
+    
     /**
      * Remove uma turma do banco de dados.
      *
@@ -364,4 +307,33 @@ class TurmaController extends Controller
                        ->with('success', count($alunos) . ' alunos adicionados com sucesso!');
     }
 
+    public function edit($turma_id, $aluno_id)
+    {
+        $turma = Turma::findOrFail($turma_id);
+        $aluno = User::findOrFail($aluno_id); // Obtendo o aluno corretamente
+        $user = auth()->user(); // Usuário autenticado
+    
+        return view('turmas.edit', compact('aluno', 'user', 'turma'));
+    }
+    
+    
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'deficiencia' => 'nullable|string|max:255',
+        ]);
+    
+        $aluno = User::findOrFail($id);
+        
+        $aluno->update([
+            'name' => $request->name,
+            'deficiencia' => $request->deficiencia,
+        ]);
+    
+        return redirect()->route('turmas.index')->with('success', 'Aluno atualizado com sucesso!');
+    }
+    
+
+    
 }

@@ -1,23 +1,42 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Editar Turma</h3>
-    </div>
-    <div class="card-body">
-        <form action="{{ route('turmas.update', $turma->id) }}" method="POST">
+<div class="container mt-4">
+    <div class="card shadow-lg p-4">
+        <h2 class="mb-4 text-primary">Editar Aluno</h2>
+
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        <form action="{{ route('turmas.update', $aluno->id) }}" method="POST" class="needs-validation" novalidate>
             @csrf
             @method('PUT')
-            <div class="form-group">
-                <label for="nome">Nome da Turma</label>
-                <input type="text" name="nome" class="form-control" value="{{ $turma->nome }}" required>
+
+            <div class="mb-3">
+                <label for="name" class="form-label fw-bold">Nome do Aluno</label>
+                <input type="text" name="name" class="form-control" value="{{ old('name', $aluno->name) }}" required>
             </div>
-            <div class="form-group">
-                <label for="quantidade_alunos">Quantidade de Alunos</label>
-                <input type="number" name="quantidade_alunos" class="form-control" value="{{ $turma->quantidade_alunos }}" required>
+
+            <div class="mb-3">
+                <label for="deficiencia" class="form-label fw-bold">Deficiência</label>
+                <label for="deficiencia" class="form-label">Deficiência:</label>
+                    <select name="deficiencia" id="deficiencia" class="form-select">
+                        <option value="">Nenhuma</option>
+                        @foreach (App\Enums\Deficiencia::cases() as $deficiencia)
+                            <option value="{{ $deficiencia->value }}" {{ old('deficiencia', $user->deficiencia) == $deficiencia->value ? 'selected' : '' }}>
+                                {{ $deficiencia->label() }}
+                            </option>
+                        @endforeach
+                    </select>
             </div>
-            <button type="submit" class="btn btn-primary">Atualizar</button>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a href="{{ route('turmas.index') }}" class="btn btn-secondary">Voltar</a>
+            </div>
         </form>
     </div>
 </div>
