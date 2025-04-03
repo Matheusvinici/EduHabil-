@@ -244,8 +244,8 @@
                                                 </div>
                                             </div>
                                             
-                                            <button type="submit" class="btn btn-login">
-                                                <i class="fas fa-sign-in-alt me-2"></i> Entrar
+                                            <button type="submit" class="btn btn-login text-white">
+                                                <i class="fas fa-sign-in-alt me-2 text-white"></i> Entrar
                                             </button>
                                         </form>
                                         

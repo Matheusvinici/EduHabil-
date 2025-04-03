@@ -56,83 +56,57 @@ Route::middleware('auth')->group(function () {
     Route::post('/respostas_simulados/store/{simulado}', [RespostaSimuladoController::class, 'store'])->name('respostas_simulados.store');    Route::get('/respostas_simulados/show/{simulado}', [RespostaSimuladoController::class, 'show'])->name('respostas_simulados.show');
 });
 
-              // Rotas para professores
+// Rotas para professores
 Route::middleware('auth')->group(function () {
-    // Dashboard e rotas básicas
     Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])->name('professor.dashboard');
-    
-    // Rotas de respostas
-    Route::prefix('respostas')->group(function () {
-        Route::get('/professor/estatisticas', [RespostaController::class, 'professorEstatisticas'])
-            ->name('respostas.professor.estatisticas');
-        Route::get('/professor/index', [RespostaController::class, 'professorIndex'])
-            ->name('respostas.professor.index');
-        Route::get('/professor/estatisticas/pdf', [RespostaController::class, 'gerarPdfEstatisticas'])
-            ->name('respostas.professor.estatisticas.pdf');
-        Route::get('/professor/{prova}/{aluno}', [RespostaController::class, 'professorShow'])
-            ->name('respostas.professor.show');
-        Route::get('/{prova}/create', [RespostaController::class, 'create'])
-            ->name('respostas.create');
-        Route::post('/{prova}', [RespostaController::class, 'store'])
-            ->name('respostas.store');
-    });
+    Route::get('respostas/professor/estatisticas', [RespostaController::class, 'professorEstatisticas'])->name('respostas.professor.estatisticas');
+    Route::get('respostas/professor/index', [RespostaController::class, 'professorEstatisticas'])->name('respostas.professor.index');
 
-    // Rotas de respostas de simulados
-    Route::prefix('respostas_simulados')->group(function () {
-        Route::get('/professor/index', [RespostaSimuladoController::class, 'estatisticasProfessor'])
-            ->name('respostas_simulados.professor.index');
-        Route::get('/professor/{simulado}/{aluno}', [RespostaSimuladoController::class, 'showProfessor'])
-            ->name('respostas_simulados.professor.show');
-        Route::get('/professor/estatisticas', [RespostaSimuladoController::class, 'estatisticasProfessor'])
-            ->name('respostas_simulados.professor.estatisticas');
-        Route::get('/professor/export/pdf', [RespostaSimuladoController::class, 'exportProfessorPdf'])
-            ->name('respostas_simulados.professor.export.pdf');
-        Route::get('/professor/export/excel', [RespostaSimuladoController::class, 'exportProfessorExcel'])
-            ->name('respostas_simulados.professor.export.excel');
-    });
-
-    // Rotas de provas
-    Route::prefix('provas')->group(function () {
-        Route::resource('/', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
-        Route::get('/professor/index', [ProvaController::class, 'indexProfessor'])
-            ->name('provas.professor.index');
-        Route::get('/{prova}/pdf', [ProvaController::class, 'gerarPDF'])
-            ->name('provas.gerarPDF');
-    });
-
-    // Rotas de atividades
+    Route::get('respostas/professor/estatisticas/pdf', [RespostaController::class, 'gerarPdfEstatisticas'])->name('respostas.professor.estatisticas.pdf');
+    Route::get('/provas/professor/index', [ProvaController::class, 'indexProfessor'])->name('provas.professor.index');
     Route::resource('atividades_professores', AtividadeProfessorController::class);
-    Route::get('atividades_professores/{id}/download', [AtividadeProfessorController::class, 'downloadPdf'])
-        ->name('atividades_professores.download');
+    Route::get('atividades_professores/{id}/download', [AtividadeProfessorController::class, 'downloadPdf'])->name('atividades_professores.download');
+    Route::get('/turmas/professor/index', [TurmaController::class, 'indexProfessor'])->name('turmas.professor.index');
+    Route::get('/respostas_simulados/professor/index', [RespostaSimuladoController::class, 'estatisticasProfessor'])->name('respostas_simulados.professor.index');
 
-    // Rotas de turmas (ATUALIZADO)
-    Route::prefix('turmas')->group(function () {
-        // Rotas específicas primeiro
-        Route::get('/professor/index', [TurmaController::class, 'indexProfessor'])
-            ->name('turmas.professor.index');
+    Route::get('/respostas_simulados/professor/{simulado}/{aluno}', [RespostaSimuladoController::class, 'showProfessor'])->name('respostas_simulados.professor.show');
+    Route::get('/respostas_simulados/professor/estatisticas', [RespostaSimuladoController::class, 'estatisticasProfessor'])->name('respostas_simulados.professor.estatisticas');
+
+    Route::get('/professor/estatisticas/export/pdf', [RespostaSimuladoController::class, 'exportProfessorPdf'])
+    ->name('respostas_simulados.professor.export.pdf');
+
+Route::get('/professor/estatisticas/export/excel', [RespostaSimuladoController::class, 'exportProfessorExcel'])
+    ->name('respostas_simulados.professor.export.excel');
+    Route::get('/turmas/{id}/edit', [TurmaController::class, 'edit'])->name('turmas.edit');
+    Route::get('/turmas/{turma}', [TurmaController::class, 'show'])->name('turmas.show');
+    Route::get('/teste-turma-create', [TurmaController::class, 'create'])->name('teste.turma.create');
+
+    // Rotas para provas
+    Route::resource('provas', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
+    Route::get('provas/{prova}/pdf', [ProvaController::class, 'gerarPDF'])->name('provas.gerarPDF');
         
-       
-            Route::get('/{turma}/alunos/{aluno}/edit', [TurmaController::class, 'edit'])
-            ->name('turmas.alunos.edit');
-        
-        // Rota para gerar códigos adicionais
-        Route::post('/{turma}/gerar-codigos-adicionais', [TurmaController::class, 'gerarCodigosAdicionais'])
-            ->name('turmas.gerar-codigos-adicionais');
-        
-        // Resource principal (com exceções se necessário)
-        Route::resource('/', TurmaController::class)->names([
-            'index' => 'turmas.index',
-            'create' => 'turmas.create',
-            'store' => 'turmas.store',
-            'show' => 'turmas.show',
-            'edit' => 'turmas.edit',
-            'update' => 'turmas.update',
-            'destroy' => 'turmas.destroy'
-        ])->parameters(['' => 'turma']);
-    });
+    // Rotas para respostas
+    Route::get('respostas/professor/index', [RespostaController::class, 'professorIndex'])->name('respostas.professor.index');
+    Route::get('/respostas/professor/{prova}/{aluno}', [RespostaController::class, 'professorShow'])
+    ->name('respostas.professor.show');
+    Route::get('/respostas/{prova}/create', [RespostaController::class, 'create'])->name('respostas.create');
+    Route::post('/respostas/{prova}', [RespostaController::class, 'store'])->name('respostas.store');
+    Route::get('respostas/professor/{prova}', [RespostaController::class, 'professorShow'])->name('respostas.professor.show');
+
+   // Rotas para turmas
+Route::post('/turmas/{turma}/gerar-codigos-adicionais', [TurmaController::class, 'gerarCodigosAdicionais'])
+    ->name('turmas.gerar-codigos-adicionais');
+
+// Rotas para edição de alunos dentro do contexto de turmas
+Route::prefix('turmas/{turma}/alunos/{aluno}')->group(function () {
+    Route::get('/edit', [TurmaController::class, 'editAluno'])->name('turmas.alunos.edit');
+    Route::put('/', [TurmaController::class, 'updateAluno'])->name('turmas.alunos.update');
 });
 
+// Rota para atualização de aluno (evitando duplicação de caminhos)
+Route::put('/turmas/{turma}/alunos/{aluno}', [AlunoController::class, 'updateAluno'])->name('alunos.update');
 
+        });
 
 // Rotas para professores do AEE
 Route::middleware('auth')->group(function () {
@@ -149,10 +123,6 @@ Route::middleware('auth')->group(function () {
     Route::resource('caracteristicas', CaracteristicaController::class);
     Route::get('/provas/inclusiva', [ProvaController::class, 'indexInclusiva'])->name('provas.inclusiva');
     Route::resource('deficiencias', DeficienciaController::class);
-
-    Route::get('/inclusiva/estatisticas', [RespostaSimuladoController::class, 'estatisticasInclusiva'])
-    ->name('respostas_simulados.inclusiva.estatisticas');
-
 });
 
 // Rotas para coordenadores
@@ -189,7 +159,8 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     ->name('respostas_simulados.admin.export.excel');
     Route::get('/respostas-simulados/admin/detalhes-escola/{escola_id}', [RespostaSimuladoController::class, 'detalhesEscola'])
     ->name('respostas_simulados.admin.detalhes-escola');
-
+    Route::get('/alunos/{aluno}/edit', [AlunoController::class, 'edit'])->name('alunos.edit');
+Route::put('/alunos/{aluno}', [AlunoController::class, 'update'])->name('alunos.update');
     Route::get('/user/create', [UserController::class, 'create'])->name('admin.user.create');
     Route::get('/provas', [ProvaController::class, 'index'])->name('provas.index');
     Route::get('/provas/admin/index', [ProvaController::class, 'indexAdmin'])->name('provas.admin.index');
@@ -239,6 +210,7 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     Route::get('/adaptacoes/{adaptacao}/pdf', [AdaptacaoController::class, 'gerarPdf'])->name('adaptacoes.gerarPDF');
     // Rotas para escolas, turmas, disciplinas, habilidades, questões, provas, alunos, anos, etc.
     Route::resource('escolas', EscolaController::class);
+    Route::resource('turmas', TurmaController::class);
     Route::resource('disciplinas', DisciplinaController::class);
     Route::resource('habilidades', HabilidadeController::class);
     Route::resource('questoes', QuestaoController::class)->parameters([
@@ -273,6 +245,5 @@ Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
 
-    // Rota para avaliação
-    Route::get('/avaliacao', [AvaliacaoController::class, 'index'])->name('avaliacao.index');
+    
 });

@@ -20,6 +20,8 @@ return new class extends Migration
         $table->unsignedBigInteger('escola_id')->nullable(); // Chave estrangeira para escolas
         
         $table->string('codigo_acesso')->nullable(); // Código de acesso do aluno
+        $table->string('deficiencia')->nullable(); // Campo para deficiência
+
         $table->timestamps();
 
         // Chave estrangeira para escolas

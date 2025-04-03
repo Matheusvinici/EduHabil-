@@ -6,6 +6,8 @@
         <h3 class="card-title">Listagem de Turmas</h3>
         <div class="card-tools">
             <a href="{{ route('turmas.create') }}" class="btn btn-primary">Nova Turma</a>
+            
+            
         </div>
     </div>
     <div class="card-body">
