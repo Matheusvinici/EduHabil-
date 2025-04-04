@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     // Dashboard e rotas básicas
     Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])->name('professor.dashboard');
-    
+
     // Rotas de respostas
     Route::prefix('respostas')->group(function () {
         Route::get('/professor/estatisticas', [RespostaController::class, 'professorEstatisticas'])
@@ -112,15 +112,15 @@ Route::middleware('auth')->group(function () {
         // Rotas específicas primeiro
         Route::get('/professor/index', [TurmaController::class, 'indexProfessor'])
             ->name('turmas.professor.index');
-        
-       
+
+
             Route::get('/{turma}/alunos/{aluno}/edit', [TurmaController::class, 'edit'])
             ->name('turmas.alunos.edit');
-        
+
         // Rota para gerar códigos adicionais
         Route::post('/{turma}/gerar-codigos-adicionais', [TurmaController::class, 'gerarCodigosAdicionais'])
             ->name('turmas.gerar-codigos-adicionais');
-        
+
         // Resource principal (com exceções se necessário)
         Route::resource('/', TurmaController::class)->names([
             'index' => 'turmas.index',
@@ -236,16 +236,16 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
         Route::resource('simulados', SimuladoController::class);
         Route::get('simulados/{simulado}/gerar-pdf', [SimuladoController::class, 'gerarPdf'])->name('simulados.gerarPdf');
         Route::get('simulados/{simulado}/gerar-pdf-Escola', [SimuladoController::class, 'gerarPdfEscolas'])->name('simulados.gerarPdfEscolas');
-       
+
 
         Route::get('/simulados/{simulado}/gerar-pdf-braille', [SimuladoController::class, 'gerarPdfBraille'])->name('simulados.gerar-pdf-braille');
-     
+
         Route::get('/simulados/{simulado}/baixa-visao', [SimuladoController::class, 'gerarPdfBaixaVisao'])
         ->name('simulados.baixa-visao');
         Route::get('/simulados/{simulado}/baixa-visao-escola', [SimuladoController::class, 'gerarPdfBaixaVisaoEscola'])
         ->name('simulados.baixa-visao-escola');
 
-        
+
 
 // Rota para processar a criação do usuário
     Route::post('/user', [UserController::class, 'store'])->name('admin.user.store');
@@ -290,8 +290,11 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     Route::resource('perguntas', PerguntaController::class);
     Route::post('/perguntas/save-content', [PerguntaController::class, 'saveContent'])->name('perguntas.saveContent');
 
+    // Rotas para Users (admin)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/users/pdf', [UserController::class, 'generatePdf'])->name('users.pdf');
     Route::resource('users', UserController::class);
-    Route::get('users/pdf/{role?}/{escola_id?}', [UserController::class, 'generatePdf'])->name('users.pdf');
+});
 
 
     // Geração de PDF

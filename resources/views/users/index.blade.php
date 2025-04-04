@@ -11,12 +11,13 @@
                 <a href="{{ route('users.create') }}" class="btn btn-success">
                     <i class="fas fa-plus"></i> Novo Usuário
                 </a>
-                                    <a href="{{ route('users.pdf', [
-                        'search' => request('search'),
-                        'role' => request('role'),
-                        'escola_id' => request('escola_id')
-                    ]) }}" class="btn btn-primary ml-2">
-                        <i class="fas fa-file-pdf"></i> Gerar PDF
+                <a href="{{ route('users.pdf', [
+                    'search' => request('search'),
+                    'role' => request('role'),
+                    'escola_id' => request('escola_id')
+                ]) }}" class="btn btn-primary ml-2" title="Gerar relatório em PDF" style="min-width: 120px;">
+                    <i class="fas fa-file-pdf mr-2"></i> Exportar PDF
+                </a>
                     </a>
             </div>
         </div>
@@ -37,7 +38,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="search">Nome</label>
-                                        <input type="text" id="search" name="search" class="form-control" 
+                                        <input type="text" id="search" name="search" class="form-control"
                                                placeholder="Pesquisar por nome" value="{{ request('search') }}">
                                     </div>
                                 </div>
@@ -113,7 +114,7 @@
                                         <form action="{{ route('users.destroy', $user->id) }}" method="POST" style="display:inline;">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Excluir" 
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Excluir"
                                                     onclick="return confirm('Tem certeza que deseja excluir este usuário?')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
