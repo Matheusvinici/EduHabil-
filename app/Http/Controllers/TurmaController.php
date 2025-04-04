@@ -31,6 +31,9 @@ class TurmaController extends Controller
                 return redirect()->route('turmas.aee.index');
             case 'professor':
                 return redirect()->route('turmas.professor.index');
+            case 'aplicador':
+                return redirect()->route('turmas.aplicador.index');
+    
             default:
                 abort(403, 'Acesso não autorizado.');
         }
@@ -99,6 +102,24 @@ class TurmaController extends Controller
                 return view('turmas.professor.index', compact('turmas', 'nomeTurma'));
             }
 
+            public function indexAplicador(Request $request)
+            {
+                $user = Auth::user();
+
+                // Filtro por nome da turma
+                $nomeTurma = $request->query('nome_turma');
+
+                // Query base: apenas turmas cadastradas pelo professor
+                $turmas = Turma::where('professor_id', $user->id)
+                    ->when($nomeTurma, function ($query, $nomeTurma) {
+                        return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
+                    })
+                    ->with(['escola', 'professor'])
+                    ->paginate(5);
+
+                return view('turmas.aplicador.index', compact('turmas', 'nomeTurma'));
+            }
+
 
     /**
      * Exibe o formulário de criação de turmas.
@@ -110,36 +131,34 @@ class TurmaController extends Controller
  *
  * @return \Illuminate\Http\Response
  */
+
 public function create()
 {
     $user = Auth::user();
 
-    // Verifica se o usuário está autenticado
     if (!$user) {
         abort(403, 'Usuário não autenticado.');
     }
 
-    // Verifica o papel do usuário
+    // Verifica os papéis permitidos (admin, professor ou aplicador)
+    if (!in_array($user->role, ['admin', 'professor', 'aplicador'])) {
+        abort(403, 'Acesso não autorizado.');
+    }
+
     if ($user->role === 'admin') {
-        // Admin pode selecionar qualquer escola
         $escolas = Escola::all();
-    } elseif ($user->role === 'professor') {
-        // Verifica se o professor está vinculado a uma escola
+    } else {
+        // Verifica se o professor/aplicador está vinculado a uma escola
         if (is_null($user->escola_id)) {
             abort(403, 'Você não está vinculado a uma escola. Contate o administrador.');
         }
 
-        // Verifica se a escola existe
         $escola = Escola::find($user->escola_id);
         if (is_null($escola)) {
             abort(404, 'Escola não encontrada. Contate o administrador.');
         }
 
-        // Professor só pode criar turmas para a escola à qual está vinculado
         $escolas = Escola::where('id', $user->escola_id)->get();
-    } else {
-        // Outros papéis (se houver) não têm permissão
-        abort(403, 'Acesso não autorizado.');
     }
 
     return view('turmas.create', compact('escolas'));

@@ -43,14 +43,67 @@ class RespostaSimuladoController extends Controller
                 return redirect()->route('respostas_simulados.coordenador.index');
             case 'aluno':
                 return redirect()->route('respostas_simulados.aluno.index');
+                case 'aplicador':
+                    return redirect()->route('respostas_simulados.aplicador.index');
             default:
                 abort(403, 'Acesso não autorizado.');
         }
     }
 
-    /**
-     * Exibe a lista de simulados disponíveis para o aluno responder.
-     */
+    
+
+    public function detalhesForAplicador($id)
+    {
+        $aplicador = Auth::user();
+        
+        // Busca a resposta específica com todas as relações necessárias
+        $resposta = RespostaSimulado::with([
+            'simulado.perguntas', 
+            'user'
+        ])->findOrFail($id);
+    
+        // Verifica permissão
+        if ($resposta->professor_id !== $aplicador->id) {
+            abort(403, 'Acesso não autorizado.');
+        }
+    
+        // Busca TODAS as respostas do aluno para este simulado
+        $respostasAluno = RespostaSimulado::where('simulado_id', $resposta->simulado_id)
+            ->where('user_id', $resposta->user_id)
+            ->get();
+    
+        // Calcula estatísticas
+        $totalQuestoes = $resposta->simulado->perguntas_count;
+        $acertos = $respostasAluno->where('correta', true)->count();
+        $erros = $totalQuestoes - $acertos;
+        $porcentagem = $totalQuestoes > 0 ? round(($acertos / $totalQuestoes) * 100) : 0;
+    
+        // Prepara detalhes por pergunta
+        $detalhesPerguntas = $resposta->simulado->perguntas->map(function ($pergunta) use ($respostasAluno) {
+            $respostaAluno = $respostasAluno->where('pergunta_id', $pergunta->id)->first();
+            
+            return [
+                'enunciado' => $pergunta->enunciado,
+                'resposta_aluno' => $respostaAluno->resposta ?? 'Não respondida',
+                'correta' => $respostaAluno->correta ?? false,
+                'alternativa_correta' => $pergunta->alternativa_correta
+            ];
+        });
+    
+        return view('respostas_simulados.aplicador.detalhes', [
+            'simulado' => $resposta->simulado,
+            'aluno' => $resposta->user,
+            'data_aplicacao' => $resposta->created_at,
+            'totalQuestoes' => $totalQuestoes,
+            'acertos' => $acertos,
+            'erros' => $erros,
+            'porcentagem' => $porcentagem,
+            'detalhesPerguntas' => $detalhesPerguntas,
+            'raca' => $resposta->raca
+        ]);
+    }
+    
+   
     public function alunoIndex()
     {
         $user = Auth::user();
@@ -410,6 +463,256 @@ class RespostaSimuladoController extends Controller
             'request' => $request
         ];
     }
+
+    public function selectForAplicador()
+    {
+        $user = Auth::user();
+        
+        if (!$user->escola) {
+            return view('respostas_simulados.aplicador.select', [
+                'simulados' => collect(),
+                'escolaUsuario' => null
+            ]);
+        }
+    
+        $simulados = Simulado::withCount('perguntas')->get();
+    
+        return view('respostas_simulados.aplicador.select', [
+            'simulados' => $simulados,
+            'escolaUsuario' => $user->escola
+        ]);
+    }
+    
+    public function createForAplicador(Simulado $simulado)
+    {
+        $user = Auth::user();
+        
+        if (!$user->escola) {
+            return redirect()->route('respostas_simulados.aplicador.select')
+                   ->with('error', 'Você não está vinculado a nenhuma escola');
+        }
+
+        // Limpa a sessão se for um novo acesso ou se foi solicitado reset
+        if (!request()->has('keep_session') || request()->has('reset')) {
+            session()->forget([
+                'aluno_selecionado',
+                'aluno_id',
+                'aluno_nome',
+                'aluno_turma',
+                'turma_id',
+                'raca'
+            ]);
+        }
+
+        // Verifica se o simulado tem perguntas
+        if ($simulado->perguntas->isEmpty()) {
+            return redirect()->route('respostas_simulados.aplicador.select')
+                   ->with('error', 'Este simulado não possui perguntas cadastradas.');
+        }
+
+        // Obtém apenas turmas da escola do usuário
+        $turmas = Turma::where('escola_id', $user->escola_id)
+                    ->orderBy('nome_turma')
+                    ->get();
+    
+        return view('respostas_simulados.aplicador.create', [
+            'simulado' => $simulado,
+            'turmas' => $turmas
+        ]);
+    }
+    
+    public function getAlunosPorTurma($turmaId)
+    {
+        try {
+            \Log::info("Requisição para turma ID: $turmaId");
+            
+            $alunos = User::where('turma_id', $turmaId)
+                        ->where('role', 'aluno')
+                        ->select('id', 'name')
+                        ->get();
+    
+            if($alunos->isEmpty()) {
+                return response()->json([
+                    ['id' => 0, 'name' => 'Nenhum aluno nesta turma']
+                ]);
+            }
+    
+            return response()->json($alunos);
+    
+        } catch (\Exception $e) {
+            \Log::error("Erro ao buscar alunos: " . $e->getMessage());
+            return response()->json([
+                ['id' => 0, 'name' => 'Erro ao carregar alunos']
+            ]);
+        }
+    }
+    
+    public function selecionarAluno(Request $request, Simulado $simulado)
+    {
+        $request->validate([
+            'turma_id' => 'required|exists:turmas,id',
+            'aluno_id' => 'required|exists:users,id',
+            'raca' => 'required'
+        ]);
+    
+        $turma = Turma::find($request->turma_id);
+        if (!$turma) {
+            return back()->withErrors('Turma não encontrada.');
+        }
+    
+        $aluno = User::where('id', $request->aluno_id)
+                   ->where('role', 'aluno')
+                   ->first();
+        
+        if (!$aluno) {
+            return back()->withErrors('Aluno não encontrado.');
+        }
+    
+        if ($aluno->turma_id != $turma->id) {
+            return back()->withErrors('O aluno selecionado não pertence à turma escolhida.');
+        }
+
+        // Verifica se o aluno já respondeu este simulado
+        $respostaExistente = RespostaSimulado::where([
+            'simulado_id' => $simulado->id,
+            'user_id' => $aluno->id,
+            'professor_id' => Auth::id()
+        ])->exists();
+
+        if ($respostaExistente) {
+            return back()->withErrors('Este aluno já respondeu este simulado.');
+        }
+    
+        // Armazena os dados na sessão
+        session([
+            'aluno_selecionado' => true,
+            'aluno_id' => $aluno->id,
+            'aluno_nome' => $aluno->name,
+            'aluno_turma' => $turma->nome_turma,
+            'turma_id' => $turma->id,
+            'raca' => $request->raca,
+        ]);
+    
+        return redirect()->route('respostas_simulados.aplicador.create', [
+            'simulado' => $simulado->id,
+            'keep_session' => true
+        ]);
+    }
+    
+   
+   
+    public function indexForAplicador()
+    {
+        $aplicador = Auth::user();
+        
+        // Obtém todas as respostas registradas pelo aplicador
+        $respostas = RespostaSimulado::where('professor_id', $aplicador->id)
+            ->with(['simulado.perguntas', 'user']) // Carrega relacionamentos necessários
+            ->get();
+        
+        // Agrupa por simulado e aluno
+        $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
+        
+        $estatisticas = collect();
+        
+        foreach ($agrupadas as $simuladoId => $alunos) {
+            foreach ($alunos as $alunoId => $respostasAluno) {
+                $primeiraResposta = $respostasAluno->first();
+                $simulado = $primeiraResposta->simulado;
+                $aluno = $primeiraResposta->user;
+                
+                $totalQuestoes = $simulado->perguntas->count();
+                $acertos = $respostasAluno->where('correta', true)->count();
+                $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
+                
+                $estatisticas->push([
+                    'aluno' => $aluno->name,
+                    'simulado' => $simulado->nome,
+                    'total_questoes' => $totalQuestoes,
+                    'acertos' => $acertos,
+                    'porcentagem' => $porcentagem,
+                    'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
+                    'data' => $primeiraResposta->created_at,
+                    'desempenho_class' => $porcentagem >= 70 ? 'success' : 
+                                         ($porcentagem >= 50 ? 'warning' : 'danger')
+                ]);
+            }
+        }
+        
+        return view('respostas_simulados.aplicador.index', [
+            'estatisticas' => $estatisticas->sortByDesc('data')
+        ]);
+    }
+  
+    public function storeForAplicador(Request $request, Simulado $simulado)
+    {
+        $request->validate([
+            'aluno_id' => 'required|exists:users,id',
+            'turma_id' => 'required|exists:turmas,id',
+            'raca' => 'required|string',
+            'respostas' => 'required|array'
+        ]);
+    
+        $aplicador = Auth::user();
+        $aluno = User::findOrFail($request->aluno_id);
+        $turma = Turma::findOrFail($request->turma_id);
+    
+        // Verifica se o aluno pertence à turma
+        if ($aluno->turma_id != $turma->id) {
+            return back()->with('error', 'Aluno não pertence à turma selecionada');
+        }
+    
+        // Verifica se a turma pertence à escola do aplicador
+        if ($turma->escola_id != $aplicador->escola_id) {
+            return back()->with('error', 'Você não tem permissão para aplicar nesta turma');
+        }
+    
+        // Carrega todas as perguntas do simulado com as respostas corretas de uma só vez
+        $perguntas = $simulado->perguntas()->pluck('resposta_correta', 'perguntas.id');
+
+
+    
+        // Verifica se todas as perguntas foram respondidas
+        $perguntasNaoRespondidas = $perguntas->keys()->diff(array_keys($request->respostas));
+        if ($perguntasNaoRespondidas->isNotEmpty()) {
+            return back()->with('error', 'Todas as questões devem ser respondidas');
+        }
+    
+        DB::beginTransaction();
+        try {
+            foreach ($request->respostas as $perguntaId => $respostaAluno) {
+                RespostaSimulado::create([
+                    'simulado_id' => $simulado->id,
+                    'pergunta_id' => $perguntaId,
+                    'user_id' => $aluno->id,
+                    'professor_id' => $aplicador->id,
+                    'escola_id' => $aluno->escola_id,
+                    'resposta' => $respostaAluno,
+                    'correta' => $perguntas[$perguntaId] === $respostaAluno, // Comparação direta
+                    'raca' => $request->raca
+                ]);
+            }
+    
+            DB::commit();
+            return redirect()
+                   ->route('respostas_simulados.aplicador.index')
+                   ->with('success', 'Simulado aplicado com sucesso!');
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Erro ao salvar respostas: ' . $e->getMessage());
+        }
+    }
+
+/**
+ * Verifica se a resposta do aluno está correta
+ */
+private function verificarRespostaSimples($perguntaId, $resposta)
+{
+    $pergunta = Pergunta::find($perguntaId);
+    return $pergunta ? $resposta === $pergunta->alternativa_correta : false;
+}
+
     
     public function detalhesTurma(Request $request, $turmaId)
     {
@@ -500,32 +803,44 @@ class RespostaSimuladoController extends Controller
             'request'
         ));
     }
+  
+   
     /**
      * Exibe o formulário para responder um simulado específico.
      */
     public function create(Simulado $simulado)
     {
         $user = Auth::user();
-    
-        if ($user->role !== 'aluno') {
+        
+        // Verifica se é aluno ou aplicador/professor
+        if (!in_array($user->role, ['aluno', 'aplicador', 'professor'])) {
             abort(403, 'Acesso não autorizado.');
         }
     
-        // Verifica se o aluno já respondeu este simulado
-        if (RespostaSimulado::where('simulado_id', $simulado->id)
-            ->where('user_id', $user->id)
-            ->exists()) {
-            return redirect()->route('respostas_simulados.aluno.index')
-                ->with('error', 'Você já respondeu este simulado.');
+        // Se for aluno, verifica se já respondeu
+        if ($user->role === 'aluno') {
+            if (RespostaSimulado::where('simulado_id', $simulado->id)
+                ->where('user_id', $user->id)
+                ->exists()) {
+                return redirect()->route('respostas_simulados.aluno.index')
+                    ->with('error', 'Você já respondeu este simulado.');
+            }
+            
+            return view('respostas_simulados.aluno.create', [
+                'simulado' => $simulado,
+                'perguntas' => $simulado->perguntas()->with('habilidade')->get(),
+                'tempo_limite' => $simulado->tempo_limite
+            ]);
         }
-    
-        // Carrega as perguntas com suas habilidades relacionadas
-        $perguntas = $simulado->perguntas()->with('habilidade')->get();
-    
-        return view('respostas_simulados.create', [
+        
+        // Se for aplicador/professor
+        $turmas = $user->turmas; // Assumindo que há relação entre User e Turma
+        
+        return view('respostas_simulados.aplicador.create', [
             'simulado' => $simulado,
-            'perguntas' => $perguntas,
-            'tempo_limite' => $simulado->tempo_limite // Passa o tempo limite para a view
+            'perguntas' => $simulado->perguntas()->with('habilidade')->get(),
+            'tempo_limite' => $simulado->tempo_limite,
+            'turmas' => $turmas
         ]);
     }
 
@@ -597,6 +912,7 @@ class RespostaSimuladoController extends Controller
             return back()->with('error', 'Ocorreu um erro ao salvar suas respostas. Por favor, tente novamente.');
         }
     }
+
 
     /**
      * Exibe os detalhes de um simulado respondido (para o aluno).

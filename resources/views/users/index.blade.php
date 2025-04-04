@@ -46,7 +46,7 @@
                                         <label for="role">Papel</label>
                                         <select id="role" name="role" class="form-control">
                                             <option value="">Todos</option>
-                                            @foreach(['admin', 'professor', 'aluno', 'aee', 'inclusiva', 'coordenador'] as $role)
+                                            @foreach(['admin', 'professor', 'aluno', 'aee', 'inclusiva', 'coordenador', 'aplicador'] as $role)
                                                 <option value="{{ $role }}" {{ request('role') == $role ? 'selected' : '' }}>
                                                     {{ ucfirst($role) }}
                                                 </option>
