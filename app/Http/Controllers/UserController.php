@@ -7,11 +7,11 @@ use App\Models\Escola;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class UserController extends Controller
 {
-    
+
     public function index(Request $request)
 {
     $user = Auth::user();
@@ -134,36 +134,36 @@ class UserController extends Controller
     {
         // Obtenha todos os parâmetros de filtro da requisição
         $filters = $request->all();
-        
+
         // Recrie a query exatamente como no index
         $query = User::with('escola');
-        
+
         // Aplique os mesmos filtros do index
         if (auth()->user()->role === 'inclusiva') {
             $query->where('role', 'aee');
         } elseif (auth()->user()->role === 'coordenador') {
             $query->where('escola_id', auth()->user()->escola_id);
         }
-        
+
         if (!empty($filters['search'])) {
             $query->where('name', 'like', '%' . $filters['search'] . '%');
         }
-        
+
         if (!empty($filters['role'])) {
             $query->where('role', $filters['role']);
         }
-        
+
         if (!empty($filters['escola_id'])) {
             $query->where('escola_id', $filters['escola_id']);
         }
-        
+
         // Obtenha os resultados
         $users = $query->get();
-        
+
         // Prepare dados adicionais para a view
         $escola = !empty($filters['escola_id']) ? Escola::find($filters['escola_id']) : null;
         $role = !empty($filters['role']) ? ucfirst($filters['role']) : null;
-        
+
         // Gere o PDF
         $pdf = PDF::loadView('users.pdf', [
             'users' => $users,
@@ -171,7 +171,7 @@ class UserController extends Controller
             'role' => $role,
             'search' => $filters['search'] ?? null
         ]);
-        
+
         return $pdf->download('relatorio_usuarios_'.now()->format('Ymd_His').'.pdf');
     }
 }
