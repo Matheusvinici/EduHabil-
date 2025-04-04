@@ -24,18 +24,18 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-8">
+                <!--<div class="col-md-8">
                     <div class="form-group">
                         <label for="endereco">Endereço</label>
                         <input type="text" name="endereco" class="form-control" value="{{ $escola->endereco }}" placeholder="Digite o endereço">
                     </div>
-                </div>
-                <div class="col-md-4">
+                </div>-->
+                <!--<div class="col-md-4">
                     <div class="form-group">
                         <label for="telefone">Telefone</label>
                         <input type="text" name="telefone" class="form-control" value="{{ $escola->telefone }}" placeholder="Digite o telefone">
                     </div>
-                </div>
+                </div>-->
             </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">Atualizar</button>

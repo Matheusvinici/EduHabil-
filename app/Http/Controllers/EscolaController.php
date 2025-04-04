@@ -38,15 +38,15 @@ class EscolaController extends Controller
 {
     $validatedData = $request->validate([
         'nome' => 'required|string|max:255',
-        'endereco' => 'nullable|string|max:255',
-        'telefone' => 'nullable|string|max:20',
+        //'endereco' => 'nullable|string|max:255',
+        //'telefone' => 'nullable|string|max:20',
         'codigo_escola' => 'required|string|unique:escolas,codigo_escola',
     ]);
 
     Escola::create([
         'nome' => $validatedData['nome'],
-        'endereco' => $validatedData['endereco'],
-        'telefone' => $validatedData['telefone'],
+        //'endereco' => $validatedData['endereco'],
+        //'telefone' => $validatedData['telefone'],
         'codigo_escola' => $validatedData['codigo_escola']
     ]);
 
@@ -87,8 +87,8 @@ class EscolaController extends Controller
     {
         $request->validate([
             'nome' => 'required|string|max:255',
-            'endereco' => 'nullable|string|max:255',
-            'telefone' => 'nullable|string|max:20',
+            //'endereco' => 'nullable|string|max:255',
+            //'telefone' => 'nullable|string|max:20',
             'codigo_escola' => 'required|string|unique:escolas,codigo_escola,' . $escola->id,
         ]);
 

@@ -13,23 +13,23 @@
                         <h5>Nome</h5>
                         <p>{{ $escola->nome }}</p>
                     </div>
-                    <div class="detail-item mt-3">
+                    <!--<div class="detail-item mt-3">
                         <h5>Endereço</h5>
                         <p>{{ $escola->endereco }}</p>
                     </div>
-                </div>
-                <div class="col-md-6">
+                </div>-->
+                <!--<div class="col-md-6">
                     <div class="detail-item">
                         <h5>Telefone</h5>
                         <p>{{ $escola->telefone }}</p>
-                    </div>
+                    </div>-->
                     <div class="detail-item mt-3">
                         <h5>Código INEP</h5>
                         <p>{{ $escola->codigo_escola }}</p>
                     </div>
                 </div>
             </div>
-            
+
             <div class="mt-4 border-top pt-3">
                 <a href="{{ route('escolas.index') }}" class="btn btn-secondary">Voltar para a lista</a>
                 <a href="{{ route('escolas.edit', $escola->id) }}" class="btn btn-primary ml-2">Editar Escola</a>

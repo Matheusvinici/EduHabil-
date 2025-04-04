@@ -32,36 +32,30 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-primary">
                         <tr>
-                            <th>Nome</th>
-                            <th class="d-none d-md-table-cell">Endereço</th>
-                            <th class="d-none d-sm-table-cell">Telefone</th>
-                            <th class="d-none d-lg-table-cell">Código INEP</th>
-                            <th>Ações</th>
+                            <th>Nome da Escola</th>
+                            <th>Código INEP</th>
+                            <th class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($escolas as $escola)
                         <tr>
-                            <td>{{ Str::limit($escola->nome, 30) }}</td>
-                            <td class="d-none d-md-table-cell">{{ Str::limit($escola->endereco, 30) }}</td>
-                            <td class="d-none d-sm-table-cell">{{ $escola->telefone }}</td>
-                            <td class="d-none d-lg-table-cell">{{ $escola->codigo_escola }}</td>
-                            <td>
-                                <div class="d-flex flex-wrap gap-2">
-                                    <a href="{{ route('escolas.show', $escola->id) }}" 
-                                       class="btn btn-sm btn-info text-nowrap">
-                                        Ver
+                            <td>{{ $escola->nome }}</td>
+                            <td>{{ $escola->codigo_escola }}</td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center flex-wrap gap-2">
+                                    <a href="{{ route('escolas.show', $escola->id) }}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i> Ver
                                     </a>
-                                    <a href="{{ route('escolas.edit', $escola->id) }}" 
-                                       class="btn btn-sm btn-primary text-nowrap">
-                                        Editar
+                                    <a href="{{ route('escolas.edit', $escola->id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-pencil-square"></i> Editar
                                     </a>
                                     <form action="{{ route('escolas.destroy', $escola->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger text-nowrap" 
-                                            onclick="return confirm('Tem certeza que deseja excluir esta escola? Todos os dados relacionados serão perdidos.')">
-                                            Excluir
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Tem certeza que deseja excluir esta escola?')">
+                                            <i class="bi bi-trash"></i> Excluir
                                         </button>
                                     </form>
                                 </div>
@@ -69,7 +63,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5">
+                            <td colspan="3">
                                 <div class="text-center py-5">
                                     <i class="bi bi-building" style="font-size: 3rem; color: #6c757d;"></i>
                                     <h5 class="mt-3">Nenhuma escola cadastrada</h5>
@@ -100,31 +94,31 @@
         border-radius: 0.5rem;
         overflow: hidden;
     }
-    
+
     .table thead th {
         border-bottom: none;
         font-weight: 600;
     }
-    
+
     .table-hover tbody tr:hover {
         background-color: rgba(13, 110, 253, 0.05);
     }
-    
+
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
     }
-    
+
     @media (max-width: 768px) {
         .btn-sm {
             padding: 0.25rem;
         }
-        
+
         .d-flex.justify-content-between {
             flex-direction: column;
             gap: 1rem;
         }
-        
+
         .d-flex.justify-content-between h1 {
             font-size: 1.5rem;
         }
