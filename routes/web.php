@@ -100,6 +100,8 @@ Route::middleware('auth')->group(function () {
             ->name('provas.gerarPDF');
     });
 
+   
+
     // Rotas de atividades
     Route::resource('atividades_professores', AtividadeProfessorController::class);
     Route::get('atividades_professores/{id}/download', [AtividadeProfessorController::class, 'downloadPdf'])
@@ -132,7 +134,40 @@ Route::middleware('auth')->group(function () {
     });
 });
 
+            // Rotas para aplicador
+Route::prefix('aplicador')->group(function() {
+    Route::get('/simulados', [RespostaSimuladoController::class, 'indexForAplicador'])
+        ->name('respostas_simulados.aplicador.index');
+    
+        Route::get('/aplicador/respostas-simulados/detalhes/{id}', [RespostaSimuladoController::class, 'detalhesForAplicador'])
+    ->name('respostas_simulados.aplicador.detalhes');
 
+    Route::get('/simulados/novo', [RespostaSimuladoController::class, 'selectForAplicador'])
+        ->name('respostas_simulados.aplicador.select');
+
+        Route::get('/simulados/{simulado}/aplicar', [RespostaSimuladoController::class, 'createForAplicador'])
+        ->name('respostas_simulados.aplicador.create');
+        // Processar seleção do aluno
+    Route::post('/simulados/{simulado}/selecionar', [RespostaSimuladoController::class, 'selecionarAluno'])
+         ->name('respostas_simulados.aplicador.selecionar');
+   // Rota para processar a seleção (POST)
+   Route::post('/simulados/{simulado}/aplicar', [RespostaSimuladoController::class, 'storeForAplicador'])
+        ->name('respostas_simulados.aplicador.store');
+
+        Route::post('/verificar-resposta', [RespostaSimuladoController::class, 'verificarResposta'])
+     ->name('respostas_simulados.verificar');
+        
+   // Rota para finalizar o simulado (POST)
+   Route::post('/simulados/{simulado}/finalizar', [RespostaSimuladoController::class, 'finalizarSimulado'])
+        ->name('respostas_simulados.aplicador.finalizar');
+
+        Route::get('/aplicador/index', [TurmaController::class, 'indexAplicador'])
+        ->name('turmas.aplicador.index');
+        Route::get('/get-alunos/{turma}', [RespostaSimuladoController::class, 'getAlunosPorTurma'])
+        ->name('respostas_simulados.aplicador.alunos');
+
+
+});
 
 // Rotas para professores do AEE
 Route::middleware('auth')->group(function () {

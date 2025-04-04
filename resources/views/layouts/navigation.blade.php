@@ -44,9 +44,9 @@
         <!-- Avaliações e Provas -->
         @php
             $showAvaliacoes = false;
-            $showGerarProvas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee']);
-            $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aluno']);
-            $showBancoQuestoes = Auth::check() && in_array(Auth::user()->role, ['admin']);
+            $showGerarProvas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
+            $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aluno', 'aplicador']);
+            $showBancoQuestoes = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
             $showAvaliacoes = $showGerarProvas || $showAvaliacao || $showBancoQuestoes;
         @endphp
         @if($showAvaliacoes)
@@ -87,9 +87,9 @@
         <!-- Planejamento do Professor -->
         @php
             $showPlanejamento = false;
-            $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee']);
-            $showMinhasTurmas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee']);
-            $showCadastrarAtividades = Auth::check() && in_array(Auth::user()->role, ['admin']);
+            $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
+            $showMinhasTurmas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
+            $showCadastrarAtividades = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
             $showPlanejamento = $showAtividadesEducativas || $showMinhasTurmas || $showCadastrarAtividades;
         @endphp
         @if($showPlanejamento)
@@ -128,7 +128,7 @@
         @endif
 
         <!-- Gestão Pedagógica -->
-        @if(Auth::check() && in_array(Auth::user()->role, ['admin']))
+        @if(Auth::check() && in_array(Auth::user()->role, ['admin','inclusiva', 'aplicador']))
             <li class="nav-item has-treeview">
                 <a href="#" class="nav-link text-white">
                     <i class="nav-icon fas fa-book text-white"></i>
@@ -160,10 +160,10 @@
         <!-- Inclusão e Acessibilidade -->
         @php
             $showInclusao = false;
-            $showAtividadesAdaptadas = Auth::check() && in_array(Auth::user()->role, ['aee', 'coordenador', 'professor', 'inclusiva', 'admin']);
-            $showPerfisAprendizagem = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin']);
-            $showTiposDeficiencias = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin']);
-            $showCadastrarRecursos = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin']);
+            $showAtividadesAdaptadas = Auth::check() && in_array(Auth::user()->role, ['aee', 'coordenador', 'professor', 'inclusiva', 'admin', 'aplicador']);
+            $showPerfisAprendizagem = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin', 'aplicador']);
+            $showTiposDeficiencias = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin', 'aplicador']);
+            $showCadastrarRecursos = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin','aplicador']);
             $showInclusao = $showAtividadesAdaptadas || $showPerfisAprendizagem || $showTiposDeficiencias || $showCadastrarRecursos;
         @endphp
         @if($showInclusao)

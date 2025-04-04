@@ -63,6 +63,8 @@
                                                 <option value="">Selecione um papel</option>
                                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrador</option>
                                                 <option value="professor" {{ old('role') == 'professor' ? 'selected' : '' }}>Professor</option>
+                                                <option value="aplicador" {{ old('role') == 'aplicador' ? 'selected' : '' }}>Aplicador</option>
+
                                                 <option value="aee" {{ old('role') == 'aee' ? 'selected' : '' }}>Professor do AEE</option>
                                                 <option value="inclusiva" {{ old('role') == 'inclusiva' ? 'selected' : '' }}>Diretoria Inclusiva</option>
                                                 <option value="coordenador" {{ old('role') == 'coordenador' ? 'selected' : '' }}>Coordenador</option>
@@ -134,7 +136,7 @@
                 const role = $('#role').val();
                 const escolaField = $('#escola-field');
                 
-                if (['professor', 'aee', 'coordenador'].includes(role)) {
+                if (['professor', 'aee', 'coordenador', 'aplicador'].includes(role)) {
                     escolaField.show();
                     $('#escola_id').prop('required', true);
                 } else {
