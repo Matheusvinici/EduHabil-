@@ -19,24 +19,24 @@
                     <div class="form-group">
                         <label for="codigo_escola">Código INEP</label>
                         <input type="text" name="codigo_escola" class="form-control" placeholder="Digite o código INEP" required>
-                  
+
                     </div>
                 </div>
             </div>
-            <div class="row">
+            <!--<div class="row">
                 <div class="col-md-8">
                     <div class="form-group">
                         <label for="endereco">Endereço</label>
                         <input type="text" name="endereco" class="form-control" placeholder="Digite o endereço">
                     </div>
-                </div>
-                <div class="col-md-4">
+                </div>-->
+                <!--<div class="col-md-4">
                     <div class="form-group">
                         <label for="telefone">Telefone</label>
                         <input type="text" name="telefone" class="form-control" placeholder="Digite o telefone">
                     </div>
                 </div>
-            </div>
+            </div>-->
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">Salvar</button>
             </div>
