@@ -45,7 +45,7 @@
         @php
             $showAvaliacoes = false;
             $showGerarProvas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
-            $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aluno', 'aplicador']);
+            $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aee', 'aluno', 'aplicador']);
             $showBancoQuestoes = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
             $showAvaliacoes = $showGerarProvas || $showAvaliacao || $showBancoQuestoes;
         @endphp
@@ -53,14 +53,14 @@
             <li class="nav-item has-treeview">
                 <a href="#" class="nav-link text-white">
                     <i class="nav-icon fas fa-file-alt text-white"></i>
-                    <p>Avaliações e Provas<i class="right fas fa-angle-left"></i></p>
+                    <p>Avaliações e Atividades<i class="right fas fa-angle-left"></i></p>
                 </a>
                 <ul class="nav nav-treeview">
                     @if($showGerarProvas)
                         <li class="nav-item">
                             <a href="{{ route('provas.index') }}" class="nav-link text-white">
                                 <i class="far fa-circle nav-icon text-white"></i>
-                                <p>Gerar Provas</p>
+                                <p>Gerar Atividades</p>
                             </a>
                         </li>
                     @endif
@@ -88,7 +88,7 @@
         @php
             $showPlanejamento = false;
             $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
-            $showMinhasTurmas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
+            $showMinhasTurmas = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
             $showCadastrarAtividades = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
             $showPlanejamento = $showAtividadesEducativas || $showMinhasTurmas || $showCadastrarAtividades;
         @endphp
@@ -96,14 +96,14 @@
             <li class="nav-item has-treeview">
                 <a href="#" class="nav-link text-white">
                     <i class="nav-icon fas fa-tasks text-white"></i>
-                    <p>Planejamento do Professor<i class="right fas fa-angle-left"></i></p>
+                    <p>Sequência Didática<i class="right fas fa-angle-left"></i></p>
                 </a>
                 <ul class="nav nav-treeview">
                     @if($showAtividadesEducativas)
                         <li class="nav-item">
                             <a href="{{ route('atividades_professores.index') }}" class="nav-link text-white">
                                 <i class="far fa-circle nav-icon text-white"></i>
-                                <p>Atividades Educativas</p>
+                                <p>Gerar Sequência Didática</p>
                             </a>
                         </li>
                     @endif
@@ -208,6 +208,17 @@
                 </ul>
             </li>
         @endif
+        @php
+            $showVinculacoes = Auth::check() && in_array(Auth::user()->role, ['aplicador', 'admin']);
+        @endphp
+        @if($showVinculacoes)
+            <li class="nav-item">
+                <a class="nav-link text-white" href="{{ route('professor-turma.index') }}">
+                    <i class="fas fa-link text-white"></i> Vincular Professor-Turma
+                </a>
+            </li>
+        @endif
+
 
         <!-- Administração -->
         @if(Auth::check() && Auth::user()->role === 'admin')
@@ -232,6 +243,8 @@
                 </ul>
             </li>
         @endif
+
+                   
 
     </ul>
 </nav>

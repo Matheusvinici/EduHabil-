@@ -5,9 +5,14 @@ namespace App\Http\Controllers;
 use App\Exports\EstatisticasExport;  
 use App\Exports\EstatisticasProfessorExport;  
 use App\Exports\EstatisticasCoordenadorExport;  
+use App\Exports\RespostasSimuladoExport;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
+use PDF;
+use Excel;
 
-use Maatwebsite\Excel\Facades\Excel;
 
 use Illuminate\Http\Request;
 use App\Models\RespostaSimulado;
@@ -29,26 +34,26 @@ class RespostaSimuladoController extends Controller
      * Redireciona para o método correto com base no perfil do usuário.
      */
     public function index(Request $request)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
 
-        switch ($user->role) {
-            case 'admin':
-                return redirect()->route('respostas_simulados.admin.estatisticas');
-                case 'inclusiva':
-                    return redirect()->route('respostas_simulados.inclusiva.estatisticas');
-            case 'professor':
-                return redirect()->route('respostas_simulados.professor.index');
-            case 'coordenador':
-                return redirect()->route('respostas_simulados.coordenador.index');
-            case 'aluno':
-                return redirect()->route('respostas_simulados.aluno.index');
-                case 'aplicador':
-                    return redirect()->route('respostas_simulados.aplicador.index');
-            default:
-                abort(403, 'Acesso não autorizado.');
-        }
+    switch ($user->role) {
+        case 'admin':
+            return redirect()->route('respostas_simulados.admin.estatisticas');
+        case 'inclusiva':
+            return redirect()->route('respostas_simulados.inclusiva.estatisticas');
+        case 'professor':
+            return redirect()->route('respostas_simulados.professor.index');
+        case 'coordenador':
+            return redirect()->route('respostas_simulados.coordenador.index');
+        case 'aluno':
+            return redirect()->route('respostas_simulados.aluno.index');
+        case 'aplicador':
+            return redirect()->route('respostas_simulados.aplicador.index');
+        default:
+            abort(403, 'Acesso não autorizado.');
     }
+}
 
     
 
@@ -63,7 +68,7 @@ class RespostaSimuladoController extends Controller
         ])->findOrFail($id);
     
         // Verifica permissão
-        if ($resposta->professor_id !== $aplicador->id) {
+        if ($resposta->aplicador_id !== $aplicador->id) {
             abort(403, 'Acesso não autorizado.');
         }
     
@@ -465,62 +470,170 @@ class RespostaSimuladoController extends Controller
     }
 
     public function selectForAplicador()
-    {
-        $user = Auth::user();
-        
-        if (!$user->escola) {
-            return view('respostas_simulados.aplicador.select', [
-                'simulados' => collect(),
-                'escolaUsuario' => null
-            ]);
-        }
+{
+    $user = Auth::user();
     
-        $simulados = Simulado::withCount('perguntas')->get();
-    
+    // Obtém todas as escolas onde o aplicador criou turmas
+    $escolas = Escola::whereHas('turmas', function($query) use ($user) {
+        $query->where('aplicador_id', $user->id);
+    })->get();
+
+    // Se não tiver escolas vinculadas, mostra mensagem
+    if ($escolas->isEmpty()) {
         return view('respostas_simulados.aplicador.select', [
-            'simulados' => $simulados,
-            'escolaUsuario' => $user->escola
+            'escolas' => collect(),
+            'simulados' => collect(),
+            'escolaSelecionada' => null
         ]);
     }
+
+    // Verifica se há escola na sessão ou pega a primeira
+    $escolaId = session('escola_aplicador_id') ?? $escolas->first()->id;
+    $escolaSelecionada = Escola::find($escolaId);
+
+    // Obtém simulados paginados
+    $simulados = Simulado::withCount('perguntas')
+                ->paginate(6);
+
+    return view('respostas_simulados.aplicador.select', [
+        'escolas' => $escolas,
+        'simulados' => $simulados,
+        'escolaSelecionada' => $escolaSelecionada
+    ]);
+}
+
+public function selectEscola(Request $request)
+{
+    $request->validate(['escola_id' => 'required|exists:escolas,id']);
     
-    public function createForAplicador(Simulado $simulado)
-    {
-        $user = Auth::user();
-        
-        if (!$user->escola) {
-            return redirect()->route('respostas_simulados.aplicador.select')
-                   ->with('error', 'Você não está vinculado a nenhuma escola');
-        }
+    // Armazena a escola selecionada na sessão
+    session(['escola_aplicador_id' => $request->escola_id]);
+    
+    return redirect()->route('respostas_simulados.aplicador.select');
+}
 
-        // Limpa a sessão se for um novo acesso ou se foi solicitado reset
-        if (!request()->has('keep_session') || request()->has('reset')) {
-            session()->forget([
-                'aluno_selecionado',
-                'aluno_id',
-                'aluno_nome',
-                'aluno_turma',
-                'turma_id',
-                'raca'
-            ]);
-        }
+public function createForAplicador(Simulado $simulado)
+{
+    $user = Auth::user();
+    $escolaId = session('escola_aplicador_id');
+    
+    if (!$escolaId) {
+        return redirect()->route('respostas_simulados.aplicador.select')
+               ->with('error', 'Selecione uma escola primeiro');
+    }
 
-        // Verifica se o simulado tem perguntas
-        if ($simulado->perguntas->isEmpty()) {
-            return redirect()->route('respostas_simulados.aplicador.select')
-                   ->with('error', 'Este simulado não possui perguntas cadastradas.');
-        }
+    // Limpa a sessão se for um novo acesso ou se foi solicitado reset
+    if (!request()->has('keep_session') || request()->has('reset')) {
+        session()->forget([
+            'aluno_selecionado',
+            'aluno_id',
+            'aluno_nome',
+            'aluno_turma',
+            'turma_id',
+            'raca'
+        ]);
+    }
 
-        // Obtém apenas turmas da escola do usuário
-        $turmas = Turma::where('escola_id', $user->escola_id)
-                    ->orderBy('nome_turma')
+    // Verifica se o simulado tem perguntas
+    if ($simulado->perguntas->isEmpty()) {
+        return redirect()->route('respostas_simulados.aplicador.select')
+               ->with('error', 'Este simulado não possui perguntas cadastradas.');
+    }
+
+    // Obtém apenas turmas da escola selecionada
+    $turmas = Turma::where('escola_id', $escolaId)
+                ->where('aplicador_id', $user->id)
+                ->orderBy('nome_turma')
+                ->get();
+
+    // Obtém alunos que já responderam
+    $alunosRespondidos = RespostaSimulado::where('simulado_id', $simulado->id)
+        ->where('aplicador_id', $user->id)
+        ->pluck('user_id')
+        ->toArray();
+
+    return view('respostas_simulados.aplicador.create', [
+        'simulado' => $simulado,
+        'turmas' => $turmas,
+        'alunosRespondidos' => $alunosRespondidos
+    ]);
+}
+
+            public function alunosPendentes(Simulado $simulado)
+            {
+                $user = Auth::user();
+                $escolaId = session('escola_aplicador_id');
+                
+                if (!$escolaId) {
+                    return redirect()->route('respostas_simulados.aplicador.select')
+                        ->with('error', 'Selecione uma escola primeiro');
+                }
+
+                // Alunos que já responderam
+                $respondidos = RespostaSimulado::where('simulado_id', $simulado->id)
+                    ->where('aplicador_id', $user->id)
+                    ->with('user')
+                    ->get()
+                    ->groupBy('user_id');
+
+                // Todos alunos das turmas do aplicador na escola selecionada
+                $alunos = User::whereHas('turma', function($query) use ($user, $escolaId) {
+                        $query->where('escola_id', $escolaId)
+                            ->where('aplicador_id', $user->id);
+                    })
+                    ->where('role', 'aluno')
+                    ->with('turma')
                     ->get();
-    
-        return view('respostas_simulados.aplicador.create', [
-            'simulado' => $simulado,
-            'turmas' => $turmas
-        ]);
-    }
-    
+
+                // Separa em respondidos e pendentes
+                $alunosRespondidos = collect();
+                $alunosPendentes = collect();
+
+                foreach ($alunos as $aluno) {
+                    if (isset($respondidos[$aluno->id])) {
+                        $alunosRespondidos->push([
+                            'id' => $aluno->id,
+                            'nome' => $aluno->name,
+                            'turma' => $aluno->turma->nome_turma,
+                            'data' => $respondidos[$aluno->id]->first()->created_at->format('d/m/Y H:i')
+                        ]);
+                    } else {
+                        $alunosPendentes->push([
+                            'id' => $aluno->id,
+                            'nome' => $aluno->name,
+                            'turma' => $aluno->turma->nome_turma
+                        ]);
+                    }
+                }
+
+                // Paginação manual
+                $perPage = 10;
+                $page = request()->get('page', 1);
+                $offset = ($page - 1) * $perPage;
+
+                $alunosPendentesPaginated = new LengthAwarePaginator(
+                    $alunosPendentes->slice($offset, $perPage),
+                    $alunosPendentes->count(),
+                    $perPage,
+                    $page,
+                    ['path' => request()->url()]
+                );
+
+                $alunosRespondidosPaginated = new LengthAwarePaginator(
+                    $alunosRespondidos->slice($offset, $perPage),
+                    $alunosRespondidos->count(),
+                    $perPage,
+                    $page,
+                    ['path' => request()->url()]
+                );
+
+                return view('respostas_simulados.aplicador.alunos_pendentes', [
+                    'simulado' => $simulado,
+                    'alunosPendentes' => $alunosPendentesPaginated,
+                    'alunosRespondidos' => $alunosRespondidosPaginated
+                ]);
+            }
+
     public function getAlunosPorTurma($turmaId)
     {
         try {
@@ -576,7 +689,7 @@ class RespostaSimuladoController extends Controller
         $respostaExistente = RespostaSimulado::where([
             'simulado_id' => $simulado->id,
             'user_id' => $aluno->id,
-            'professor_id' => Auth::id()
+            'aplicador_id' => Auth::id()
         ])->exists();
 
         if ($respostaExistente) {
@@ -606,7 +719,7 @@ class RespostaSimuladoController extends Controller
         $aplicador = Auth::user();
         
         // Obtém todas as respostas registradas pelo aplicador
-        $respostas = RespostaSimulado::where('professor_id', $aplicador->id)
+        $respostas = RespostaSimulado::where('aplicador_id', $aplicador->id)
             ->with(['simulado.perguntas', 'user']) // Carrega relacionamentos necessários
             ->get();
         
@@ -643,7 +756,6 @@ class RespostaSimuladoController extends Controller
             'estatisticas' => $estatisticas->sortByDesc('data')
         ]);
     }
-  
     public function storeForAplicador(Request $request, Simulado $simulado)
     {
         $request->validate([
@@ -662,15 +774,14 @@ class RespostaSimuladoController extends Controller
             return back()->with('error', 'Aluno não pertence à turma selecionada');
         }
     
-        // Verifica se a turma pertence à escola do aplicador
-        if ($turma->escola_id != $aplicador->escola_id) {
+        // Verifica se o aplicador tem vínculo com a turma
+        if ($turma->aplicador_id != $aplicador->id) {
             return back()->with('error', 'Você não tem permissão para aplicar nesta turma');
         }
+        
     
-        // Carrega todas as perguntas do simulado com as respostas corretas de uma só vez
+        // Carrega todas as perguntas com as respostas corretas
         $perguntas = $simulado->perguntas()->pluck('resposta_correta', 'perguntas.id');
-
-
     
         // Verifica se todas as perguntas foram respondidas
         $perguntasNaoRespondidas = $perguntas->keys()->diff(array_keys($request->respostas));
@@ -685,33 +796,35 @@ class RespostaSimuladoController extends Controller
                     'simulado_id' => $simulado->id,
                     'pergunta_id' => $perguntaId,
                     'user_id' => $aluno->id,
-                    'professor_id' => $aplicador->id,
-                    'escola_id' => $aluno->escola_id,
+                    'aplicador_id' => $aplicador->id,
+                    'escola_id' => $turma->escola_id,
                     'resposta' => $respostaAluno,
-                    'correta' => $perguntas[$perguntaId] === $respostaAluno, // Comparação direta
+                    'correta' => $perguntas[$perguntaId] === $respostaAluno,
                     'raca' => $request->raca
                 ]);
             }
     
             DB::commit();
+    
             return redirect()
-                   ->route('respostas_simulados.aplicador.index')
-                   ->with('success', 'Simulado aplicado com sucesso!');
+                ->route('respostas_simulados.aplicador.index', ['escola_id' => $turma->escola_id])
+                ->with('success', 'Simulado aplicado com sucesso!');
     
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Erro ao salvar respostas: ' . $e->getMessage());
         }
     }
+    
 
-/**
- * Verifica se a resposta do aluno está correta
- */
-private function verificarRespostaSimples($perguntaId, $resposta)
-{
-    $pergunta = Pergunta::find($perguntaId);
-    return $pergunta ? $resposta === $pergunta->alternativa_correta : false;
-}
+    /**
+     * Verifica se a resposta do aluno está correta
+     */
+    private function verificarRespostaSimples($perguntaId, $resposta)
+    {
+        $pergunta = Pergunta::find($perguntaId);
+        return $pergunta ? $resposta === $pergunta->alternativa_correta : false;
+    }
 
     
     public function detalhesTurma(Request $request, $turmaId)
@@ -848,71 +961,74 @@ private function verificarRespostaSimples($perguntaId, $resposta)
      * Salva as respostas do aluno.
      */
     public function store(Request $request, Simulado $simulado)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
     
-        if ($user->role !== 'aluno') {
-            abort(403, 'Acesso não autorizado.');
-        }
-    
-        // Verifica se o aluno já respondeu este simulado
-        if (RespostaSimulado::where('simulado_id', $simulado->id)
-            ->where('user_id', $user->id)
-            ->exists()) {
-            return redirect()->route('respostas_simulados.aluno.index')
-                ->with('error', 'Você já respondeu este simulado.');
-        }
-    
-        // Validação dos dados
-        $validated = $request->validate([
-            'respostas' => 'required|array',
-            'respostas.*' => 'required|in:A,B,C,D',
-            'raca' => 'nullable|string|in:Branca,Preta,Parda,Amarela,Indígena,Prefiro não informar',
-            'tempo_resposta' => 'required|integer|min:1'
-        ]);
-    
-        // Verifica se todas as perguntas foram respondidas
-        if (count($validated['respostas']) !== $simulado->perguntas->count()) {
-            return back()->with('error', 'Você deve responder todas as questões do simulado.');
-        }
-    
-        // Verifica se o tempo limite foi excedido
-        if ($simulado->tempo_limite && ($validated['tempo_resposta'] > ($simulado->tempo_limite * 60))) {
-            return back()->with('error', 'Tempo limite excedido. Suas respostas não foram salvas.');
-        }
-    
-        // Inicia uma transação para garantir a integridade dos dados
-        DB::beginTransaction();
-    
-        try {
-            // Salva cada resposta do aluno
-            foreach ($validated['respostas'] as $pergunta_id => $resposta) {
-                $pergunta = Pergunta::findOrFail($pergunta_id);
-                
-                RespostaSimulado::create([
-                    'user_id' => $user->id,
-                    'professor_id' => $user->turma->professor_id,
-                    'escola_id' => $user->escola_id,
-                    'simulado_id' => $simulado->id,
-                    'pergunta_id' => $pergunta_id,
-                    'resposta' => $resposta,
-                    'correta' => $resposta === $pergunta->resposta_correta,
-                    'raca' => $validated['raca'],
-                    'tempo_resposta' => $validated['tempo_resposta'],
-                ]);
-            }
-    
-            DB::commit();
-    
-            return redirect()->route('respostas_simulados.aluno.index')
-                ->with('success', 'Simulado finalizado com sucesso!');
-    
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Ocorreu um erro ao salvar suas respostas. Por favor, tente novamente.');
-        }
+    if ($user->role !== 'aluno') {
+        abort(403, 'Acesso não autorizado.');
     }
 
+    // Verifica se o aluno já respondeu este simulado
+    if (RespostaSimulado::where('simulado_id', $simulado->id)
+        ->where('user_id', $user->id)
+        ->exists()) {
+        return redirect()->route('respostas_simulados.aluno.index')
+            ->with('error', 'Você já respondeu este simulado.');
+    }
+
+    // Validação dos dados
+    $validated = $request->validate([
+        'respostas' => 'required|array',
+        'respostas.*' => 'required|in:A,B,C,D',
+        'raca' => 'required|string|in:Branca,Preta,Parda,Amarela,Indígena,Prefiro não informar',
+        'tempo_resposta' => 'required|integer|min:1'
+    ]);
+
+    // Verifica se todas as perguntas foram respondidas
+    if (count($validated['respostas']) !== $simulado->perguntas->count()) {
+        return back()->with('error', 'Você deve responder todas as questões do simulado.');
+    }
+
+    DB::beginTransaction();
+
+    try {
+        // Obtém a turma do aluno
+        $turma = $user->turma;
+        
+        if (!$turma) {
+            throw new \Exception('Aluno não está vinculado a nenhuma turma.');
+        }
+
+        // Obtém o aplicador responsável pela turma
+        $aplicador = $turma->aplicador; // Assumindo que existe relação turma->aplicador
+
+        foreach ($validated['respostas'] as $pergunta_id => $resposta) {
+            $pergunta = Pergunta::findOrFail($pergunta_id);
+            
+            RespostaSimulado::create([
+                'user_id' => $user->id,
+                'turma_id' => $turma->id,
+                'aplicador_id' => $aplicador->id, // ID do aplicador que criou a turma
+                'escola_id' => $turma->escola_id,
+                'simulado_id' => $simulado->id,
+                'pergunta_id' => $pergunta_id,
+                'resposta' => $resposta,
+                'correta' => $resposta === $pergunta->resposta_correta,
+                'raca' => $validated['raca'],
+                'tempo_resposta' => $validated['tempo_resposta'],
+            ]);
+        }
+
+        DB::commit();
+
+        return redirect()->route('respostas_simulados.aluno.index')
+            ->with('success', 'Simulado finalizado com sucesso!');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Ocorreu um erro ao salvar suas respostas: ' . $e->getMessage());
+    }
+}
 
     /**
      * Exibe os detalhes de um simulado respondido (para o aluno).
@@ -941,118 +1057,90 @@ private function verificarRespostaSimples($perguntaId, $resposta)
     /**
      * Exibe a lista de respostas dos alunos (para o professor/admin).
      */
-    public function professorIndex(Request $request)
-{
-    $user = Auth::user();
-
-    // Verifica se o usuário é um professor
-    if ($user->role !== 'professor') {
-        abort(403, 'Acesso não autorizado.');
-    }
-
-    // Filtro pelo nome do simulado
-    $simuladoNome = $request->query('simulado_nome');
-
-    // Busca as turmas criadas pelo professor
-    $turmasIds = Turma::where('professor_id', $user->id)->pluck('id');
-
-    // Busca os IDs dos alunos das turmas criadas pelo professor
-    $alunosIds = User::whereIn('turma_id', $turmasIds)->where('role', 'aluno')->pluck('id');
-
-    // Busca os simulados
-    $simulados = Simulado::when($simuladoNome, function ($query, $simuladoNome) {
-        return $query->where('nome', 'like', '%' . $simuladoNome . '%');
-    })
-    ->with(['respostas' => function ($query) use ($alunosIds) {
-        $query->whereIn('user_id', $alunosIds); // Filtra respostas dos alunos das turmas do professor
-    }, 'respostas.user', 'respostas.pergunta']) // Carrega as respostas, alunos e perguntas
-    ->get();
-
-    // Calcula as estatísticas por aluno
-    $estatisticasPorAluno = [];
-    foreach ($simulados as $simulado) {
-        foreach ($simulado->respostas as $resposta) {
-            $alunoId = $resposta->user_id;
-            $alunoNome = $resposta->user->name;
-
-            if (!isset($estatisticasPorAluno[$alunoId])) {
-                $estatisticasPorAluno[$alunoId] = [
-                    'aluno' => $alunoNome,
-                    'total_respostas' => 0,
-                    'acertos' => 0,
-                    'porcentagem_acertos' => 0,
-                    'media_final' => 0,
+   
+    protected function calcularEstatisticas($respostas, $turmasIds)
+    {
+        // Agrupa por aluno
+        $agrupadas = $respostas->groupBy('user_id');
+        
+        $estatisticasPorAluno = [];
+        $mediaTurmaPorSimulado = [];
+        $estatisticasPorHabilidade = [];
+        
+        foreach ($agrupadas as $alunoId => $respostasAluno) {
+            $aluno = $respostasAluno->first()->user;
+            
+            foreach ($respostasAluno->groupBy('simulado_id') as $simuladoId => $respostasSimulado) {
+                $simulado = $respostasSimulado->first()->simulado;
+                
+                $totalQuestoes = $simulado->perguntas->count();
+                $acertos = $respostasSimulado->where('correta', true)->count();
+                $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
+                
+                $estatisticasPorAluno[] = [
+                    'aluno' => $aluno->name,
+                    'turma' => $aluno->turma->nome,
+                    'simulado' => $simulado->nome,
+                    'total_questoes' => $totalQuestoes,
+                    'acertos' => $acertos,
+                    'porcentagem' => $porcentagem,
+                    'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
+                    'data' => $respostasSimulado->first()->created_at,
+                    'desempenho_class' => $porcentagem >= 70 ? 'success' : ($porcentagem >= 50 ? 'warning' : 'danger')
                 ];
+                
+                // Calcula média por simulado
+                if (!isset($mediaTurmaPorSimulado[$simuladoId])) {
+                    $mediaTurmaPorSimulado[$simuladoId] = [
+                        'simulado' => $simulado->nome,
+                        'total_respostas' => 0,
+                        'acertos' => 0
+                    ];
+                }
+                $mediaTurmaPorSimulado[$simuladoId]['total_respostas'] += $totalQuestoes;
+                $mediaTurmaPorSimulado[$simuladoId]['acertos'] += $acertos;
             }
-
-            $estatisticasPorAluno[$alunoId]['total_respostas']++;
-            if ($resposta->correta) {
-                $estatisticasPorAluno[$alunoId]['acertos']++;
+            
+            // Calcula por habilidade
+            foreach ($respostasAluno as $resposta) {
+                $habilidadeId = $resposta->pergunta->habilidade_id;
+                $habilidadeNome = $resposta->pergunta->habilidade->descricao;
+                
+                if (!isset($estatisticasPorHabilidade[$habilidadeId])) {
+                    $estatisticasPorHabilidade[$habilidadeId] = [
+                        'habilidade' => $habilidadeNome,
+                        'total_respostas' => 0,
+                        'acertos' => 0
+                    ];
+                }
+                
+                $estatisticasPorHabilidade[$habilidadeId]['total_respostas']++;
+                if ($resposta->correta) {
+                    $estatisticasPorHabilidade[$habilidadeId]['acertos']++;
+                }
             }
         }
-    }
-
-    // Calcula a porcentagem de acertos e a média final para cada aluno
-    foreach ($estatisticasPorAluno as &$estatistica) {
-        $estatistica['porcentagem_acertos'] = ($estatistica['total_respostas'] > 0)
-            ? ($estatistica['acertos'] / $estatistica['total_respostas']) * 100
-            : 0;
-
-        $estatistica['media_final'] = ($estatistica['total_respostas'] > 0)
-            ? ($estatistica['acertos'] / $estatistica['total_respostas']) * 10
-            : 0;
-    }
-
-    // Calcula a média da turma por simulado
-    $mediaTurmaPorSimulado = [];
-    foreach ($simulados as $simulado) {
-        $totalRespostas = $simulado->respostas->count();
-        $totalAcertos = $simulado->respostas->where('correta', true)->count();
-
-        $mediaTurmaPorSimulado[] = [
-            'simulado' => $simulado->nome,
-            'media_turma' => ($totalRespostas > 0) ? ($totalAcertos / $totalRespostas) * 10 : 0,
+        
+        // Calcula médias finais
+        foreach ($mediaTurmaPorSimulado as &$simulado) {
+            $simulado['media_turma'] = $simulado['total_respostas'] > 0 
+                ? ($simulado['acertos'] / $simulado['total_respostas']) * 10 
+                : 0;
+        }
+        
+        foreach ($estatisticasPorHabilidade as &$habilidade) {
+            $habilidade['porcentagem_acertos'] = $habilidade['total_respostas'] > 0
+                ? ($habilidade['acertos'] / $habilidade['total_respostas']) * 100
+                : 0;
+        }
+        
+        return [
+            'estatisticasPorAluno' => $estatisticasPorAluno,
+            'mediaTurmaPorSimulado' => array_values($mediaTurmaPorSimulado),
+            'estatisticasPorHabilidade' => array_values($estatisticasPorHabilidade)
         ];
     }
-
-    // Calcula as estatísticas por habilidade
-    $estatisticasPorHabilidade = [];
-    foreach ($simulados as $simulado) {
-        foreach ($simulado->respostas as $resposta) {
-            $habilidadeId = $resposta->pergunta->habilidade_id;
-            $habilidadeNome = $resposta->pergunta->habilidade->descricao;
-
-            if (!isset($estatisticasPorHabilidade[$habilidadeId])) {
-                $estatisticasPorHabilidade[$habilidadeId] = [
-                    'habilidade' => $habilidadeNome,
-                    'total_respostas' => 0,
-                    'acertos' => 0,
-                    'porcentagem_acertos' => 0,
-                ];
-            }
-
-            $estatisticasPorHabilidade[$habilidadeId]['total_respostas']++;
-            if ($resposta->correta) {
-                $estatisticasPorHabilidade[$habilidadeId]['acertos']++;
-            }
-        }
-    }
-
-    // Calcula a porcentagem de acertos por habilidade
-    foreach ($estatisticasPorHabilidade as &$estatistica) {
-        $estatistica['porcentagem_acertos'] = ($estatistica['total_respostas'] > 0)
-            ? ($estatistica['acertos'] / $estatistica['total_respostas']) * 100
-            : 0;
-    }
-
-    return view('respostas_simulados.professor.index', compact(
-        'simulados',
-        'simuladoNome',
-        'estatisticasPorAluno',
-        'mediaTurmaPorSimulado',
-        'estatisticasPorHabilidade'
-    ));
-}
+    
     /**
      * Exibe os detalhes das respostas de um simulado específico (para o professor).
      */
@@ -1087,110 +1175,292 @@ private function verificarRespostaSimples($perguntaId, $resposta)
      */
     public function estatisticasProfessor(Request $request)
     {
-        $user = Auth::user();
+        $professor = Auth::user();
         
-        if ($user->role !== 'professor') {
+        if ($professor->role !== 'professor') {
             abort(403, 'Acesso não autorizado.');
         }
     
-        // Busca as turmas do professor
-        $turmasIds = Turma::where('professor_id', $user->id)->pluck('id');
+        // Inicializa todas as coleções que serão usadas
+        $estatisticas = collect();
+        $estatisticasHabilidades = collect();
+        $mediasTurma = collect();
+        $alunosSemResposta = collect();
+    
+        // Obter turmas do professor
+        $turmas = $professor->turmasLecionadas()
+            ->with(['alunos' => function($query) {
+                $query->where('role', 'aluno');
+            }])
+            ->get();
+    
+        // Se não houver turmas vinculadas
+        if ($turmas->isEmpty()) {
+            return view('respostas_simulados.professor.index', [
+                'turmas' => collect(),
+                'estatisticas' => $estatisticas,
+                'habilidades' => Habilidade::all(),
+                'filtros' => $request->all(),
+                'alunosSemResposta' => $alunosSemResposta,
+                'estatisticasHabilidades' => $estatisticasHabilidades,
+                'mediasTurma' => $mediasTurma,
+                'graficosData' => [
+                    'desempenho' => [
+                        'otimo' => 0,
+                        'regular' => 0,
+                        'ruim' => 0
+                    ],
+                    'habilidades' => [
+                        'labels' => [],
+                        'valores' => []
+                    ]
+                ],
+                'totalAlunosTurma' => 0,
+                'alunosComDeficiencia' => 0,
+                'turmaSelecionada' => null,
+                'mensagemSemTurma' => 'Você não está vinculado a nenhuma turma. Por favor, entre em contato com a secretaria de educação para ser vinculado a uma turma.'
+            ]);
+        }
+    
+        // Aplicar filtros
+        $turmaId = $request->turma_id ?? $turmas->first()->id;
+        $habilidadeId = $request->habilidade_id;
+        $simuladoId = $request->simulado_id;
         
-        // Busca os IDs dos alunos das turmas do professor
-        $alunosIds = User::whereIn('turma_id', $turmasIds)
-                        ->where('role', 'aluno')
-                        ->pluck('id');
-        
-        // Total de alunos
-        $totalAlunos = $alunosIds->count();
-        
+        $turmaSelecionada = $turmas->firstWhere('id', $turmaId);
+        $alunosTurma = $turmaSelecionada->alunos;
+    
         // Query base para respostas
-        $respostasQuery = RespostaSimulado::query()
-            ->whereIn('user_id', $alunosIds)
-            ->with(['user', 'pergunta.habilidade', 'simulado']);
-        
-        // Aplica filtros
-        if ($request->filled('simulado_id')) {
-            $respostasQuery->where('simulado_id', $request->simulado_id);
-        }
-        
-        if ($request->filled('ano_id')) {
-            $respostasQuery->whereHas('simulado', function($q) use ($request) {
-                $q->where('ano_id', $request->ano_id);
+        $respostasQuery = RespostaSimulado::with([
+                'simulado.perguntas.habilidade',
+                'user', 
+                'pergunta.habilidade'
+            ])
+            ->whereIn('user_id', $alunosTurma->pluck('id'));
+    
+        if ($habilidadeId) {
+            $respostasQuery->whereHas('pergunta', function($q) use ($habilidadeId) {
+                $q->where('habilidade_id', $habilidadeId);
             });
         }
-        
-        if ($request->filled('habilidade_id')) {
-            $respostasQuery->whereHas('pergunta', function($q) use ($request) {
-                $q->where('habilidade_id', $request->habilidade_id);
-            });
+    
+        if ($simuladoId) {
+            $respostasQuery->where('simulado_id', $simuladoId);
         }
-        
+    
         $respostas = $respostasQuery->get();
-        $totalRespostas = $respostas->count();
-        
-        // Estatísticas por aluno
-        $estatisticasPorAluno = [];
-        foreach ($respostas->groupBy('user_id') as $alunoId => $respostasAluno) {
-            $aluno = $respostasAluno->first()->user;
-            $total = $respostasAluno->count();
-            $acertos = $respostasAluno->where('correta', true)->count();
-            
-            $estatisticasPorAluno[] = [
-                'aluno' => $aluno->name,
-                'total_respostas' => $total,
-                'acertos' => $acertos,
-                'porcentagem_acertos' => $total > 0 ? ($acertos / $total) * 100 : 0,
-                'media_final' => $total > 0 ? ($acertos / $total) * 10 : 0
-            ];
+    
+        // Estatísticas gerais
+        $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
+    
+        foreach ($agrupadas as $simuladoId => $alunos) {
+            foreach ($alunos as $alunoId => $respostasAluno) {
+                $primeiraResposta = $respostasAluno->first();
+                $simulado = $primeiraResposta->simulado;
+                $aluno = $primeiraResposta->user;
+                
+                $totalQuestoes = $simulado->perguntas->count();
+                $acertos = $respostasAluno->where('correta', true)->count();
+                $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
+                
+                $estatisticas->push([
+                    'aluno_id' => $aluno->id,
+                    'aluno' => $aluno->name,
+                    'turma' => $turmaSelecionada->nome_turma,
+                    'simulado_id' => $simulado->id,
+                    'simulado' => $simulado->nome,
+                    'total_questoes' => $totalQuestoes,
+                    'acertos' => $acertos,
+                    'porcentagem' => $porcentagem,
+                    'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
+                    'data' => $primeiraResposta->created_at,
+                    'deficiencia' => $aluno->deficiencia,
+                    'desempenho_class' => $porcentagem >= 70 ? 'success' : 
+                                         ($porcentagem >= 50 ? 'warning' : 'danger')
+                ]);
+            }
         }
-        
-        // Média por simulado
-        $mediaTurmaPorSimulado = [];
-        foreach ($respostas->groupBy('simulado_id') as $simuladoId => $respostasSimulado) {
-            $simulado = $respostasSimulado->first()->simulado;
-            $total = $respostasSimulado->count();
-            $acertos = $respostasSimulado->where('correta', true)->count();
-            
-            $mediaTurmaPorSimulado[] = [
-                'simulado' => $simulado->nome,
-                'media_turma' => $total > 0 ? ($acertos / $total) * 10 : 0
-            ];
-        }
-        
+    
         // Estatísticas por habilidade
-        $estatisticasPorHabilidade = [];
-        foreach ($respostas->groupBy('pergunta.habilidade_id') as $habilidadeId => $respostasHabilidade) {
-            $habilidade = $respostasHabilidade->first()->pergunta->habilidade;
-            $total = $respostasHabilidade->count();
-            $acertos = $respostasHabilidade->where('correta', true)->count();
-            
-            $estatisticasPorHabilidade[] = [
-                'habilidade' => $habilidade->descricao,
-                'total_respostas' => $total,
-                'acertos' => $acertos,
-                'porcentagem_acertos' => $total > 0 ? ($acertos / $total) * 100 : 0
-            ];
+        if (!$habilidadeId) {
+            $habilidadesRespondidas = $respostas->pluck('pergunta.habilidade')
+                ->unique()
+                ->filter();
+    
+            foreach ($habilidadesRespondidas as $habilidade) {
+                if (!$habilidade) continue;
+                
+                $respostasHabilidade = $respostas->filter(function($resposta) use ($habilidade) {
+                    return optional($resposta->pergunta)->habilidade_id == $habilidade->id;
+                });
+    
+                $totalRespostas = $respostasHabilidade->count();
+                $acertos = $respostasHabilidade->where('correta', true)->count();
+                $porcentagem = $totalRespostas > 0 ? ($acertos / $totalRespostas) * 100 : 0;
+    
+                $estatisticasHabilidades->push([
+                    'habilidade_id' => $habilidade->id,
+                    'habilidade' => $habilidade->descricao,
+                    'total_respostas' => $totalRespostas,
+                    'acertos' => $acertos,
+                    'porcentagem' => $porcentagem,
+                    'media' => $totalRespostas > 0 ? ($acertos / $totalRespostas) * 10 : 0,
+                    'desempenho_class' => $porcentagem >= 70 ? 'success' : 
+                                         ($porcentagem >= 50 ? 'warning' : 'danger')
+                ]);
+            }
         }
-        
-        // Obter dados para os selects
-        $simulados = Simulado::all();
-        $anos = Ano::all();
-        $habilidades = Habilidade::all();
-        
-        return view('respostas_simulados.professor.index', compact(
-            'totalAlunos',
-            'totalRespostas',
-            'estatisticasPorAluno',
-            'mediaTurmaPorSimulado',
-            'estatisticasPorHabilidade',
-            'simulados',
-            'anos',
-            'habilidades',
-            'request',
-            'user'
-        ));
+    
+        // Médias por turma/simulado
+        if (!$simuladoId) {
+            $agrupadasPorSimulado = $estatisticas->groupBy('simulado_id');
+            
+            foreach ($agrupadasPorSimulado as $simuladoId => $dados) {
+                $primeiroItem = $dados->first();
+                
+                $mediasTurma->push([
+                    'simulado_id' => $simuladoId,
+                    'simulado' => $primeiroItem['simulado'],
+                    'quantidade_alunos' => $dados->count(),
+                    'media_porcentagem' => $dados->avg('porcentagem'),
+                    'media_nota' => $dados->avg('media')
+                ]);
+            }
+        }
+    
+        // Alunos sem resposta
+        $alunosComResposta = $estatisticas->pluck('aluno_id')->unique();
+        $alunosSemResposta = $alunosTurma->whereNotIn('id', $alunosComResposta);
+        $alunosComDeficiencia = $alunosTurma->where('deficiencia', true)->count();
+    
+        // Dados para os novos gráficos
+        $graficosData = [
+            'desempenho' => [
+                'otimo' => $estatisticas->where('porcentagem', '>=', 70)->count(),
+                'regular' => $estatisticas->whereBetween('porcentagem', [50, 69])->count(),
+                'ruim' => $estatisticas->where('porcentagem', '<', 50)->count()
+            ],
+            'habilidades' => [
+                'labels' => $estatisticasHabilidades->pluck('habilidade')->toArray(),
+                'valores' => $estatisticasHabilidades->pluck('porcentagem')->map(function($item) {
+                    return (float) number_format($item, 2);
+                })->toArray()
+            ]
+        ];
+    
+        // Paginação
+        $perPage = 15;
+        $estatisticas = $this->paginateCollection($estatisticas, $perPage, 'resultados_page');
+        $estatisticasHabilidades = $this->paginateCollection($estatisticasHabilidades, $perPage, 'habilidades_page');
+        $alunosSemResposta = $this->paginateCollection($alunosSemResposta, $perPage, 'alunos_sem_resposta_page');
+        $mediasTurma = $this->paginateCollection($mediasTurma, $perPage, 'medias_page');
+    
+        // Obter lista de simulados para o filtro
+        $simulados = Simulado::whereHas('respostas', function($q) use ($alunosTurma) {
+            $q->whereIn('user_id', $alunosTurma->pluck('id'));
+        })->get();
+    
+        return view('respostas_simulados.professor.index', [
+            'turmas' => $turmas,
+            'simulados' => $simulados,
+            'estatisticas' => $estatisticas,
+            'habilidades' => Habilidade::all(),
+            'filtros' => $request->all(),
+            'alunosSemResposta' => $alunosSemResposta,
+            'estatisticasHabilidades' => $estatisticasHabilidades,
+            'mediasTurma' => $mediasTurma,
+            'graficosData' => $graficosData,
+            'totalAlunosTurma' => $alunosTurma->count(),
+            'alunosComDeficiencia' => $alunosComDeficiencia,
+            'turmaSelecionada' => $turmaSelecionada,
+            'mensagemSemTurma' => null
+        ]);
     }
+    
+    // Método auxiliar para paginar coleções
+    private function paginateCollection($items, $perPage, $pageName = 'page')
+    {
+        $page = LengthAwarePaginator::resolveCurrentPage($pageName);
+        $sliced = $items->slice(($page - 1) * $perPage, $perPage);
+        return new LengthAwarePaginator(
+            $sliced,
+            $items->count(),
+            $perPage,
+            $page,
+            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => $pageName]
+        );
+    }
+    
+    // Método auxiliar para gerar cores dos gráficos
+    private function generateChartColors($count)
+    {
+        $colors = [];
+        for ($i = 0; $i < $count; $i++) {
+            $colors[] = '#' . substr(md5(rand()), 0, 6);
+        }
+        return $colors;
+    }
+    
+  
+    
+    public function exportarPdf(Request $request)
+    {
+        // Obter os dados da estatística
+        $response = $this->estatisticasProfessor($request);
+        
+        // Se a resposta for uma view, pegue os dados
+        if ($response instanceof \Illuminate\View\View) {
+            $viewData = $response->getData();
+        } 
+        // Se for uma resposta JSON, decodifique
+        elseif ($response instanceof \Illuminate\Http\JsonResponse) {
+            $viewData = $response->getData();
+        } else {
+            $viewData = (object)[];
+        }
+    
+        // Converter para array se for objeto
+        $viewData = (array)$viewData;
+    
+        // Garantir que as chaves existam
+        $viewData['estatisticas'] = $viewData['estatisticas'] ?? [];
+        $viewData['alunosSemResposta'] = $viewData['alunosSemResposta'] ?? [];
+        $viewData['turmaSelecionada'] = $viewData['turmaSelecionada'] ?? null;
+        $viewData['filtros'] = $request->all();
+    
+        // Debug - verifique os dados antes de gerar o PDF
+        \Log::info('Dados para o PDF:', $viewData);
+    
+        // Gerar o PDF
+        $pdf = \PDF::loadView('respostas_simulados.professor.pdf', $viewData);
+        
+        return $pdf->download('relatorio-'.now()->format('YmdHis').'.pdf');
+    }
+    
+    public function exportarExcel(Request $request)
+    {
+        // Obter os dados
+        $response = $this->estatisticasProfessor($request);
+        $data = $response->getData();
+        
+        // Verificar e garantir a estrutura dos dados
+        $exportData = [
+            'estatisticas' => $data->estatisticas ?? [],
+            'alunosSemResposta' => $data->alunosSemResposta ?? [],
+            'totalAlunosTurma' => $data->totalAlunosTurma ?? 0,
+            'alunosComDeficiencia' => $data->alunosComDeficiencia ?? 0
+        ];
+    
+        return Excel::download(
+            new RespostasSimuladoExport(
+                $exportData,
+                $data->turmaSelecionada ?? null,
+                $request->all()
+            ),
+            'relatorio-desempenho-'.now()->format('Y-m-d_H-i').'.xlsx'
+        );
+    }
+    
 
     public function detalhesEscola(Request $request, $escolaId)
 {
@@ -1279,42 +1549,6 @@ private function verificarRespostaSimples($perguntaId, $resposta)
 }
 
 
-    public function exportProfessorPdf(Request $request)
-    {
-        $user = Auth::user();
-        
-        if ($user->role !== 'professor') {
-            abort(403, 'Acesso não autorizado.');
-        }
-    
-        // Obter os dados filtrados
-        $data = $this->getEstatisticasProfessorData($request);
-        
-        // Verificar e garantir que todas as variáveis necessárias existam
-        if (!isset($data['totalAlunos'])) {
-            $data['totalAlunos'] = 0;
-        }
-        if (!isset($data['totalRespostas'])) {
-            $data['totalRespostas'] = 0;
-        }
-        if (!isset($data['estatisticasPorAluno'])) {
-            $data['estatisticasPorAluno'] = [];
-        }
-        if (!isset($data['mediaTurmaPorSimulado'])) {
-            $data['mediaTurmaPorSimulado'] = [];
-        }
-        if (!isset($data['estatisticasPorHabilidade'])) {
-            $data['estatisticasPorHabilidade'] = [];
-        }
-    
-        // Gerar o PDF
-        $pdf = \PDF::loadView('respostas_simulados.professor.pdf', $data);
-        
-        // Nome do arquivo
-        $filename = 'estatisticas_alunos_'.now()->format('Ymd_His').'.pdf';
-        
-        return $pdf->download($filename);
-    }
     
     private function getEstatisticasProfessorData(Request $request)
     {
@@ -2166,34 +2400,25 @@ private function verificarRespostaSimples($perguntaId, $resposta)
             ];
         }
     
-        // Estatísticas por ano
-        $estatisticasPorAno = [];
-        $respostasPorAno = RespostaSimulado::when($anoId, function ($query, $anoId) {
-                return $query->whereHas('simulado', function ($q) use ($anoId) {
-                    $q->where('ano_id', $anoId);
-                });
-            })
-            ->when($simuladoId, function ($query, $simuladoId) {
-                return $query->where('simulado_id', $simuladoId);
-            })
-            ->get()
-            ->groupBy('simulado.ano_id');
-    
-        foreach ($respostasPorAno as $anoId => $respostas) {
-            $ano = Ano::find($anoId);
-            $totalRespostasAno = $respostas->count();
-            $acertos = $respostas->where('correta', true)->count();
-            $porcentagemAcertos = ($totalRespostasAno > 0) ? ($acertos / $totalRespostasAno) * 100 : 0;
-            $mediaFinal = ($totalRespostasAno > 0) ? ($acertos / $totalRespostasAno) * 10 : 0;
-    
-            $estatisticasPorAno[] = [
-                'ano' => $ano->nome,
-                'total_respostas' => $totalRespostasAno,
-                'acertos' => $acertos,
-                'porcentagem_acertos' => $porcentagemAcertos,
-                'media_final' => $mediaFinal,
+        $estatisticasPorAno = DB::table('anos')
+        ->leftJoin('simulados', 'simulados.ano_id', '=', 'anos.id')
+        ->leftJoin('respostas_simulados', 'respostas_simulados.simulado_id', '=', 'simulados.id')
+        ->select(
+            'anos.nome as ano',
+            DB::raw('COUNT(respostas_simulados.id) as total_respostas'),
+            DB::raw('SUM(respostas_simulados.correta) as acertos')
+        )
+        ->groupBy('anos.id', 'anos.nome')
+        ->get()
+        ->map(function ($item) {
+            return [
+                'ano' => $item->ano,
+                'total_respostas' => $item->total_respostas,
+                'acertos' => $item->acertos,
+                'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
+                'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
             ];
-        }
+        })->toArray();
     
         // Média geral para 1º ao 5º ano e 6º ao 9º ano
         $mediaGeral1a5 = RespostaSimulado::whereHas('simulado', function ($q) {

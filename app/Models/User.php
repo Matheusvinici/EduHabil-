@@ -11,7 +11,8 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'escola_id', 'turma_id', 'cpf', 'codigo_acesso', 'deficiencia'
+        'name', 'email', 'password', 'role', 'escola_id', 'turma_id', 
+        'codigo_acesso', 'deficiencia'
     ];
 
     protected $hidden = [
@@ -19,48 +20,53 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
-    // Relacionamento com Escola
+    // Relacionamento com a escola
     public function escola()
     {
         return $this->belongsTo(Escola::class);
     }
 
-    // Relacionamento com Turma (para alunos)
+    // Relacionamento com a turma (para alunos)
     public function turma()
     {
         return $this->belongsTo(Turma::class);
     }
+
+    // Para professores - turmas que eles lecionam
+    public function turmasLecionadas()
+    {
+        return $this->belongsToMany(Turma::class, 'professor_turma', 'professor_id', 'turma_id')
+                    ->withTimestamps();
+    }
     
 
-    // Relacionamento com Respostas
-    public function respostas()
+    // Para aplicadores - turmas que eles criaram
+    public function turmasCriadas()
     {
-        return $this->hasMany(Resposta::class);
+        return $this->hasMany(Turma::class, 'aplicador_id');
     }
 
-    // Relacionamento com Professor (se for aluno)
-    public function professor()
-    {
-        return $this->belongsTo(User::class, 'professor_id');
-    }
-
-    // Relacionamento com Alunos (se for professor)
+    // Para professores - alunos que eles ensinam (em todas suas turmas)
     public function alunos()
     {
-        return $this->hasMany(User::class, 'professor_id')->where('role', 'aluno');
+        return User::whereIn('turma_id', $this->turmasLecionadas()->pluck('id'))
+                 ->where('role', 'aluno');
     }
 
-    // Relacionamento com Respostas de Simulado
+    // Respostas de simulado
     public function respostasSimulado()
     {
         return $this->hasMany(RespostaSimulado::class);
+    }
+
+    // Escopo para filtrar por role
+    public function scopePorRole($query, $role)
+    {
+        return $query->where('role', $role);
     }
 }

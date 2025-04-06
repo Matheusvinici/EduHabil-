@@ -136,7 +136,7 @@
                 const role = $('#role').val();
                 const escolaField = $('#escola-field');
                 
-                if (['professor', 'aee', 'coordenador', 'aplicador'].includes(role)) {
+                if (['professor', 'aee', 'coordenador'].includes(role)) {
                     escolaField.show();
                     $('#escola_id').prop('required', true);
                 } else {

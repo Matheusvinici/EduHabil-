@@ -34,8 +34,12 @@ class Pergunta extends Model
         return $this->belongsTo(Disciplina::class);
     }
 
-    public function habilidade()
-    {
-        return $this->belongsTo(Habilidade::class);
-    }
+    
+    // No model Pergunta.php
+        public function habilidade()
+        {
+            return $this->belongsTo(Habilidade::class)->withDefault([
+                'descricao' => 'Habilidade não definida'
+            ]);
+        }
 }

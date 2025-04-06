@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     UserController,
+    ProfessorTurmaController,
     AdminController,
     RecursoController,
     AdaptacaoController,
@@ -43,6 +44,38 @@ Auth::routes();
 // Rota para a página inicial autenticada
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
+// Rotas para vinculação professor-turma
+Route::prefix('auth')->group(function () {
+    // Seleção inicial de escola
+    Route::get('/professor-turma/select-escola', [ProfessorTurmaController::class, 'selectEscola'])
+         ->name('professor-turma.select-escola');
+         
+    // Formulário de vinculação
+    Route::get('/professor-turma/create', [ProfessorTurmaController::class, 'create'])
+         ->name('professor-turma.create');
+         
+    // Processar vinculação
+    Route::post('/professor-turma', [ProfessorTurmaController::class, 'store'])
+         ->name('professor-turma.store');
+         
+    // Listagem de vinculações
+    Route::get('/professor-turma', [ProfessorTurmaController::class, 'index'])
+         ->name('professor-turma.index');
+
+         Route::get('/professor-turma', [ProfessorTurmaController::class, 'index'])->name('professor-turma.index');
+            // Editar
+            Route::get('/professor-turma/{professor_id}/{turma_id}/edit', [ProfessorTurmaController::class, 'edit'])->name('professor-turma.edit');
+
+            // Atualizar (corrigido)
+            Route::put('/professor-turma/{professor_id}/{turma_id}', [ProfessorTurmaController::class, 'update'])->name('professor-turma.update');
+         Route::delete('/professor-turma/{professor_id}/{turma_id}', [ProfessorTurmaController::class, 'destroy'])->name('professor-turma.destroy');
+         Route::get('/turmas-por-escola/{escolaId}', function ($escolaId) {
+            $turmas = \App\Models\Turma::where('escola_id', $escolaId)->orderBy('nome_turma')->get(['id', 'nome_turma']);
+            return response()->json($turmas);
+        });
+        
+});
+
 
 // Rotas para alunos
 Route::middleware('auth')->group(function () {
@@ -53,13 +86,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('respostas_simulados', RespostaSimuladoController::class);
     Route::get('/respostas_simulados/aluno/index', [RespostaSimuladoController::class, 'alunoIndex'])->name('respostas_simulados.aluno.index');
     Route::get('/respostas_simulados/create/{simulado}', [RespostaSimuladoController::class, 'create'])->name('respostas_simulados.create');
-    Route::post('/respostas_simulados/store/{simulado}', [RespostaSimuladoController::class, 'store'])->name('respostas_simulados.store');    Route::get('/respostas_simulados/show/{simulado}', [RespostaSimuladoController::class, 'show'])->name('respostas_simulados.show');
+    Route::post('/respostas_simulados/store/{simulado}', [RespostaSimuladoController::class, 'store'])->name('respostas_simulados.store');  
+      Route::get('/respostas_simulados/show/{simulado}', [RespostaSimuladoController::class, 'show'])->name('respostas_simulados.show');
+
+    
 });
 
               // Rotas para professores
-Route::middleware('auth')->group(function () {
-    // Dashboard e rotas básicas
     Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])->name('professor.dashboard');
+
+
 
     // Rotas de respostas
     Route::prefix('respostas')->group(function () {
@@ -77,20 +113,24 @@ Route::middleware('auth')->group(function () {
             ->name('respostas.store');
     });
 
-    // Rotas de respostas de simulados
     Route::prefix('respostas_simulados')->group(function () {
-        Route::get('/professor/index', [RespostaSimuladoController::class, 'estatisticasProfessor'])
+        // Rota principal (mantida como estava)
+        Route::get('respostas_simulados/professor', [RespostaSimuladoController::class, 'estatisticasProfessor'])
             ->name('respostas_simulados.professor.index');
+        
+        // Rota de visualização específica
         Route::get('/professor/{simulado}/{aluno}', [RespostaSimuladoController::class, 'showProfessor'])
             ->name('respostas_simulados.professor.show');
-        Route::get('/professor/estatisticas', [RespostaSimuladoController::class, 'estatisticasProfessor'])
-            ->name('respostas_simulados.professor.estatisticas');
-        Route::get('/professor/export/pdf', [RespostaSimuladoController::class, 'exportProfessorPdf'])
-            ->name('respostas_simulados.professor.export.pdf');
-        Route::get('/professor/export/excel', [RespostaSimuladoController::class, 'exportProfessorExcel'])
-            ->name('respostas_simulados.professor.export.excel');
-    });
+        
+                // Rotas de exportação (também com caminho duplicado)
+            Route::get('respostas_simulados/professor/exportar/pdf', [RespostaSimuladoController::class, 'exportarPdf'])
+            ->name('respostas_simulados.professor.exportar.pdf');
 
+        Route::get('respostas_simulados/professor/exportar/excel', [RespostaSimuladoController::class, 'exportarExcel'])
+            ->name('respostas_simulados.professor.exportar.excel');
+        });
+
+    
     // Rotas de provas
     Route::prefix('provas')->group(function () {
         Route::resource('/', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
@@ -112,7 +152,18 @@ Route::middleware('auth')->group(function () {
         // Rotas específicas primeiro
         Route::get('/professor/index', [TurmaController::class, 'indexProfessor'])
             ->name('turmas.professor.index');
+            Route::get('/professor/show', [TurmaController::class, 'show'])
+            ->name('turmas.professor.show');
+                    // routes/web.php
+            Route::get('/turmas/{turma}/add-alunos', [TurmaController::class, 'addAlunosForm'])
+            ->name('turmas.add-alunos-form');
 
+            Route::post('/turmas/{turma}/add-alunos', [TurmaController::class, 'addAlunos'])
+            ->name('turmas.add-alunos');
+            Route::put('/turmas/{turma}/update-nome', [TurmaController::class, 'updateTurma'])
+            ->name('turmas.update-nome');
+            Route::get('/turmas/{id}/gerar-pdf', [TurmaController::class, 'gerarPdf'])
+            ->name('turmas.gerar-pdf');        
 
             Route::get('/{turma}/alunos/{aluno}/edit', [TurmaController::class, 'edit'])
             ->name('turmas.alunos.edit');
@@ -132,7 +183,7 @@ Route::middleware('auth')->group(function () {
             'destroy' => 'turmas.destroy'
         ])->parameters(['' => 'turma']);
     });
-});
+
 
             // Rotas para aplicador
 Route::prefix('aplicador')->group(function() {
@@ -156,6 +207,14 @@ Route::prefix('aplicador')->group(function() {
 
         Route::post('/verificar-resposta', [RespostaSimuladoController::class, 'verificarResposta'])
      ->name('respostas_simulados.verificar');
+     Route::post('/respostas_simulados/aplicador/select-escola', [RespostaSimuladoController::class, 'selectEscola'])
+    ->name('respostas_simulados.aplicador.select_escola');
+
+Route::get('/respostas_simulados/aplicador/{simulado}/alunos-pendentes', [RespostaSimuladoController::class, 'alunosPendentes'])
+    ->name('respostas_simulados.aplicador.alunos_pendentes');
+
+Route::get('/respostas_simulados/aplicador/create/{simulado}/{aluno_id}', [RespostaSimuladoController::class, 'createForAluno'])
+    ->name('respostas_simulados.aplicador.create_aluno');
         
    // Rota para finalizar o simulado (POST)
    Route::post('/simulados/{simulado}/finalizar', [RespostaSimuladoController::class, 'finalizarSimulado'])

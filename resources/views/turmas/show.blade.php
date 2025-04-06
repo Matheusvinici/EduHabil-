@@ -4,19 +4,25 @@
 <div class="container">
     <div class="card border-primary">
         <div class="card-header bg-primary text-white">
-            <div class="d-flex justify-content-between align-items-center">
-                <h3 class="mb-0">
-                    <i class="fas fa-users mr-2"></i>Turma: {{ $turma->nome_turma }}
-                </h3>
-                <div>
-                    <span class="badge badge-light">
-                        <i class="fas fa-key mr-1"></i>Código: {{ $turma->codigo_turma }}
-                    </span>
-                    <a href="{{ route('turmas.index') }}" class="btn btn-sm btn-light ml-2">
-                        <i class="fas fa-arrow-left mr-1"></i> Voltar
-                    </a>
-                </div>
-            </div>
+        <div class="d-flex justify-content-between align-items-center">
+    <h3 class="mb-0">
+        <i class="fas fa-users mr-2"></i>Turma: {{ $turma->nome_turma }}
+    </h3>
+    <div>
+        <span class="badge badge-light">
+            <i class="fas fa-key mr-1"></i>Código: {{ $turma->codigo_turma }}
+        </span>
+        <a href="{{ route('turmas.add-alunos-form', $turma->id) }}" class="btn btn-sm btn-success ml-2">
+            <i class="fas fa-user-plus mr-1"></i> Adicionar Alunos
+        </a>
+        <a href="{{ route('turmas.index') }}" class="btn btn-sm btn-light ml-2">
+            <i class="fas fa-arrow-left mr-1"></i> Voltar
+        </a>
+                <a href="{{ route('turmas.gerar-pdf', $turma->id) }}" class="btn btn-sm btn-danger ml-2">
+            <i class="fas fa-file-pdf mr-1"></i> Gerar PDF
+        </a>
+    </div>
+</div>
         </div>
 
         <div class="card-body">
@@ -53,11 +59,11 @@
                             </td>
                             <td>
                             <a href="{{ route('turmas.alunos.edit', ['turma' => $turma->id, 'aluno' => $aluno->id]) }}" 
-   class="btn btn-sm btn-primary" title="Editar aluno">
-   Editar
-</a>
+                        class="btn btn-sm btn-primary" title="Editar aluno">
+                        Editar
+                        </a>
 
-</td>
+                        </td>
 
                             <td class="text-center">
 

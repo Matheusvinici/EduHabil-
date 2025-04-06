@@ -12,7 +12,7 @@ class RespostaSimulado extends Model
 
     protected $fillable = [
         'user_id',
-        'professor_id',
+        'aplicador_id',
         'escola_id',
         'simulado_id',
         'pergunta_id',
@@ -31,6 +31,8 @@ class RespostaSimulado extends Model
     {
         return $this->belongsTo(User::class, 'professor_id');
     }
+
+
 
     public function escola()
     {
