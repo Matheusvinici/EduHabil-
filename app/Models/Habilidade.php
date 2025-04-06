@@ -17,7 +17,10 @@ class Habilidade extends Model
     {
         return $this->belongsTo(Ano::class);
     }
-
+    public function perguntas()
+    {
+        return $this->hasMany(Pergunta::class);
+    }
     public function disciplina()
     {
         return $this->belongsTo(Disciplina::class);

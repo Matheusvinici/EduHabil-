@@ -10,32 +10,47 @@ class Turma extends Model
 
     protected $fillable = [
         'escola_id',
-        'professor_id',
+        'aplicador_id',
         'nome_turma',
-        'quantidade_alunos',
-        'codigo_turma',
+        'codigo_turma'
     ];
 
-    // Relacionamento com Escola
+    // Relacionamento com a escola
     public function escola()
     {
         return $this->belongsTo(Escola::class);
     }
 
-    // Relacionamento com Professor
-    public function professor()
+    // Aplicador que criou a turma
+    public function aplicador()
     {
-        return $this->belongsTo(User::class, 'professor_id');
+        return $this->belongsTo(User::class, 'aplicador_id');
     }
 
-    // Relacionamento com Alunos (1 turma tem muitos alunos)
-    public function alunos()
-    {
-        return $this->hasMany(User::class, 'turma_id')->where('role', 'aluno');
-    }
-    public function usuarios()
+    // Professores que lecionam nesta turma
+    public function professores()
 {
-    return $this->hasMany(User::class, 'turma_id');
+    return $this->belongsToMany(User::class, 'professor_turma', 'turma_id', 'professor_id')
+                ->where('role', 'professor')
+                ->withTimestamps();
 }
 
+    // Alunos da turma
+    public function alunos()
+    {
+        return $this->hasMany(User::class, 'turma_id')
+                   ->where('role', 'aluno');
+    }
+
+    // Todos usuários vinculados à turma
+    public function usuarios()
+    {
+        return $this->hasMany(User::class, 'turma_id');
+    }
+
+    // Método para vincular professor
+    public function vincularProfessor($professorId)
+    {
+        $this->professores()->syncWithoutDetaching($professorId);
+    }
 }

@@ -2,229 +2,296 @@
 
 @section('content')
 <div class="container">
-    <div id="modal-inicio" class="modal fade" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog" role="document">
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Início do Simulado: {{ $simulado->nome }}</h5>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="confirmModalLabel">Iniciar Simulado</h5>
                 </div>
                 <div class="modal-body">
-                    <p>Total de questões: {{ $simulado->perguntas->count() }}</p>
-                    
-                    @if($simulado->tempo_limite)
-                        <div class="alert alert-warning">
-                            <strong>Tempo Limite:</strong> {{ $simulado->tempo_limite }} minutos
-                        </div>
-                    @else
-                        <div class="alert alert-info">
-                            Este simulado não possui tempo limite.
-                        </div>
-                    @endif
-                    
-                    <p>Quando estiver pronto, clique em "Iniciar Simulado" para começar.</p>
+                    <p>Você está prestes a iniciar o simulado <strong>{{ $simulado->nome }}</strong>.</p>
+                    <p>Tempo limite: {{ $simulado->tempo_limite ?? 'Sem tempo limite' }} minutos</p>
+                    <p>Número de questões: {{ $simulado->perguntas->count() }}</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Após iniciar, o tempo começará a contar e não poderá ser pausado!
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ route('respostas_simulados.aluno.index') }}'">
-                        Voltar
-                    </button>
-                    <button type="button" class="btn btn-primary" id="btn-iniciar">
-                        Iniciar Simulado
-                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ route('respostas_simulados.aluno.index') }}'">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="startSimulado">Iniciar Simulado</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="conteudo-simulado" style="display: none;">
-        <h2>Responder Simulado: {{ $simulado->nome }}</h2>
-        
-        @if($simulado->tempo_limite)
-            <div class="card mb-4">
-                <div class="card-body bg-light">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Tempo restante:</strong>
-                            <span id="tempo-restante" class="font-weight-bold ml-2" style="font-size: 1.5rem;"></span>
+    <!-- Cabeçalho -->
+    <div class="card shadow-lg mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0">
+                    <i class="fas fa-edit"></i> Responder Simulado: {{ $simulado->nome }}
+                </h4>
+            </div>
+            <div id="timer-container" class="d-none">
+                <span class="badge bg-danger fs-5">
+                    <i class="fas fa-clock"></i> 
+                    <span id="timer">00:00:00</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <form id="form-simulado" method="POST" action="{{ route('respostas_simulados.store', $simulado) }}">
+                @csrf
+                
+                <input type="hidden" name="tempo_resposta" id="tempo-resposta" value="0">
+                
+                <!-- Seção de informações pessoais -->
+                <div class="card mb-4" id="personal-info-section">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">Informações Pessoais</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-4">
+                            <label for="raca" class="fw-bold">Informe sua raça/cor:</label>
+                            <select class="form-control" name="raca" id="raca" required>
+                                <option value="">Selecione sua raça/cor</option>
+                                <option value="Branca">Branca</option>
+                                <option value="Preta">Preta</option>
+                                <option value="Parda">Parda</option>
+                                <option value="Amarela">Amarela</option>
+                                <option value="Indígena">Indígena</option>
+                                <option value="Prefiro não informar">Prefiro não informar</option>
+                            </select>
                         </div>
-                        <div class="text-danger" id="aviso-tempo" style="display: none;">
-                            <i class="fas fa-exclamation-triangle"></i> Tempo está acabando!
-                        </div>
+                        <button type="button" class="btn btn-primary" id="start-test-btn">
+                            <i class="fas fa-play"></i> Iniciar Teste
+                        </button>
                     </div>
                 </div>
-            </div>
-        @endif
 
-        <form id="form-simulado" action="{{ route('respostas_simulados.store', $simulado) }}" method="POST">
-            @csrf
-            <input type="hidden" name="simulado_id" value="{{ $simulado->id }}">
-            <input type="hidden" name="tempo_resposta" id="tempo-resposta" value="0">
-            
-            <!-- Campo de raça -->
-            <div class="form-group mb-4">
-                <label for="raca">Informe sua raça/cor (opcional):</label>
-                <select class="form-control" name="raca" id="raca">
-                    <option value="">Selecione...</option>
-                    <option value="Branca">Branca</option>
-                    <option value="Preta">Preta</option>
-                    <option value="Parda">Parda</option>
-                    <option value="Amarela">Amarela</option>
-                    <option value="Indígena">Indígena</option>
-                    <option value="Prefiro não informar">Prefiro não informar</option>
-                </select>
-            </div>
-
-            <div id="perguntas-container">
-                @foreach ($simulado->perguntas as $index => $pergunta)
-                    <div class="card mb-3 pergunta" data-index="{{ $index + 1 }}" @if($index > 0) style="display: none;" @endif>
+                <!-- Seção de questões (inicialmente oculta) -->
+                <div id="questions-section" class="d-none">
+                    @foreach($simulado->perguntas as $index => $pergunta)
+                    <div class="card mb-4 question-card" id="question-{{ $index + 1 }}" 
+                         @if($index > 0) style="display: none;" @endif>
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Questão {{ $index + 1 }} de {{ $simulado->perguntas->count() }}</h5>
+                        </div>
                         <div class="card-body">
-                            <h5 class="card-title">Pergunta {{ $index + 1 }}</h5>
                             <p class="card-text">{{ $pergunta->enunciado }}</p>
-
+                            
                             @if($pergunta->imagem)
-                                <img src="{{ asset('storage/' . $pergunta->imagem) }}" alt="Imagem da pergunta" style="max-width: 100%;" class="mb-3">
+                                <img src="{{ asset('storage/'.$pergunta->imagem) }}" class="img-fluid mb-3" style="max-height: 200px;">
                             @endif
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="respostas[{{ $pergunta->id }}]" value="A" id="pergunta-{{ $pergunta->id }}-a" required>
-                                <label class="form-check-label" for="pergunta-{{ $pergunta->id }}-a">A) {{ $pergunta->alternativa_a }}</label>
+                            
+                            <div class="list-group">
+                                @foreach(['A', 'B', 'C', 'D'] as $letra)
+                                <label class="list-group-item d-flex align-items-center">
+                                    <input type="radio" name="respostas[{{ $pergunta->id }}]" 
+                                           value="{{ $letra }}" class="form-check-input me-3" required
+                                           data-question="{{ $index + 1 }}">
+                                    <span class="fw-bold">{{ $letra }}.</span> 
+                                    <span class="ms-2">{{ $pergunta->{'alternativa_'.strtolower($letra)} }}</span>
+                                </label>
+                                @endforeach
                             </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="respostas[{{ $pergunta->id }}]" value="B" id="pergunta-{{ $pergunta->id }}-b">
-                                <label class="form-check-label" for="pergunta-{{ $pergunta->id }}-b">B) {{ $pergunta->alternativa_b }}</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="respostas[{{ $pergunta->id }}]" value="C" id="pergunta-{{ $pergunta->id }}-c">
-                                <label class="form-check-label" for="pergunta-{{ $pergunta->id }}-c">C) {{ $pergunta->alternativa_c }}</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="respostas[{{ $pergunta->id }}]" value="D" id="pergunta-{{ $pergunta->id }}-d">
-                                <label class="form-check-label" for="pergunta-{{ $pergunta->id }}-d">D) {{ $pergunta->alternativa_d }}</label>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <div class="d-flex justify-content-between">
+                                @if($index > 0)
+                                <button type="button" class="btn btn-secondary prev-question" 
+                                        data-target="question-{{ $index }}">
+                                    <i class="fas fa-arrow-left"></i> Anterior
+                                </button>
+                                @else
+                                <div></div> <!-- Espaço vazio para alinhamento -->
+                                @endif
+                                
+                                @if($index < $simulado->perguntas->count() - 1)
+                                <button type="button" class="btn btn-primary next-question" 
+                                        data-target="question-{{ $index + 2 }}"
+                                        disabled>
+                                    Próxima <i class="fas fa-arrow-right"></i>
+                                </button>
+                                @else
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check-circle"></i> Finalizar Simulado
+                                </button>
+                                @endif
                             </div>
                         </div>
                     </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-            <div class="d-flex justify-content-between mt-4">
-                <button type="button" class="btn btn-secondary" id="btn-anterior" disabled>Anterior</button>
-                <button type="button" class="btn btn-primary" id="btn-proximo">Próxima</button>
-                <button type="submit" class="btn btn-success" id="btn-finalizar" style="display: none;">Finalizar Simulado</button>
-            </div>
-        </form>
+<!-- Rodapé -->
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body text-center">
+            <p class="mb-1">EduHabil+ - Sistema de Gestão Educacional</p>
+            <p class="mb-0">Prefeitura Municipal de Juazeiro - Secretaria de Educação</p>
+        </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Mostra o modal de início
-    $('#modal-inicio').modal('show');
+    // Mostra o modal de confirmação ao carregar a página
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    confirmModal.show();
     
+    // Variáveis do timer
     const form = document.getElementById('form-simulado');
-    const tempoRespostaInput = document.getElementById('tempo-resposta');
-    const tempoRestanteDiv = document.getElementById('tempo-restante');
-    const avisoTempoDiv = document.getElementById('aviso-tempo');
-    const btnIniciar = document.getElementById('btn-iniciar');
-    const conteudoSimulado = document.getElementById('conteudo-simulado');
-    const btnAnterior = document.getElementById('btn-anterior');
-    const btnProximo = document.getElementById('btn-proximo');
-    const btnFinalizar = document.getElementById('btn-finalizar');
-    const perguntas = document.querySelectorAll('.pergunta');
-    
+    const tempoInput = document.getElementById('tempo-resposta');
+    const timerDisplay = document.getElementById('timer');
+    const timerContainer = document.getElementById('timer-container');
     let tempoDecorrido = 0;
     let timer;
-    let perguntaAtual = 0;
-    const totalPerguntas = perguntas.length;
-    const tempoLimiteMinutos = {{ $simulado->tempo_limite ?? 0 }};
-    const tempoLimiteSegundos = tempoLimiteMinutos * 60;
     
-    // Configura o modal para não fechar ao clicar fora
-    $('#modal-inicio').modal({
-        backdrop: 'static',
-        keyboard: false
+    // Elementos das seções
+    const personalInfoSection = document.getElementById('personal-info-section');
+    const questionsSection = document.getElementById('questions-section');
+    const startTestBtn = document.getElementById('start-test-btn');
+    
+    // Configura o botão de iniciar no modal
+    document.getElementById('startSimulado').addEventListener('click', function() {
+        confirmModal.hide();
     });
     
-    // Inicia o simulado
-    btnIniciar.addEventListener('click', function() {
-        $('#modal-inicio').modal('hide');
-        conteudoSimulado.style.display = 'block';
-        iniciarCronometro();
-    });
-    
-    function iniciarCronometro() {
-        timer = setInterval(function() {
-            tempoDecorrido++;
-            tempoRespostaInput.value = tempoDecorrido;
-            
-            // Atualiza o display do tempo
-            if (tempoLimiteMinutos > 0) {
-                const tempoRestante = tempoLimiteSegundos - tempoDecorrido;
-                
-                // Formata o tempo para HH:MM:SS
-                const horas = Math.floor(tempoRestante / 3600);
-                const minutos = Math.floor((tempoRestante % 3600) / 60);
-                const segundos = tempoRestante % 60;
-                
-                tempoRestanteDiv.textContent = 
-                    `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
-                
-                // Mostra aviso quando faltam 5 minutos
-                if (tempoRestante <= 300 && tempoRestante > 60) { // 5 minutos = 300 segundos
-                    avisoTempoDiv.style.display = 'block';
-                    tempoRestanteDiv.style.color = 'orange';
-                }
-                
-                // Muda para vermelho quando faltam menos de 1 minuto
-                if (tempoRestante <= 60) {
-                    tempoRestanteDiv.style.color = 'red';
-                }
-                
-                // Verifica se o tempo acabou
-                if (tempoRestante <= 0) {
-                    clearInterval(timer);
-                    alert('O tempo acabou! Suas respostas serão enviadas automaticamente.');
-                    form.submit();
-                }
-            }
-        }, 1000);
-    }
-    
-    // Navegação entre perguntas
-    function mostrarPergunta(index) {
-        perguntas.forEach((pergunta, i) => {
-            pergunta.style.display = i === index ? 'block' : 'none';
-        });
+    // Configura o botão de iniciar teste
+    startTestBtn.addEventListener('click', function() {
+        const racaSelect = document.getElementById('raca');
         
-        // Atualiza botões de navegação
-        btnAnterior.disabled = index === 0;
-        btnProximo.style.display = index < totalPerguntas - 1 ? 'block' : 'none';
-        btnFinalizar.style.display = index === totalPerguntas - 1 ? 'block' : 'none';
+        if (racaSelect.value === '') {
+            alert('Por favor, selecione sua raça/cor antes de iniciar o teste.');
+            racaSelect.focus();
+            return;
+        }
+        
+        personalInfoSection.classList.add('d-none');
+        questionsSection.classList.remove('d-none');
+        timerContainer.classList.remove('d-none');
+        
+        // Inicia o cronômetro
+        startTimer();
+    });
+    
+    // Função para iniciar o timer
+    function startTimer() {
+        timer = setInterval(() => {
+            tempoDecorrido++;
+            tempoInput.value = tempoDecorrido;
+            
+            // Atualiza o display do timer
+            const hours = Math.floor(tempoDecorrido / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((tempoDecorrido % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (tempoDecorrido % 60).toString().padStart(2, '0');
+            
+            timerDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+        }, 1000);
+        
+        // Verifica tempo limite
+        @if($simulado->tempo_limite)
+        const tempoLimite = {{ $simulado->tempo_limite * 60 }};
+        
+        setTimeout(() => {
+            clearInterval(timer);
+            alert('O tempo acabou! Suas respostas serão enviadas automaticamente.');
+            form.submit();
+        }, tempoLimite * 1000);
+        @endif
     }
     
-    btnAnterior.addEventListener('click', function() {
-        if (perguntaAtual > 0) {
-            perguntaAtual--;
-            mostrarPergunta(perguntaAtual);
-        }
+    // Navegação entre questões
+    document.querySelectorAll('.next-question').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            document.querySelectorAll('.question-card').forEach(card => {
+                card.style.display = 'none';
+            });
+            document.getElementById(targetId).style.display = 'block';
+            
+            // Rola para o topo da questão
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
     });
     
-    btnProximo.addEventListener('click', function() {
-        if (perguntaAtual < totalPerguntas - 1) {
-            perguntaAtual++;
-            mostrarPergunta(perguntaAtual);
-        }
+    document.querySelectorAll('.prev-question').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            document.querySelectorAll('.question-card').forEach(card => {
+                card.style.display = 'none';
+            });
+            document.getElementById(targetId).style.display = 'block';
+            
+            // Rola para o topo da questão
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
     });
     
-    // Impede que o usuário saia da página sem confirmar
-    window.addEventListener('beforeunload', function(e) {
-        if (tempoDecorrido > 0 && (tempoLimiteMinutos === 0 || tempoDecorrido < tempoLimiteSegundos)) {
-            e.preventDefault();
-            e.returnValue = 'Você está no meio do simulado. Tem certeza que deseja sair?';
-            return e.returnValue;
-        }
+    // Habilita/desabilita botão de próxima questão
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const questionNum = parseInt(this.getAttribute('data-question'));
+            const nextButton = document.querySelector(`.next-question[data-target="question-${questionNum + 1}"]`);
+            
+            if (nextButton) {
+                nextButton.disabled = false;
+            }
+        });
     });
     
-    // Mostra a primeira pergunta
-    mostrarPergunta(0);
+    // Submeter o formulário
+    form.addEventListener('submit', function() {
+        clearInterval(timer);
+    });
 });
 </script>
+
+<style>
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .logo-container {
+        display: flex;
+        align-items: center;
+    }
+    
+    .logo {
+        height: 60px;
+        margin-right: 15px;
+    }
+    
+    .header-text {
+        text-align: right;
+    }
+    
+    .footer {
+        margin-top: 30px;
+        padding: 15px;
+        text-align: center;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        font-size: 0.9rem;
+    }
+    
+    .question-card {
+        transition: all 0.3s ease;
+    }
+</style>
 @endsection

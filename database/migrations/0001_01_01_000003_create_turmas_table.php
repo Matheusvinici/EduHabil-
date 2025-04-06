@@ -15,15 +15,14 @@ return new class extends Migration
     Schema::create('turmas', function (Blueprint $table) {
         $table->id();
         $table->unsignedBigInteger('escola_id'); // Chave estrangeira para escolas
-        $table->unsignedBigInteger('professor_id'); // Chave estrangeira para users (professor)
+        $table->unsignedBigInteger('aplicador_id'); // Quem criou a turma
         $table->string('nome_turma'); // Ex: "5º A"
-        $table->integer('quantidade_alunos');
         $table->string('codigo_turma')->unique(); // Código único da turma
         $table->timestamps();
 
         // Chaves estrangeiras
         $table->foreign('escola_id')->references('id')->on('escolas')->onDelete('cascade');
-        $table->foreign('professor_id')->references('id')->on('users')->onDelete('cascade');
+        $table->foreign('aplicador_id')->references('id')->on('users')->onDelete('cascade');
     });
 
     // Adicionar a coluna `turma_id` à tabela `users`

@@ -49,7 +49,7 @@ class UserController extends Controller
     public function create()
     {
         $escolas = Escola::all();
-        $roles = ['admin', 'professor', 'aluno', 'aee', 'inclusiva', 'coordenador', 'aplicador'];
+        $roles = ['admin', 'professor', 'gestor', 'aluno', 'aee', 'inclusiva', 'coordenador', 'aplicador'];
         return view('users.create', compact('escolas', 'roles'));
     }
 
@@ -67,7 +67,7 @@ class UserController extends Controller
         ]);
 
         // Validação condicional para escola_id
-        if (in_array($request->role, ['coordenador', 'professor', 'aplicador'])) {
+        if (in_array($request->role, ['coordenador', 'professor', 'gestor', 'aee'])) {
             $request->validate([
                 'escola_id' => 'required|exists:escolas,id',
             ]);

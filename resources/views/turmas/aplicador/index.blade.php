@@ -1,113 +1,137 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Listagem de Turmas</h3>
-        <div class="card-tools">
-            <a href="{{ route('turmas.create') }}" class="btn btn-primary">Nova Turma</a>
-            
-            
+<div class="container">
+    <div class="card border-primary shadow">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Listagem de Turmas</h3>
+                <a href="{{ route('turmas.create') }}" class="btn btn-light">
+                    Nova Turma
+                </a>
+            </div>
         </div>
-    </div>
-    <div class="card-body">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Nome da Turma</th>
-                    <th>Quantidade de Alunos</th>
-                    <th>Código da Turma</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($turmas as $turma)
-                <tr>
-                    <td>{{ $turma->nome_turma }}</td>
-                    <td>{{ $turma->quantidade_alunos }}</td>
-                    <td>{{ $turma->codigo_turma }}</td>
-                    <td>
-                     
 
-                        <!-- Modal para adicionar novos alunos -->
-                        <div class="modal fade" id="modalAdicionarAlunos{{ $turma->id }}" tabindex="-1" role="dialog" aria-labelledby="modalAdicionarAlunosLabel{{ $turma->id }}" aria-hidden="true">
-                            <div class="modal-dialog" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="modalAdicionarAlunosLabel{{ $turma->id }}">Adicionar Alunos à Turma</h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                    <form action="{{ route('turmas.gerar-codigos-adicionais', $turma->id) }}" method="POST" id="formAdicionarAlunos{{ $turma->id }}">
-                                        @csrf
-                                        <div id="alunos-container-{{ $turma->id }}">
-                                            <div class="input-group mb-2 aluno-input">
-                                                <input type="text" name="alunos[]" class="form-control" placeholder="Digite o nome do aluno" required>
-                                                <div class="input-group-append">
-                                                    <button class="btn btn-outline-danger remover-aluno" type="button">Remover</button>
-                                                </div>
+        <div class="card-body">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show">
+                    {{ session('success') }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            @endif
+
+            <form method="GET" action="{{ route('turmas.aplicador.index') }}" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="nome_turma" class="form-control" 
+                           placeholder="Buscar por nome da turma" value="{{ request('nome_turma') }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+            </form>
+                <form method="GET" action="{{ route('turmas.aplicador.index') }}" class="mb-4">
+                    <div class="input-group">
+                        <input type="text" name="nome_escola" class="form-control" 
+                            placeholder="Buscar por nome da escola" value="{{ request('nome_escola') }}">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search"></i> Buscar Escola
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Escola</th>
+                            <th>Turma</th>
+                            <th>Código</th>
+                            <th>Alunos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($turmas as $turma)
+                        <tr>
+                            <td>
+                                @if($turma->escola)
+                                    {{ $turma->escola->nome }}
+                                @else
+                                    <span class="text-danger">Escola não definida</span>
+                                @endif
+                            </td>
+                            <td>{{ $turma->nome_turma }}</td>
+                            <td>
+                                <span class="badge badge-primary">
+                                    {{ $turma->codigo_turma }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ $turma->alunos_count ?? $turma->alunos->count() }} alunos
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap">
+                                    <a href="{{ route('turmas.show', $turma->id) }}" class="btn btn-sm btn-info m-1">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
+                                    <button class="btn btn-sm btn-warning m-1" data-toggle="modal" 
+                                        data-target="#editTurmaModal{{ $turma->id }}">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                    <a href="{{ route('turmas.gerar-pdf', $turma->id) }}" class="btn btn-sm btn-danger m-1">
+                                        <i class="fas fa-file-pdf"></i> Gerar PDF
+                                    </a>
+                                    <a href="{{ route('turmas.add-alunos-form', $turma->id) }}" class="btn btn-sm btn-success m-1">
+                                        <i class="fas fa-user-plus"></i> Alunos
+                                    </a>
+                                   
+                                </div>
+
+                                <!-- Modal para Edição do Nome da Turma -->
+                                <div class="modal fade" id="editTurmaModal{{ $turma->id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title">Editar Turma</h5>
+                                                <button type="button" class="close text-white" data-dismiss="modal">
+                                                    <span>&times;</span>
+                                                </button>
                                             </div>
+                                            <form action="{{ route('turmas.update-nome', $turma->id) }}" method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <div class="modal-body">
+                                                    <div class="form-group">
+                                                        <label for="nome_turma">Nome da Turma</label>
+                                                        <input type="text" class="form-control" id="nome_turma" 
+                                                            name="nome_turma" value="{{ $turma->nome_turma }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                                    <button type="submit" class="btn btn-primary">Salvar</button>
+                                                </div>
+                                            </form>
                                         </div>
-                                        <button type="submit" class="btn btn-primary mt-2">Salvar</button>
-                                    </form>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-                        <!-- Link para visualizar a turma -->
-                        <a href="{{ route('turmas.show', $turma->id) }}" class="btn btn-sm btn-info">Ver Detalhes</a>
-
-                        <!-- Link para editar a turma -->
-                        <a href="{{ route('turmas.edit', $turma->id) }}" class="btn btn-sm btn-warning">Editar</a>
-
-                        <!-- Formulário para excluir a turma -->
-                        <form action="{{ route('turmas.destroy', $turma->id) }}" method="POST" style="display: inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta turma? Todos os alunos vinculados também serão removidos.')">Excluir</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+            <!-- Paginação -->
+            <div class="d-flex justify-content-center mt-4">
+                {{ $turmas->appends(request()->query())->links() }}
+            </div>
+        </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Adiciona novo campo de aluno nos modais
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('adicionar-aluno')) {
-            const containerId = e.target.getAttribute('data-container');
-            const container = document.getElementById(containerId);
-            const novoInput = document.createElement('div');
-            novoInput.className = 'input-group mb-2 aluno-input';
-            novoInput.innerHTML = `
-                <input type="text" name="alunos[]" class="form-control" placeholder="Digite o nome do aluno" required>
-                <div class="input-group-append">
-                    <button class="btn btn-outline-danger remover-aluno" type="button">Remover</button>
-                </div>
-            `;
-            container.appendChild(novoInput);
-        }
-    });
-
-    // Remove campo de aluno
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remover-aluno')) {
-            const inputGroup = e.target.closest('.aluno-input');
-            // Não permitir remover o último campo
-            if (inputGroup.parentElement.querySelectorAll('.aluno-input').length > 1) {
-                inputGroup.remove();
-            } else {
-                alert('É necessário ter pelo menos um aluno cadastrado.');
-            }
-        }
-    });
-});
-</script>
 @endsection

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('respostas_simulados', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id'); // Aluno que respondeu
-            $table->unsignedBigInteger('professor_id'); // Professor da turma do aluno (referencia users)
+            $table->unsignedBigInteger('aplicador_id'); // Professor da turma do aluno (referencia users)
             $table->unsignedBigInteger('escola_id'); // Escola do aluno
             $table->unsignedBigInteger('simulado_id'); // Simulado respondido
             $table->unsignedBigInteger('pergunta_id'); // Pergunta respondida
@@ -27,7 +27,7 @@ return new class extends Migration
         
             // Chaves estrangeiras
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('professor_id')->references('id')->on('users')->onDelete('cascade'); // Referencia users
+            $table->foreign('aplicador_id')->references('id')->on('users')->onDelete('cascade'); // Referencia users
             $table->foreign('escola_id')->references('id')->on('escolas')->onDelete('cascade');
             $table->foreign('simulado_id')->references('id')->on('simulados')->onDelete('cascade');
             $table->foreign('pergunta_id')->references('id')->on('perguntas')->onDelete('cascade');
