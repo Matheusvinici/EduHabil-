@@ -1,374 +1,504 @@
 @extends('layouts.app')
 
-@section('title', 'Estatísticas de Simulados - Coordenador')
-
-@section('header', 'Estatísticas de Simulados - Coordenador')
+@section('title', 'Dashboard do Coordenador')
 
 @section('content')
-<div class="container-fluid py-4">
-    <!-- Filtros -->
-    <div class="card mb-4 border-primary">
-        <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
-            <h5 class="card-title mb-0">Filtros</h5>
-            @if(request()->hasAny(['simulado_id', 'ano_id', 'turma_id', 'habilidade_id']))
-                <div>
-                    <a href="{{ route('respostas_simulados.coordenador.export.pdf', request()->query()) }}" 
-                       class="btn btn-sm btn-light text-primary">
-                        <i class="fas fa-file-pdf mr-1"></i> Exportar PDF
-                    </a>
-                    <a href="{{ route('respostas_simulados.coordenador.export.excel', request()->query()) }}" 
-                       class="btn btn-sm btn-light text-success ml-2">
-                        <i class="fas fa-file-excel mr-1"></i> Exportar Excel
-                    </a>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line"></i> Dashboard de Desempenho
+                    </h5>
                 </div>
-            @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+            <h6 class="m-0 font-weight-bold text-primary">Filtros</h6>
         </div>
         <div class="card-body">
-            <form action="{{ route('respostas_simulados.coordenador.index') }}" method="GET" class="row g-3">
+            <form method="GET" class="row g-3">
                 <div class="col-md-3">
-                    <label for="simulado_id" class="form-label">Simulado:</label>
-                    <select name="simulado_id" id="simulado_id" class="form-select">
+                    <label class="form-label">Simulado*</label>
+                    <select name="simulado_id" class="form-select" required>
+                        <option value="">Selecione um simulado</option>
+                        @foreach($filtros['simulados'] as $simulado)
+                            <option value="{{ $simulado->id }}" {{ $request->simulado_id == $simulado->id ? 'selected' : '' }}>
+                                {{ $simulado->nome }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Ano</label>
+                    <select name="ano_id" class="form-select">
                         <option value="">Todos</option>
-                        @foreach ($simulados as $simulado)
-                            <option value="{{ $simulado->id }}" {{ $request->simulado_id == $simulado->id ? 'selected' : '' }}>{{ $simulado->nome }}</option>
+                        @foreach($filtros['anos'] as $ano)
+                            <option value="{{ $ano->id }}" {{ $request->ano_id == $ano->id ? 'selected' : '' }}>
+                                {{ $ano->nome }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="ano_id" class="form-label">Ano:</label>
-                    <select name="ano_id" id="ano_id" class="form-select">
-                        <option value="">Todos</option>
-                        @foreach ($anos as $ano)
-                            <option value="{{ $ano->id }}" {{ $request->ano_id == $ano->id ? 'selected' : '' }}>{{ $ano->nome }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="turma_id" class="form-label">Turma:</label>
-                    <select name="turma_id" id="turma_id" class="form-select">
+                <div class="col-md-2">
+                    <label class="form-label">Turma</label>
+                    <select name="turma_id" class="form-select">
                         <option value="">Todas</option>
-                        @foreach ($turmas as $turma)
-                            <option value="{{ $turma->id }}" {{ $request->turma_id == $turma->id ? 'selected' : '' }}>{{ $turma->nome_turma }}</option>
+                        @foreach($filtros['turmas'] as $turma)
+                            <option value="{{ $turma->id }}" {{ $request->turma_id == $turma->id ? 'selected' : '' }}>
+                                {{ $turma->nome_turma }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="habilidade_id" class="form-label">Habilidade:</label>
-                    <select name="habilidade_id" id="habilidade_id" class="form-select">
+                    <label class="form-label">Habilidade</label>
+                    <select name="habilidade_id" class="form-select">
                         <option value="">Todas</option>
-                        @foreach ($habilidades as $habilidade)
-                            <option value="{{ $habilidade->id }}" {{ $request->habilidade_id == $habilidade->id ? 'selected' : '' }}>{{ $habilidade->descricao }}</option>
+                        @foreach($filtros['habilidades'] as $habilidade)
+                            <option value="{{ $habilidade->id }}" {{ $request->habilidade_id == $habilidade->id ? 'selected' : '' }}>
+                                {{ $habilidade->descricao }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-12 d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter mr-1"></i> Filtrar
+                <div class="col-md-12 d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter"></i> Aplicar Filtros
                     </button>
-                    <a href="{{ route('respostas_simulados.coordenador.index') }}" class="btn btn-outline-secondary ml-2">
-                        <i class="fas fa-sync-alt mr-1"></i> Limpar
+                    <a href="{{ route('respostas_simulados.coordenador.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Limpar
                     </a>
                 </div>
             </form>
         </div>
     </div>
 
-    @if(request()->hasAny(['simulado_id', 'ano_id', 'turma_id', 'habilidade_id']))
-    <!-- Barra de Progresso -->
-    <div class="progress mb-4" style="height: 8px;">
-        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" 
-             style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-    </div>
-
-    <!-- Dados Gerais -->
-    <div class="card mb-4 border-primary">
-        <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
-            <h5 class="card-title mb-0">Dados Gerais</h5>
-            <div class="badge bg-light text-primary">
-                Filtros Aplicados: 
-                @if($request->simulado_id) Simulado: {{ $simulados->firstWhere('id', $request->simulado_id)->nome }} @endif
-                @if($request->ano_id) | Ano: {{ $anos->firstWhere('id', $request->ano_id)->nome }} @endif
-                @if($request->turma_id) | Turma: {{ $turmas->firstWhere('id', $request->turma_id)->nome_turma }} @endif
-                @if($request->habilidade_id) | Habilidade: {{ $habilidades->firstWhere('id', $request->habilidade_id)->descricao }} @endif
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="stat-card bg-light-blue p-3 rounded border">
-                        <h6 class="stat-title">Total de Alunos</h6>
-                        <p class="stat-value">{{ $totalAlunos }}</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card bg-light-blue p-3 rounded border">
-                        <h6 class="stat-title">Total de Professores</h6>
-                        <p class="stat-value">{{ $totalProfessores }}</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card bg-light-blue p-3 rounded border">
-                        <h6 class="stat-title">Total de Respostas</h6>
-                        <p class="stat-value">{{ $totalRespostas }}</p>
+    @if($semFiltro)
+        <!-- Mensagem quando não há filtro aplicado -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-filter fa-3x text-muted mb-3"></i>
+                        <h3 class="text-muted">Selecione um simulado para visualizar os dados</h3>
+                        <p class="text-muted">Utilize os filtros acima para escolher um simulado específico</p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Médias por Faixa de Ano -->
-    <div class="card mb-4 border-primary">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title">Médias por Faixa de Ano</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="stat-card bg-light-blue p-3 rounded border">
-                        <h6 class="stat-title">Média 1º ao 5º Ano</h6>
-                        <p class="stat-value">{{ number_format($media1a5, 2) }}</p>
+    @else
+        <!-- Resumo Estatístico -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Alunos na Escola</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalAlunosEscola }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="stat-card bg-light-blue p-3 rounded border">
-                        <h6 class="stat-title">Média 6º ao 9º Ano</h6>
-                        <p class="stat-value">{{ number_format($media6a9, 2) }}</p>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Alunos (Filtro)</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalAlunosFiltrados }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Responderam</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $alunosResponderam }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                    Faltantes ({{ number_format($percentualFaltantes, 1) }}%)</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $alunosFaltantes }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user-times fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Média Geral da Escola -->
-    <div class="card mb-4 border-primary">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title">Média Geral da Escola</h5>
-        </div>
-        <div class="card-body">
-            <div class="stat-card bg-light-blue p-3 rounded border text-center">
-                <h6 class="stat-title">Média Geral (0-10)</h6>
-                <p class="stat-value">{{ number_format($mediaGeralEscola, 2) }}</p>
+        <!-- Médias Gerais -->
+        <div class="row mb-4">
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Média Geral da Escola</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($mediaGeralEscola, 2) }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-star fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Média 1º ao 5º Ano</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($mediaSegmentos['1a5'], 2) }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-child fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Média 6º ao 9º Ano</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($mediaSegmentos['6a9'], 2) }}</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Estatísticas por Turma -->
-    <div class="card mb-4 border-primary">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title">Estatísticas por Turma</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <thead class="thead-primary bg-primary text-white">
-                        <tr>
-                            <th>Turma</th>
-                            <th>Professor</th>
-                            <th>Total Respostas</th>
-                            <th>Acertos</th>
-                            <th>% Acertos</th>
-                            <th>Média (0-10)</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($estatisticasPorTurma as $estatistica)
+        <!-- Tabela de Turmas -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Desempenho por Turma</h6>
+                <div>
+                    <a href="{{ route('respostas_simulados.coordenador.export', ['type' => 'pdf'] + $request->query()) }}" 
+                       class="btn btn-sm btn-danger">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </a>
+                    <a href="{{ route('respostas_simulados.coordenador.export', ['type' => 'excel'] + $request->query()) }}" 
+                       class="btn btn-sm btn-success ml-1">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
                             <tr>
-                                <td>{{ $estatistica['turma'] }}</td>
-                                <td>{{ $estatistica['professor'] ?? 'N/A' }}</td>
-                                <td>{{ $estatistica['total_respostas'] }}</td>
-                                <td>{{ $estatistica['acertos'] }}</td>
-                                <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
-                                <td>{{ number_format($estatistica['media_final'], 2) }}</td>
+                                <th>Turma</th>
+                                <th>Total Alunos</th>
+                                <th>Responderam</th>
+                                <th>Faltantes</th>
+                                <th>% Faltantes</th>
+                                <th>Média</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($estatisticasPorTurma as $turma)
+                            @php
+                                $faltantesTurma = $turma['total_alunos'] - $turma['alunos_responderam'];
+                                $percentualFaltantesTurma = $turma['total_alunos'] > 0 ? ($faltantesTurma / $turma['total_alunos']) * 100 : 0;
+                            @endphp
+                            <tr>
+                                <td>{{ $turma['nome_turma'] }}</td>
+                                <td>{{ $turma['total_alunos'] ?? 0 }}</td>
+                                <td>{{ $turma['alunos_responderam'] ?? 0 }}</td>
+                                <td>{{ $faltantesTurma }}</td>
+                                <td>{{ number_format($percentualFaltantesTurma, 1) }}%</td>
+                                <td>{{ isset($turma['media']) ? number_format($turma['media'], 2) : '0.00' }}</td>
                                 <td>
-                                    <a href="{{ route('respostas_simulados.coordenador.detalhes-turma', [
-                                        'turma_id' => $turmas->firstWhere('nome_turma', $estatistica['turma'])->id,
-                                        'simulado_id' => $request->simulado_id,
-                                        'ano_id' => $request->ano_id,
-                                        'habilidade_id' => $request->habilidade_id
-                                    ]) }}" 
+                                    <a href="{{ route('respostas_simulados.coordenador.turma', $turma['id']) }}" 
                                     class="btn btn-sm btn-primary">
-                                        <i class="fas fa-eye"></i> Ver
+                                        <i class="fas fa-eye"></i> Detalhes
                                     </a>
                                 </td>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Estatísticas por Habilidade -->
-    <div class="card mb-4 border-primary">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title">Estatísticas por Habilidade</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <thead class="thead-primary bg-primary text-white">
-                        <tr>
-                            <th>Habilidade</th>
-                            <th>Total Respostas</th>
-                            <th>Acertos</th>
-                            <th>% Acertos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($estatisticasPorHabilidade as $estatistica)
+                            @empty
                             <tr>
-                                <td>{{ $estatistica['habilidade'] }}</td>
-                                <td>{{ $estatistica['total_respostas'] }}</td>
-                                <td>{{ $estatistica['acertos'] }}</td>
-                                <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
+                                <td colspan="7" class="text-center">Nenhum dado disponível com os filtros atuais</td>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Gráficos -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4 border-primary">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title">Gráfico de Acerto por Questão</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="acertoPorQuestaoChart" width="400" height="200"></canvas>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card mb-4 border-primary">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title">Média por Simulado</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="mediaPorSimuladoChart" width="400" height="200"></canvas>
+
+        <!-- Médias por Questão -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">Médias por Questão</h6>
+                <small>Ordenado por desempenho (menor para maior)</small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Questão</th>
+                                <th>Disciplina</th>
+                                <th>Habilidade</th>
+                                <th>% Acerto</th>
+                                <th>Média (0-10)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($mediasPorQuestao as $questao)
+                            <tr>
+                                <td>{{ $questao['enunciado'] }}</td>
+                                <td>{{ $questao['disciplina'] }}</td>
+                                <td>{{ $questao['habilidade'] }}</td>
+                                <td>{{ number_format($questao['percentual_acerto'], 2) }}%</td>
+                                <td>{{ number_format($questao['media'], 2) }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="text-center">Nenhuma questão respondida com os filtros atuais</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
 
-    @section('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Gráfico de Acerto por Questão
-            const acertoPorQuestaoCtx = document.getElementById('acertoPorQuestaoChart').getContext('2d');
-            new Chart(acertoPorQuestaoCtx, {
-                type: 'bar',
-                data: {
-                    labels: {!! json_encode($questoes->pluck('id')) !!},
-                    datasets: [{
-                        label: 'Percentual de Acerto',
-                        data: {!! json_encode($questoes->pluck('percentual_acerto')) !!},
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Percentual de Acerto (%)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Questões'
-                            }
-                        }
-                    }
-                }
-            });
+        <!-- Questões com Melhor/Pior Desempenho -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 bg-success text-white">
+                        <h6 class="m-0 font-weight-bold">Top 5 Melhores Questões</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Questão</th>
+                                        <th>Disciplina</th>
+                                        <th>% Acerto</th>
+                                        <th>Média</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($graficosData['questoes']['melhores'] as $questao)
+                                    <tr>
+                                        <td>{{ $questao['enunciado'] }}</td>
+                                        <td>{{ $questao['disciplina'] }}</td>
+                                        <td>{{ number_format($questao['percentual_acerto'], 2) }}%</td>
+                                        <td>{{ number_format($questao['media'], 2) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            // Gráfico de Média por Simulado
-            const mediaPorSimuladoCtx = document.getElementById('mediaPorSimuladoChart').getContext('2d');
-            new Chart(mediaPorSimuladoCtx, {
-                type: 'line',
-                data: {
-                    labels: {!! json_encode($mediasPorSimulado->pluck('nome')) !!},
-                    datasets: [{
-                        label: 'Média (0-10)',
-                        data: {!! json_encode($mediasPorSimulado->pluck('media')) !!},
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 10,
-                            title: {
-                                display: true,
-                                text: 'Média (0-10)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Simulados'
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
-    @endsection
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 bg-danger text-white">
+                        <h6 class="m-0 font-weight-bold">Top 5 Piores Questões</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Questão</th>
+                                        <th>Disciplina</th>
+                                        <th>% Acerto</th>
+                                        <th>Média</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($graficosData['questoes']['piores'] as $questao)
+                                    <tr>
+                                        <td>{{ $questao['enunciado'] }}</td>
+                                        <td>{{ $questao['disciplina'] }}</td>
+                                        <td>{{ number_format($questao['percentual_acerto'], 2) }}%</td>
+                                        <td>{{ number_format($questao['media'], 2) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Médias por Simulado -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 bg-info text-white">
+                <h6 class="m-0 font-weight-bold">Desempenho no Simulado</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Simulado</th>
+                                <th>Média (0-10)</th>
+                                <th>Respostas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($mediasPorSimulado as $simulado)
+                            <tr>
+                                <td>{{ $simulado['nome'] }}</td>
+                                <td>{{ number_format($simulado['media'], 2) }}</td>
+                                <td>{{ $simulado['total_respostas'] }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3" class="text-center">Nenhum dado disponível</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     @endif
-
-    <style>
-        .bg-light-blue {
-            background-color: #e6f2ff;
-        }
-        .stat-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            height: 100%;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 123, 255, 0.2);
-        }
-        .stat-title {
-            font-size: 0.9rem;
-            color: #495057;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-        .stat-value {
-            font-size: 1.75rem;
-            font-weight: bold;
-            margin-bottom: 0;
-            color: #0066cc;
-        }
-        .table th {
-            white-space: nowrap;
-            font-weight: 600;
-        }
-        .table td {
-            vertical-align: middle;
-        }
-        .card-header {
-            font-weight: 600;
-        }
-        .border-primary {
-            border-width: 2px;
-        }
-    </style>
 </div>
+
+@if(!$semFiltro)
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Segmentos
+    const segmentoCtx = document.getElementById('segmentoChart');
+    if (segmentoCtx) {
+        new Chart(segmentoCtx, {
+            type: 'bar',
+            data: {
+                labels: ['1º ao 5º Ano', '6º ao 9º Ano'],
+                datasets: [{
+                    label: 'Média (0-10)',
+                    data: [{{ $mediaSegmentos['1a5'] }}, {{ $mediaSegmentos['6a9'] }}],
+                    backgroundColor: ['#4e73df', '#1cc88a'],
+                    hoverBackgroundColor: ['#2e59d9', '#17a673'],
+                    borderColor: "rgba(234, 236, 244, 1)",
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Habilidades
+    const habilidadesCtx = document.getElementById('habilidadesChart');
+    if (habilidadesCtx) {
+        new Chart(habilidadesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @json($graficosData['habilidades']->pluck('descricao')),
+                datasets: [{
+                    data: @json($graficosData['habilidades']->pluck('porcentagem_acertos')),
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                        '#858796', '#5a5c69', '#3a3b45', '#2c3e50', '#18bc9c'
+                    ],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw.toFixed(2) + '%';
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom',
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    }
+});
+</script>
+@endpush
+@endif
 @endsection

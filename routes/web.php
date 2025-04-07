@@ -255,11 +255,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/estatisticas', [RespostaSimuladoController::class, 'indexCoordenador'])
     ->name('respostas_simulados.coordenador.index');
 
-Route::get('/estatisticas/detalhes-turma/{turma_id}', [RespostaSimuladoController::class, 'detalhesTurma'])
-    ->name('respostas_simulados.coordenador.detalhes-turma');
 
-Route::get('/estatisticas/export/pdf', [RespostaSimuladoController::class, 'exportCoordenadorPdf'])
-    ->name('respostas_simulados.coordenador.export.pdf');
+
+    Route::get('/respostas-simulados/coordenador/export/{type}', [RespostaSimuladoController::class, 'exportCoordenadorPdf'])
+    ->name('respostas_simulados.coordenador.export');
+
+    Route::get('/respostas-simulados/coordenador/turma/{id}', [RespostaSimuladoController::class, 'detalhesTurma'])
+    ->name('respostas_simulados.coordenador.turma');
+
+
 
 Route::get('/estatisticas/export/excel', [RespostaSimuladoController::class, 'exportCoordenadorExcel'])
     ->name('respostas_simulados.coordenador.export.excel');
@@ -283,6 +287,8 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     ->name('respostas_simulados.admin.export.excel');
     Route::get('/respostas-simulados/admin/detalhes-escola/{escola_id}', [RespostaSimuladoController::class, 'detalhesEscola'])
     ->name('respostas_simulados.admin.detalhes-escola');
+    Route::get('/admin/graficos', [RespostaSimuladoController::class, 'graficos'])->name('estatisticas.graficos');
+
 
     Route::get('/user/create', [UserController::class, 'create'])->name('admin.user.create');
     Route::get('/provas', [ProvaController::class, 'index'])->name('provas.index');

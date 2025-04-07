@@ -1,4 +1,4 @@
-<?php
+<?php 
 
 namespace App\Exports;
 
@@ -22,7 +22,6 @@ class EstatisticasCoordenadorExport implements FromArray, WithHeadings, WithTitl
 
     public function array(): array
     {
-        // Dados principais
         $exportData = [
             ['Relatório de Estatísticas - Coordenador'],
             ['Gerado em: ' . now()->format('d/m/Y H:i')],
@@ -46,11 +45,11 @@ class EstatisticasCoordenadorExport implements FromArray, WithHeadings, WithTitl
             [''],
         ];
 
-        // Adiciona estatísticas por turma se aplicável
+        // Estatísticas por Turma
         if (!$this->data['request']->habilidade_id || $this->data['request']->turma_id) {
             $exportData[] = ['Estatísticas por Turma'];
             $exportData[] = ['Turma', 'Professor', 'Total Respostas', 'Acertos', '% Acertos', 'Média (0-10)'];
-            
+
             foreach ($this->data['estatisticasPorTurma'] as $estatistica) {
                 $exportData[] = [
                     $estatistica['turma'],
@@ -64,17 +63,36 @@ class EstatisticasCoordenadorExport implements FromArray, WithHeadings, WithTitl
             $exportData[] = [''];
         }
 
-        // Adiciona estatísticas por habilidade se aplicável
+        // Estatísticas por Habilidade
         if ($this->data['request']->habilidade_id) {
             $exportData[] = ['Estatísticas por Habilidade'];
             $exportData[] = ['Habilidade', 'Total Respostas', 'Acertos', '% Acertos'];
-            
+
             foreach ($this->data['estatisticasPorHabilidade'] as $estatistica) {
                 $exportData[] = [
                     $estatistica['habilidade'],
                     $estatistica['total_respostas'],
                     $estatistica['acertos'],
                     number_format($estatistica['porcentagem_acertos'], 2) . '%'
+                ];
+            }
+            $exportData[] = [''];
+        }
+
+        // Desempenho por Aluno
+        if (!empty($this->data['estatisticasPorAluno'])) {
+            $exportData[] = ['Desempenho por Aluno'];
+            $exportData[] = ['Turma', 'Nome do Aluno', 'Aplicador', 'Total Respostas', 'Acertos', '% Acertos', 'Média'];
+
+            foreach ($this->data['estatisticasPorAluno'] as $aluno) {
+                $exportData[] = [
+                    $aluno['nome_turma'] ?? 'N/A',
+                    $aluno['nome_aluno'] ?? 'N/A',
+                    $aluno['nome_aplicador'] ?? 'N/A',
+                    $aluno['total_respostas'] ?? 0,
+                    $aluno['acertos'] ?? 0,
+                    isset($aluno['porcentagem_acertos']) ? number_format($aluno['porcentagem_acertos'], 2) . '%' : '0.00%',
+                    isset($aluno['media']) ? number_format($aluno['media'], 2) : '0.00'
                 ];
             }
         }
@@ -86,7 +104,7 @@ class EstatisticasCoordenadorExport implements FromArray, WithHeadings, WithTitl
     {
         return [
             ['Relatório de Estatísticas - Coordenador'],
-            ['Gerado em: ' . now()->format('d/m/Y H:i')]
+            ['Gerado em: ' . now()->format('d/m/Y H:i')],
         ];
     }
 
@@ -97,19 +115,16 @@ class EstatisticasCoordenadorExport implements FromArray, WithHeadings, WithTitl
 
     public function styles(Worksheet $sheet)
     {
-        // Estilo para os títulos
-        $sheet->mergeCells('A1:F1');
-        $sheet->mergeCells('A2:F2');
+        $sheet->mergeCells('A1:G1');
+        $sheet->mergeCells('A2:G2');
         $sheet->getStyle('A1:A2')->getFont()->setBold(true);
         $sheet->getStyle('A1:A2')->getAlignment()->setHorizontal('center');
 
-        // Estilo para os cabeçalhos das tabelas
-        $sheet->getStyle('A4:F4')->getFont()->setBold(true);
-        
         $lastRow = $sheet->getHighestRow();
-        
-        // Aplicar bordas e estilos para as tabelas de dados
-        $sheet->getStyle('A4:F' . $lastRow)->applyFromArray([
+        $lastCol = $sheet->getHighestColumn();
+
+        // Aplica bordas a toda a área de dados
+        $sheet->getStyle('A4:' . $lastCol . $lastRow)->applyFromArray([
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
@@ -118,19 +133,24 @@ class EstatisticasCoordenadorExport implements FromArray, WithHeadings, WithTitl
             ],
         ]);
 
-        // Estilo para os títulos das seções
-        $sectionTitles = ['Dados Gerais', 'Médias por Faixa de Ano', 'Média Geral da Escola', 'Estatísticas por Turma', 'Estatísticas por Habilidade'];
-        foreach ($sectionTitles as $title) {
-            $row = $sheet->getCellByColumnAndRow(1, $sheet->getRowIterator()->current()->getRowIndex())->getRow();
-            if ($sheet->getCell('A' . $row)->getValue() === $title) {
-                $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-                $sheet->getStyle('A' . $row)->getFont()->setSize(12);
+        // Negrito para cabeçalhos de tabelas
+        for ($i = 1; $i <= $lastRow; $i++) {
+            $value = $sheet->getCell("A{$i}")->getValue();
+            if (in_array($value, [
+                'Dados Gerais',
+                'Médias por Faixa de Ano',
+                'Média Geral da Escola',
+                'Estatísticas por Turma',
+                'Estatísticas por Habilidade',
+                'Desempenho por Aluno'
+            ])) {
+                $sheet->getStyle("A{$i}")->getFont()->setBold(true)->setSize(12);
             }
         }
 
-        // Auto ajustar largura das colunas
-        foreach(range('A','F') as $columnID) {
-            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        // Auto size
+        foreach (range('A', $lastCol) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
         }
     }
 
@@ -139,10 +159,11 @@ class EstatisticasCoordenadorExport implements FromArray, WithHeadings, WithTitl
         return [
             'A' => 25,
             'B' => 25,
-            'C' => 15,
+            'C' => 20,
             'D' => 15,
             'E' => 15,
             'F' => 15,
+            'G' => 15,
         ];
     }
 }
