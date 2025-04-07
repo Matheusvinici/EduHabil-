@@ -19,53 +19,56 @@ class TurmaController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request)
-    {
-        $user = Auth::user();
+                public function index(Request $request)
+                {
+                    $user = Auth::user();
 
-        // Redireciona para o método correto com base no perfil do usuário
-        switch ($user->role) {
-            case 'admin':
-                return redirect()->route('turmas.admin.index');
-            case 'coordenador':
-                return redirect()->route('turmas.coordenador.index');
-            case 'aee':
-                return redirect()->route('turmas.aee.index');
-            case 'professor':
-                return redirect()->route('turmas.professor.index');
-            case 'aplicador':
-                return redirect()->route('turmas.aplicador.index');
-    
-            default:
-                abort(403, 'Acesso não autorizado.');
-        }
-    }
+                    // Redireciona para o método correto com base no perfil do usuário
+                    switch ($user->role) {
+                        case 'admin':
+                            return redirect()->route('turmas.admin.index');
+                        case 'inclusiva':
+                                return redirect()->route('turmas.admin.index');
+                        case 'coordenador':
+                            return redirect()->route('turmas.coordenador.index');
+                        case 'aee':
+                            return redirect()->route('turmas.aee.index');
+                        case 'professor':
+                            return redirect()->route('turmas.professor.index');
+                        case 'aplicador':
+                            return redirect()->route('turmas.aplicador.index');
+                
+                        default:
+                            abort(403, 'Acesso não autorizado.');
+                    }
+                }
 
-    public function indexAdmin(Request $request)
-    {
-    // Quantitativo de turmas por escola
-    $escolas = Escola::withCount('turmas')->paginate(10);
+                public function indexAdmin(Request $request)
+                {
+                // Quantitativo de turmas por escola
+                $escolas = Escola::withCount('turmas')->paginate(10);
 
-    return view('turmas.admin.index', compact('escolas'));
-    }
-    public function indexCoordenador(Request $request)
-    {
-    $user = Auth::user();
-    $escolaId = $user->escola_id;
+                return view('turmas.admin.index', compact('escolas'));
+                }
+               
+                public function indexCoordenador(Request $request)
+                {
+                $user = Auth::user();
+                $escolaId = $user->escola_id;
 
-    // Filtro por nome da turma
-    $nomeTurma = $request->query('nome_turma');
+                // Filtro por nome da turma
+                $nomeTurma = $request->query('nome_turma');
 
-    // Query base
-    $turmas = Turma::where('escola_id', $escolaId)
-        ->when($nomeTurma, function ($query, $nomeTurma) {
-            return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
-        })
-        ->with(['escola', 'professor'])
-        ->paginate(5);
+                // Query base
+                $turmas = Turma::where('escola_id', $escolaId)
+                    ->when($nomeTurma, function ($query, $nomeTurma) {
+                        return $query->where('nome_turma', 'like', '%' . $nomeTurma . '%');
+                    })
+                    ->with(['escola', 'professor'])
+                    ->paginate(5);
 
-    return view('turmas.coordenador.index', compact('turmas', 'nomeTurma'));
-    }
+                return view('turmas.coordenador.index', compact('turmas', 'nomeTurma'));
+                }
 
             public function indexAEE(Request $request)
             {
@@ -173,7 +176,6 @@ class TurmaController extends Controller
             
                 return view('turmas.add-alunos', compact('turma'));
             }
-          // TurmaController.php
 
                     public function addAlunos(Request $request, Turma $turma)
                     {

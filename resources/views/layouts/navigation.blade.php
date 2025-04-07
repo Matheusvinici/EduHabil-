@@ -14,32 +14,36 @@
                 <p>Avaliação Simulado</p>
             </a>
                     </li>
-        <!-- Simulados -->
-        @php
-            $showSimulados = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin']);
-        @endphp
-        @if($showSimulados)
-            <li class="nav-item has-treeview">
-                <a href="#" class="nav-link text-white">
-                    <i class="nav-icon fas fa-check-circle text-white"></i>
-                    <p>Simulados<i class="right fas fa-angle-left"></i></p>
-                </a>
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{{ route('simulados.index') }}" class="nav-link text-white">
-                            <i class="far fa-circle nav-icon text-white"></i>
-                            <p>Simulados</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ route('perguntas.index') }}" class="nav-link text-white">
-                            <i class="far fa-circle nav-icon text-white"></i>
-                            <p>Perguntas</p>
-                        </a>
-                    </li>
-                </ul>
-            </li>
-        @endif
+       <!-- Simulados -->
+            @php
+                $showSimulados = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin']);
+                $canSeePerguntas = Auth::check() && Auth::user()->role === 'admin';
+            @endphp
+
+            @if($showSimulados)
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link text-white">
+                        <i class="nav-icon fas fa-check-circle text-white"></i>
+                        <p>Simulados<i class="right fas fa-angle-left"></i></p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('simulados.index') }}" class="nav-link text-white">
+                                <i class="far fa-circle nav-icon text-white"></i>
+                                <p>Simulados</p>
+                            </a>
+                        </li>
+                        @if($canSeePerguntas)
+                        <li class="nav-item">
+                            <a href="{{ route('perguntas.index') }}" class="nav-link text-white">
+                                <i class="far fa-circle nav-icon text-white"></i>
+                                <p>Perguntas</p>
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </li>
+            @endif
 
         <!-- Avaliações e Provas -->
         @php
@@ -87,9 +91,9 @@
         <!-- Planejamento do Professor -->
         @php
             $showPlanejamento = false;
-            $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
+            $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'aplicador']);
             $showMinhasTurmas = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
-            $showCadastrarAtividades = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
+            $showCadastrarAtividades = Auth::check() && in_array(Auth::user()->role, ['admin','aplicador']);
             $showPlanejamento = $showAtividadesEducativas || $showMinhasTurmas || $showCadastrarAtividades;
         @endphp
         @if($showPlanejamento)
@@ -128,7 +132,7 @@
         @endif
 
         <!-- Gestão Pedagógica -->
-        @if(Auth::check() && in_array(Auth::user()->role, ['admin','inclusiva', 'aplicador']))
+        @if(Auth::check() && in_array(Auth::user()->role, ['admin', 'aplicador']))
             <li class="nav-item has-treeview">
                 <a href="#" class="nav-link text-white">
                     <i class="nav-icon fas fa-book text-white"></i>

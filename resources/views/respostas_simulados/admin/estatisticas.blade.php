@@ -64,18 +64,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label for="deficiencia" class="form-label">Deficiência:</label>
-                    <select name="deficiencia" id="deficiencia" class="form-select">
-                        <option value="">Todas</option>
-                        <option value="DV" {{ $request->deficiencia == 'DV' ? 'selected' : '' }}>Deficiência Visual</option>
-                        <option value="DA" {{ $request->deficiencia == 'DA' ? 'selected' : '' }}>Deficiência Auditiva</option>
-                        <option value="DF" {{ $request->deficiencia == 'DF' ? 'selected' : '' }}>Deficiência Física</option>
-                        <option value="DI" {{ $request->deficiencia == 'DI' ? 'selected' : '' }}>Deficiência Intelectual</option>
-                        <option value="TEA" {{ $request->deficiencia == 'TEA' ? 'selected' : '' }}>Autismo</option>
-                        <option value="ND" {{ $request->deficiencia == 'ND' ? 'selected' : '' }}>Sem deficiência</option>
-                    </select>
-                </div>
+              
                 <div class="col-md-12 d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter mr-1"></i> Filtrar

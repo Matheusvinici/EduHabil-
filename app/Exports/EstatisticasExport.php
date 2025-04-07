@@ -38,6 +38,7 @@ class EstatisticasExport implements WithMultipleSheets
                     ['Total de Simulados', $this->data['totalSimulados']],
                     ['Total de Professores', $this->data['totalProfessores']],
                     ['Total de Alunos', $this->data['totalAlunos']],
+                    ['Alunos com Deficiência', $this->data['totalAlunosComDeficiencia'] ?? 0],
                     ['Total de Respostas', $this->data['totalRespostas']],
                     ['Professores que Responderam', $this->data['professoresResponderam']],
                     ['Alunos que Responderam', $this->data['alunosResponderam']],
@@ -167,7 +168,7 @@ class EstatisticasExport implements WithMultipleSheets
             };
         }
         
-        // Sheet por raça (nova adição)
+        // Sheet por raça
         if (!empty($this->data['estatisticasPorRaca'])) {
             $sheets[] = new class($this->data['estatisticasPorRaca']) implements FromArray, WithTitle, WithHeadings, ShouldAutoSize {
                 protected $data;
@@ -200,6 +201,163 @@ class EstatisticasExport implements WithMultipleSheets
                 public function headings(): array
                 {
                     return ['Raça/Cor', 'Total Respostas', 'Acertos', '% Acertos', 'Média Final'];
+                }
+            };
+        }
+        
+        // Sheet por deficiência
+        if (!empty($this->data['estatisticasPorDeficiencia'])) {
+            $sheets[] = new class($this->data['estatisticasPorDeficiencia']) implements FromArray, WithTitle, WithHeadings, ShouldAutoSize {
+                protected $data;
+                
+                public function __construct($data)
+                {
+                    $this->data = $data;
+                }
+                
+                public function array(): array
+                {
+                    $result = [];
+                    foreach ($this->data as $item) {
+                        $result[] = [
+                            $item['deficiencia'],
+                            $item['total_respostas'],
+                            $item['acertos'],
+                            number_format($item['porcentagem_acertos'], 2) . '%',
+                            number_format($item['media_final'], 2)
+                        ];
+                    }
+                    return $result;
+                }
+                
+                public function title(): string
+                {
+                    return 'Por Deficiência';
+                }
+                
+                public function headings(): array
+                {
+                    return ['Deficiência', 'Total Respostas', 'Acertos', '% Acertos', 'Média Final'];
+                }
+            };
+        }
+        
+        // Sheet alunos por deficiência
+        if (!empty($this->data['alunosPorDeficiencia'])) {
+            $sheets[] = new class($this->data['alunosPorDeficiencia']) implements FromArray, WithTitle, WithHeadings, ShouldAutoSize {
+                protected $data;
+                
+                public function __construct($data)
+                {
+                    $this->data = $data;
+                }
+                
+                public function array(): array
+                {
+                    $result = [];
+                    foreach ($this->data as $item) {
+                        $result[] = [
+                            $item['deficiencia'],
+                            $item['total']
+                        ];
+                    }
+                    return $result;
+                }
+                
+                public function title(): string
+                {
+                    return 'Alunos por Deficiência';
+                }
+                
+                public function headings(): array
+                {
+                    return ['Deficiência', 'Total de Alunos'];
+                }
+            };
+        }
+        
+        // Sheet por questão (com disciplina e habilidade)
+        if (!empty($this->data['estatisticasPorQuestao'])) {
+            $sheets[] = new class($this->data['estatisticasPorQuestao']) implements FromArray, WithTitle, WithHeadings, ShouldAutoSize {
+                protected $data;
+                
+                public function __construct($data)
+                {
+                    $this->data = $data;
+                }
+                
+                public function array(): array
+                {
+                    $result = [];
+                    foreach ($this->data as $item) {
+                        $result[] = [
+                            $item['pergunta_id'],
+                            $item['enunciado'],
+                            $item['disciplina'],
+                            $item['habilidade'],
+                            $item['total_respostas'],
+                            $item['acertos'],
+                            number_format($item['porcentagem_acertos'], 2) . '%',
+                            number_format($item['media_final'], 2)
+                        ];
+                    }
+                    return $result;
+                }
+                
+                public function title(): string
+                {
+                    return 'Por Questão';
+                }
+                
+                public function headings(): array
+                {
+                    return [
+                        'ID Pergunta', 
+                        'Enunciado', 
+                        'Disciplina', 
+                        'Habilidade', 
+                        'Total Respostas', 
+                        'Acertos', 
+                        '% Acertos', 
+                        'Média'
+                    ];
+                }
+            };
+        }
+        
+        // Sheet média por disciplina
+        if (!empty($this->data['mediaPorQuestaoPorDisciplina'])) {
+            $sheets[] = new class($this->data['mediaPorQuestaoPorDisciplina']) implements FromArray, WithTitle, WithHeadings, ShouldAutoSize {
+                protected $data;
+                
+                public function __construct($data)
+                {
+                    $this->data = $data;
+                }
+                
+                public function array(): array
+                {
+                    $result = [];
+                    foreach ($this->data as $item) {
+                        $result[] = [
+                            $item['disciplina'],
+                            $item['total_respostas'],
+                            $item['total_acertos'],
+                            number_format(($item['total_acertos'] / $item['total_respostas']) * 100, 2) . '%',
+                            number_format($item['media'], 2)
+                        ];
+                    }
+                    return $result;
+                }
+                
+                public function title(): string
+                {
+                    return 'Média por Disciplina';
+                }
+                
+                public function headings(): array
+                {
+                    return ['Disciplina', 'Total Respostas', 'Total Acertos', '% Acertos', 'Média'];
                 }
             };
         }
