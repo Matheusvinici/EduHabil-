@@ -105,18 +105,15 @@
                                     </td>
                                     <td>{{ $user->escola->nome ?? 'N/A' }}</td>
                                     <td>
-                                        <a href="{{ route('users.show', $user->id) }}" class="btn btn-sm btn-info" title="Visualizar">
-                                            <i class="fas fa-eye"></i>
+                                        <a href="{{ route('users.show', $user->id) }}" class="btn btn-info btn-sm">Detalhes</a>
                                         </a>
-                                        <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning" title="Editar">
-                                            <i class="fas fa-edit"></i>
+                                        <a href="{{ route('users.edit', $user->id) }}" class="btn btn-primary btn-sm">Editar</a>
                                         </a>
                                         <form action="{{ route('users.destroy', $user->id) }}" method="POST" style="display:inline;">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-danger" title="Excluir"
-                                                    onclick="return confirm('Tem certeza que deseja excluir este usuário?')">
-                                                <i class="fas fa-trash"></i>
+                                                    onclick="return confirm('Tem certeza que deseja excluir este usuário?')">Excluir
                                             </button>
                                         </form>
                                     </td>
