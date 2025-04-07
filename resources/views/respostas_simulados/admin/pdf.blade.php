@@ -315,6 +315,34 @@
         </tbody>
     </table>
     @endif
+     <!-- Estatísticas por Questão (Sempre exibido se houver dados) -->
+     @if(isset($estatisticasPorQuestao) && count($estatisticasPorQuestao) > 0)
+    <h2>Estatísticas por Questão</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Questão</th>
+                <th>Total Respostas</th>
+                <th>Acertos</th>
+                <th>% Acertos</th>
+                <th>Média (0-10)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($estatisticasPorQuestao as $index => $estatistica)
+            <tr>
+                <td>{{ $index + 1 }}</td>
+                <td>{{ $estatistica['enunciado'] }}</td>
+                <td>{{ $estatistica['total_respostas'] }}</td>
+                <td>{{ $estatistica['acertos'] }}</td>
+                <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
+                <td>{{ number_format($estatistica['media_final'], 2) }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
     
     <!-- Rodapé -->
     <div class="footer">

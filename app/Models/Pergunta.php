@@ -35,7 +35,6 @@ class Pergunta extends Model
     }
 
     
-    // No model Pergunta.php
         public function habilidade()
         {
             return $this->belongsTo(Habilidade::class)->withDefault([

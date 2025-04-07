@@ -12,6 +12,9 @@
             <h5 class="card-title mb-0">Filtros</h5>
             @if(request()->hasAny(['simulado_id', 'ano_id', 'escola_id', 'habilidade_id', 'deficiencia']))
                 <div>
+               
+
+
                     <a href="{{ route('respostas_simulados.admin.export.pdf', request()->query()) }}" 
                        class="btn btn-sm btn-light text-primary">
                         <i class="fas fa-file-pdf mr-1"></i> Exportar PDF
@@ -92,6 +95,7 @@
              style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
     </div>
 
+
     <!-- Dados Gerais -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
@@ -125,13 +129,13 @@
     </div>
             <div class="col-md-2">
                 <div class="stat-card bg-light p-3 rounded">
-                    <h6 class="stat-title">Professores na Escola</h6>
+                    <h6 class="stat-title">Professores Cadastrados</h6>
                     <p class="stat-value">{{ $totalProfessores }}</p>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="stat-card bg-light p-3 rounded">
-                    <h6 class="stat-title">Alunos na Escola</h6>
+                    <h6 class="stat-title">Alunos Cadastrados</h6>
                     <p class="stat-value">{{ $totalAlunos }}</p>
                 </div>
             </div>
@@ -276,6 +280,45 @@
         </div>
     </div>
 
+                        
+             <!-- Tabela de Estatísticas por Questão -->
+                @if($estatisticasPorQuestao->count())
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h3 class="card-title">Estatísticas por Questão</h3>
+                        </div>
+                        <div class="card-body table-responsive p-0">
+                            <table class="table table-hover text-nowrap">
+                                <thead>
+                                    <tr>
+                                        <th>Disciplina</th>
+                                        <th>Questão</th>
+                                        <th>Habilidade</th>
+                                        <th>Média</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($estatisticasPorQuestao as $questao)
+                                        <tr>
+                                            <td>{{ $questao->disciplina }}</td>
+                                            <td>{{ Str::limit($questao->enunciado, 50) }}</td>
+                                            <td>{{ $questao->habilidade_resumida }}...</td>
+                                            <td>{{ number_format($questao->media, 2) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer clearfix">
+                            {{ $estatisticasPorQuestao->links() }}
+                        </div>
+                    </div>
+                @else
+                    <div class="alert alert-info">
+                        Nenhum dado encontrado. Aplique os filtros para visualizar as estatísticas.
+                    </div>
+                @endif
+
     <!-- Estatísticas por Escola -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
@@ -408,44 +451,7 @@
         </div>
     </div>
 
-    <!-- Gráficos -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Desempenho por Habilidade</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="graficoHabilidades"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Média por Escola</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="graficoEscolas"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NOVO GRÁFICO: Distribuição por Deficiência -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Distribuição por Deficiência</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="graficoDeficiencias"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
+   
     <!-- Scripts para Gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
