@@ -925,48 +925,52 @@ class RespostaSimuladoController extends Controller
             
         
             
-                public function indexForAplicador()
-                {
-                    $aplicador = Auth::user();
-                    
-                    // Obtém todas as respostas registradas pelo aplicador
-                    $respostas = RespostaSimulado::where('aplicador_id', $aplicador->id)
-                        ->with(['simulado.perguntas', 'user']) // Carrega relacionamentos necessários
-                        ->get();
-                    
-                    // Agrupa por simulado e aluno
-                    $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
-                    
-                    $estatisticas = collect();
-                    
-                    foreach ($agrupadas as $simuladoId => $alunos) {
-                        foreach ($alunos as $alunoId => $respostasAluno) {
-                            $primeiraResposta = $respostasAluno->first();
-                            $simulado = $primeiraResposta->simulado;
-                            $aluno = $primeiraResposta->user;
-                            
-                            $totalQuestoes = $simulado->perguntas->count();
-                            $acertos = $respostasAluno->where('correta', true)->count();
-                            $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
-                            
-                            $estatisticas->push([
-                                'aluno' => $aluno->name,
-                                'simulado' => $simulado->nome,
-                                'total_questoes' => $totalQuestoes,
-                                'acertos' => $acertos,
-                                'porcentagem' => $porcentagem,
-                                'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
-                                'data' => $primeiraResposta->created_at,
-                                'desempenho_class' => $porcentagem >= 70 ? 'success' : 
-                                                    ($porcentagem >= 50 ? 'warning' : 'danger')
-                            ]);
-                        }
+            public function indexForAplicador()
+            {
+                $aplicador = Auth::user();
+            
+                // Respostas com perguntas e simulado carregados
+                $respostas = RespostaSimulado::where('aplicador_id', $aplicador->id)
+                    ->with(['simulado.perguntas', 'pergunta', 'user'])
+                    ->get();
+            
+                $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
+                $estatisticas = collect();
+            
+                foreach ($agrupadas as $simuladoId => $alunos) {
+                    foreach ($alunos as $alunoId => $respostasAluno) {
+                        $primeiraResposta = $respostasAluno->first();
+                        $simulado = $primeiraResposta->simulado;
+                        $aluno = $primeiraResposta->user;
+            
+                        $pesoTotal = $respostasAluno->sum(fn($resposta) => $resposta->pergunta->peso ?? 1);
+                        $pesoAcertos = $respostasAluno->filter(fn($resposta) => $resposta->correta)->sum(fn($resposta) => $resposta->pergunta->peso ?? 1);
+            
+                        $porcentagem = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 100 : 0;
+                        $media = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 10 : 0;
+            
+                        $estatisticas->push([
+                            'aluno' => $aluno->name,
+                            'simulado' => $simulado->nome,
+                            'total_questoes' => $respostasAluno->count(),
+                            'peso_total' => $pesoTotal,
+                            'peso_acertos' => $pesoAcertos,
+                            'porcentagem' => $porcentagem,
+                            'media' => $media,
+                            'data' => $primeiraResposta->created_at,
+                            'desempenho_class' => $porcentagem >= 70 ? 'success' :
+                                                  ($porcentagem >= 50 ? 'warning' : 'danger')
+                        ]);
                     }
-                    
-                    return view('respostas_simulados.aplicador.index', [
-                        'estatisticas' => $estatisticas->sortByDesc('data')
-                    ]);
                 }
+            
+                return view('respostas_simulados.aplicador.index', [
+                    'estatisticas' => $estatisticas->sortByDesc('data')
+                ]);
+            }
+            
+
+
                 public function storeForAplicador(Request $request, Simulado $simulado)
                 {
                     $request->validate([
@@ -1269,348 +1273,348 @@ class RespostaSimuladoController extends Controller
      * Exibe a lista de respostas dos alunos (para o professor/admin).
      */
    
-    protected function calcularEstatisticas($respostas, $turmasIds)
-    {
-        // Agrupa por aluno
-        $agrupadas = $respostas->groupBy('user_id');
-        
-        $estatisticasPorAluno = [];
-        $mediaTurmaPorSimulado = [];
-        $estatisticasPorHabilidade = [];
-        
-        foreach ($agrupadas as $alunoId => $respostasAluno) {
-            $aluno = $respostasAluno->first()->user;
-            
-            foreach ($respostasAluno->groupBy('simulado_id') as $simuladoId => $respostasSimulado) {
-                $simulado = $respostasSimulado->first()->simulado;
-                
-                $totalQuestoes = $simulado->perguntas->count();
-                $acertos = $respostasSimulado->where('correta', true)->count();
-                $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
-                
-                $estatisticasPorAluno[] = [
-                    'aluno' => $aluno->name,
-                    'turma' => $aluno->turma->nome,
-                    'simulado' => $simulado->nome,
-                    'total_questoes' => $totalQuestoes,
-                    'acertos' => $acertos,
-                    'porcentagem' => $porcentagem,
-                    'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
-                    'data' => $respostasSimulado->first()->created_at,
-                    'desempenho_class' => $porcentagem >= 70 ? 'success' : ($porcentagem >= 50 ? 'warning' : 'danger')
-                ];
-                
-                // Calcula média por simulado
-                if (!isset($mediaTurmaPorSimulado[$simuladoId])) {
-                    $mediaTurmaPorSimulado[$simuladoId] = [
-                        'simulado' => $simulado->nome,
-                        'total_respostas' => 0,
-                        'acertos' => 0
+                protected function calcularEstatisticas($respostas, $turmasIds)
+                {
+                    // Agrupa por aluno
+                    $agrupadas = $respostas->groupBy('user_id');
+                    
+                    $estatisticasPorAluno = [];
+                    $mediaTurmaPorSimulado = [];
+                    $estatisticasPorHabilidade = [];
+                    
+                    foreach ($agrupadas as $alunoId => $respostasAluno) {
+                        $aluno = $respostasAluno->first()->user;
+                        
+                        foreach ($respostasAluno->groupBy('simulado_id') as $simuladoId => $respostasSimulado) {
+                            $simulado = $respostasSimulado->first()->simulado;
+                            
+                            $totalQuestoes = $simulado->perguntas->count();
+                            $acertos = $respostasSimulado->where('correta', true)->count();
+                            $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
+                            
+                            $estatisticasPorAluno[] = [
+                                'aluno' => $aluno->name,
+                                'turma' => $aluno->turma->nome,
+                                'simulado' => $simulado->nome,
+                                'total_questoes' => $totalQuestoes,
+                                'acertos' => $acertos,
+                                'porcentagem' => $porcentagem,
+                                'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
+                                'data' => $respostasSimulado->first()->created_at,
+                                'desempenho_class' => $porcentagem >= 70 ? 'success' : ($porcentagem >= 50 ? 'warning' : 'danger')
+                            ];
+                            
+                            // Calcula média por simulado
+                            if (!isset($mediaTurmaPorSimulado[$simuladoId])) {
+                                $mediaTurmaPorSimulado[$simuladoId] = [
+                                    'simulado' => $simulado->nome,
+                                    'total_respostas' => 0,
+                                    'acertos' => 0
+                                ];
+                            }
+                            $mediaTurmaPorSimulado[$simuladoId]['total_respostas'] += $totalQuestoes;
+                            $mediaTurmaPorSimulado[$simuladoId]['acertos'] += $acertos;
+                        }
+                        
+                        // Calcula por habilidade
+                        foreach ($respostasAluno as $resposta) {
+                            $habilidadeId = $resposta->pergunta->habilidade_id;
+                            $habilidadeNome = $resposta->pergunta->habilidade->descricao;
+                            
+                            if (!isset($estatisticasPorHabilidade[$habilidadeId])) {
+                                $estatisticasPorHabilidade[$habilidadeId] = [
+                                    'habilidade' => $habilidadeNome,
+                                    'total_respostas' => 0,
+                                    'acertos' => 0
+                                ];
+                            }
+                            
+                            $estatisticasPorHabilidade[$habilidadeId]['total_respostas']++;
+                            if ($resposta->correta) {
+                                $estatisticasPorHabilidade[$habilidadeId]['acertos']++;
+                            }
+                        }
+                    }
+                    
+                    // Calcula médias finais
+                    foreach ($mediaTurmaPorSimulado as &$simulado) {
+                        $simulado['media_turma'] = $simulado['total_respostas'] > 0 
+                            ? ($simulado['acertos'] / $simulado['total_respostas']) * 10 
+                            : 0;
+                    }
+                    
+                    foreach ($estatisticasPorHabilidade as &$habilidade) {
+                        $habilidade['porcentagem_acertos'] = $habilidade['total_respostas'] > 0
+                            ? ($habilidade['acertos'] / $habilidade['total_respostas']) * 100
+                            : 0;
+                    }
+                    
+                    return [
+                        'estatisticasPorAluno' => $estatisticasPorAluno,
+                        'mediaTurmaPorSimulado' => array_values($mediaTurmaPorSimulado),
+                        'estatisticasPorHabilidade' => array_values($estatisticasPorHabilidade)
                     ];
                 }
-                $mediaTurmaPorSimulado[$simuladoId]['total_respostas'] += $totalQuestoes;
-                $mediaTurmaPorSimulado[$simuladoId]['acertos'] += $acertos;
-            }
-            
-            // Calcula por habilidade
-            foreach ($respostasAluno as $resposta) {
-                $habilidadeId = $resposta->pergunta->habilidade_id;
-                $habilidadeNome = $resposta->pergunta->habilidade->descricao;
-                
-                if (!isset($estatisticasPorHabilidade[$habilidadeId])) {
-                    $estatisticasPorHabilidade[$habilidadeId] = [
-                        'habilidade' => $habilidadeNome,
-                        'total_respostas' => 0,
-                        'acertos' => 0
-                    ];
-                }
-                
-                $estatisticasPorHabilidade[$habilidadeId]['total_respostas']++;
-                if ($resposta->correta) {
-                    $estatisticasPorHabilidade[$habilidadeId]['acertos']++;
-                }
-            }
-        }
-        
-        // Calcula médias finais
-        foreach ($mediaTurmaPorSimulado as &$simulado) {
-            $simulado['media_turma'] = $simulado['total_respostas'] > 0 
-                ? ($simulado['acertos'] / $simulado['total_respostas']) * 10 
-                : 0;
-        }
-        
-        foreach ($estatisticasPorHabilidade as &$habilidade) {
-            $habilidade['porcentagem_acertos'] = $habilidade['total_respostas'] > 0
-                ? ($habilidade['acertos'] / $habilidade['total_respostas']) * 100
-                : 0;
-        }
-        
-        return [
-            'estatisticasPorAluno' => $estatisticasPorAluno,
-            'mediaTurmaPorSimulado' => array_values($mediaTurmaPorSimulado),
-            'estatisticasPorHabilidade' => array_values($estatisticasPorHabilidade)
-        ];
-    }
     
     /**
      * Exibe os detalhes das respostas de um simulado específico (para o professor).
      */
-    public function showProfessor(Simulado $simulado, User $aluno)
-    {
-        $user = Auth::user();
+            public function showProfessor(Simulado $simulado, User $aluno)
+            {
+                $user = Auth::user();
 
-        if ($user->role !== 'professor') {
-            abort(403, 'Acesso não autorizado.');
-        }
+                if ($user->role !== 'professor') {
+                    abort(403, 'Acesso não autorizado.');
+                }
 
-        // Verifica se o simulado pertence ao professor
-        if ($simulado->user_id !== $user->id) {
-            abort(403, 'Acesso não autorizado.');
-        }
+                // Verifica se o simulado pertence ao professor
+                if ($simulado->user_id !== $user->id) {
+                    abort(403, 'Acesso não autorizado.');
+                }
 
-        // Busca as respostas do aluno para o simulado
-        $respostas = RespostaSimulado::where('simulado_id', $simulado->id)
-            ->where('user_id', $aluno->id)
-            ->with('pergunta')
-            ->get();
+                // Busca as respostas do aluno para o simulado
+                $respostas = RespostaSimulado::where('simulado_id', $simulado->id)
+                    ->where('user_id', $aluno->id)
+                    ->with('pergunta')
+                    ->get();
 
-        // Calcula o total de acertos
-        $acertos = $respostas->where('correta', true)->count();
-        $total = $respostas->count();
+                // Calcula o total de acertos
+                $acertos = $respostas->where('correta', true)->count();
+                $total = $respostas->count();
 
-        return view('respostas_simulados.professor.show', compact('simulado', 'aluno', 'respostas', 'acertos', 'total'));
-    }
+                return view('respostas_simulados.professor.show', compact('simulado', 'aluno', 'respostas', 'acertos', 'total'));
+            }
 
-    /**
-     * Exibe as estatísticas do professor.
-     */
-    public function estatisticasProfessor(Request $request)
-    {
-        $professor = Auth::user();
-        
-        if ($professor->role !== 'professor') {
-            abort(403, 'Acesso não autorizado.');
-        }
-    
-        // Inicializa todas as coleções que serão usadas
-        $estatisticas = collect();
-        $estatisticasHabilidades = collect();
-        $mediasTurma = collect();
-        $alunosSemResposta = collect();
-    
-        // Obter turmas do professor
-        $turmas = $professor->turmasLecionadas()
-            ->with(['alunos' => function($query) {
-                $query->where('role', 'aluno');
-            }])
-            ->get();
-    
-        // Se não houver turmas vinculadas
-        if ($turmas->isEmpty()) {
-            return view('respostas_simulados.professor.index', [
-                'turmas' => collect(),
-                'estatisticas' => $estatisticas,
-                'habilidades' => Habilidade::all(),
-                'filtros' => $request->all(),
-                'alunosSemResposta' => $alunosSemResposta,
-                'estatisticasHabilidades' => $estatisticasHabilidades,
-                'mediasTurma' => $mediasTurma,
-                'graficosData' => [
+            /**
+             * Exibe as estatísticas do professor.
+             */
+            public function estatisticasProfessor(Request $request)
+            {
+                $professor = Auth::user();
+                
+                if ($professor->role !== 'professor') {
+                    abort(403, 'Acesso não autorizado.');
+                }
+            
+                // Inicializa todas as coleções que serão usadas
+                $estatisticas = collect();
+                $estatisticasHabilidades = collect();
+                $mediasTurma = collect();
+                $alunosSemResposta = collect();
+            
+                // Obter turmas do professor
+                $turmas = $professor->turmasLecionadas()
+                    ->with(['alunos' => function($query) {
+                        $query->where('role', 'aluno');
+                    }])
+                    ->get();
+            
+                // Se não houver turmas vinculadas
+                if ($turmas->isEmpty()) {
+                    return view('respostas_simulados.professor.index', [
+                        'turmas' => collect(),
+                        'estatisticas' => $estatisticas,
+                        'habilidades' => Habilidade::all(),
+                        'filtros' => $request->all(),
+                        'alunosSemResposta' => $alunosSemResposta,
+                        'estatisticasHabilidades' => $estatisticasHabilidades,
+                        'mediasTurma' => $mediasTurma,
+                        'graficosData' => [
+                            'desempenho' => [
+                                'otimo' => 0,
+                                'regular' => 0,
+                                'ruim' => 0
+                            ],
+                            'habilidades' => [
+                                'labels' => [],
+                                'valores' => []
+                            ]
+                        ],
+                        'totalAlunosTurma' => 0,
+                        'alunosComDeficiencia' => 0,
+                        'turmaSelecionada' => null,
+                        'mensagemSemTurma' => 'Você não está vinculado a nenhuma turma. Por favor, entre em contato com a secretaria de educação para ser vinculado a uma turma.'
+                    ]);
+                }
+            
+                // Aplicar filtros
+                $turmaId = $request->turma_id ?? $turmas->first()->id;
+                $habilidadeId = $request->habilidade_id;
+                $simuladoId = $request->simulado_id;
+                
+                $turmaSelecionada = $turmas->firstWhere('id', $turmaId);
+                $alunosTurma = $turmaSelecionada->alunos;
+            
+                // Query base para respostas
+                $respostasQuery = RespostaSimulado::with([
+                        'simulado.perguntas.habilidade',
+                        'user', 
+                        'pergunta.habilidade'
+                    ])
+                    ->whereIn('user_id', $alunosTurma->pluck('id'));
+            
+                if ($habilidadeId) {
+                    $respostasQuery->whereHas('pergunta', function($q) use ($habilidadeId) {
+                        $q->where('habilidade_id', $habilidadeId);
+                    });
+                }
+            
+                if ($simuladoId) {
+                    $respostasQuery->where('simulado_id', $simuladoId);
+                }
+            
+                $respostas = $respostasQuery->get();
+            
+                // Estatísticas gerais
+                $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
+            
+                foreach ($agrupadas as $simuladoId => $alunos) {
+                    foreach ($alunos as $alunoId => $respostasAluno) {
+                        $primeiraResposta = $respostasAluno->first();
+                        $simulado = $primeiraResposta->simulado;
+                        $aluno = $primeiraResposta->user;
+                        
+                        $totalQuestoes = $simulado->perguntas->count();
+                        $acertos = $respostasAluno->where('correta', true)->count();
+                        $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
+                        
+                        $estatisticas->push([
+                            'aluno_id' => $aluno->id,
+                            'aluno' => $aluno->name,
+                            'turma' => $turmaSelecionada->nome_turma,
+                            'simulado_id' => $simulado->id,
+                            'simulado' => $simulado->nome,
+                            'total_questoes' => $totalQuestoes,
+                            'acertos' => $acertos,
+                            'porcentagem' => $porcentagem,
+                            'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
+                            'data' => $primeiraResposta->created_at,
+                            'deficiencia' => $aluno->deficiencia,
+                            'desempenho_class' => $porcentagem >= 70 ? 'success' : 
+                                                ($porcentagem >= 50 ? 'warning' : 'danger')
+                        ]);
+                    }
+                }
+            
+                // Estatísticas por habilidade
+                if (!$habilidadeId) {
+                    $habilidadesRespondidas = $respostas->pluck('pergunta.habilidade')
+                        ->unique()
+                        ->filter();
+            
+                    foreach ($habilidadesRespondidas as $habilidade) {
+                        if (!$habilidade) continue;
+                        
+                        $respostasHabilidade = $respostas->filter(function($resposta) use ($habilidade) {
+                            return optional($resposta->pergunta)->habilidade_id == $habilidade->id;
+                        });
+            
+                        $totalRespostas = $respostasHabilidade->count();
+                        $acertos = $respostasHabilidade->where('correta', true)->count();
+                        $porcentagem = $totalRespostas > 0 ? ($acertos / $totalRespostas) * 100 : 0;
+            
+                        $estatisticasHabilidades->push([
+                            'habilidade_id' => $habilidade->id,
+                            'habilidade' => $habilidade->descricao,
+                            'total_respostas' => $totalRespostas,
+                            'acertos' => $acertos,
+                            'porcentagem' => $porcentagem,
+                            'media' => $totalRespostas > 0 ? ($acertos / $totalRespostas) * 10 : 0,
+                            'desempenho_class' => $porcentagem >= 70 ? 'success' : 
+                                                ($porcentagem >= 50 ? 'warning' : 'danger')
+                        ]);
+                    }
+                }
+            
+                // Médias por turma/simulado
+                if (!$simuladoId) {
+                    $agrupadasPorSimulado = $estatisticas->groupBy('simulado_id');
+                    
+                    foreach ($agrupadasPorSimulado as $simuladoId => $dados) {
+                        $primeiroItem = $dados->first();
+                        
+                        $mediasTurma->push([
+                            'simulado_id' => $simuladoId,
+                            'simulado' => $primeiroItem['simulado'],
+                            'quantidade_alunos' => $dados->count(),
+                            'media_porcentagem' => $dados->avg('porcentagem'),
+                            'media_nota' => $dados->avg('media')
+                        ]);
+                    }
+                }
+            
+                // Alunos sem resposta
+                $alunosComResposta = $estatisticas->pluck('aluno_id')->unique();
+                $alunosSemResposta = $alunosTurma->whereNotIn('id', $alunosComResposta);
+                $alunosComDeficiencia = $alunosTurma->where('deficiencia', true)->count();
+            
+                // Dados para os novos gráficos
+                $graficosData = [
                     'desempenho' => [
-                        'otimo' => 0,
-                        'regular' => 0,
-                        'ruim' => 0
+                        'otimo' => $estatisticas->where('porcentagem', '>=', 70)->count(),
+                        'regular' => $estatisticas->whereBetween('porcentagem', [50, 69])->count(),
+                        'ruim' => $estatisticas->where('porcentagem', '<', 50)->count()
                     ],
                     'habilidades' => [
-                        'labels' => [],
-                        'valores' => []
+                        'labels' => $estatisticasHabilidades->pluck('habilidade')->toArray(),
+                        'valores' => $estatisticasHabilidades->pluck('porcentagem')->map(function($item) {
+                            return (float) number_format($item, 2);
+                        })->toArray()
                     ]
-                ],
-                'totalAlunosTurma' => 0,
-                'alunosComDeficiencia' => 0,
-                'turmaSelecionada' => null,
-                'mensagemSemTurma' => 'Você não está vinculado a nenhuma turma. Por favor, entre em contato com a secretaria de educação para ser vinculado a uma turma.'
-            ]);
-        }
-    
-        // Aplicar filtros
-        $turmaId = $request->turma_id ?? $turmas->first()->id;
-        $habilidadeId = $request->habilidade_id;
-        $simuladoId = $request->simulado_id;
-        
-        $turmaSelecionada = $turmas->firstWhere('id', $turmaId);
-        $alunosTurma = $turmaSelecionada->alunos;
-    
-        // Query base para respostas
-        $respostasQuery = RespostaSimulado::with([
-                'simulado.perguntas.habilidade',
-                'user', 
-                'pergunta.habilidade'
-            ])
-            ->whereIn('user_id', $alunosTurma->pluck('id'));
-    
-        if ($habilidadeId) {
-            $respostasQuery->whereHas('pergunta', function($q) use ($habilidadeId) {
-                $q->where('habilidade_id', $habilidadeId);
-            });
-        }
-    
-        if ($simuladoId) {
-            $respostasQuery->where('simulado_id', $simuladoId);
-        }
-    
-        $respostas = $respostasQuery->get();
-    
-        // Estatísticas gerais
-        $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
-    
-        foreach ($agrupadas as $simuladoId => $alunos) {
-            foreach ($alunos as $alunoId => $respostasAluno) {
-                $primeiraResposta = $respostasAluno->first();
-                $simulado = $primeiraResposta->simulado;
-                $aluno = $primeiraResposta->user;
-                
-                $totalQuestoes = $simulado->perguntas->count();
-                $acertos = $respostasAluno->where('correta', true)->count();
-                $porcentagem = $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 100 : 0;
-                
-                $estatisticas->push([
-                    'aluno_id' => $aluno->id,
-                    'aluno' => $aluno->name,
-                    'turma' => $turmaSelecionada->nome_turma,
-                    'simulado_id' => $simulado->id,
-                    'simulado' => $simulado->nome,
-                    'total_questoes' => $totalQuestoes,
-                    'acertos' => $acertos,
-                    'porcentagem' => $porcentagem,
-                    'media' => $totalQuestoes > 0 ? ($acertos / $totalQuestoes) * 10 : 0,
-                    'data' => $primeiraResposta->created_at,
-                    'deficiencia' => $aluno->deficiencia,
-                    'desempenho_class' => $porcentagem >= 70 ? 'success' : 
-                                         ($porcentagem >= 50 ? 'warning' : 'danger')
-                ]);
-            }
-        }
-    
-        // Estatísticas por habilidade
-        if (!$habilidadeId) {
-            $habilidadesRespondidas = $respostas->pluck('pergunta.habilidade')
-                ->unique()
-                ->filter();
-    
-            foreach ($habilidadesRespondidas as $habilidade) {
-                if (!$habilidade) continue;
-                
-                $respostasHabilidade = $respostas->filter(function($resposta) use ($habilidade) {
-                    return optional($resposta->pergunta)->habilidade_id == $habilidade->id;
-                });
-    
-                $totalRespostas = $respostasHabilidade->count();
-                $acertos = $respostasHabilidade->where('correta', true)->count();
-                $porcentagem = $totalRespostas > 0 ? ($acertos / $totalRespostas) * 100 : 0;
-    
-                $estatisticasHabilidades->push([
-                    'habilidade_id' => $habilidade->id,
-                    'habilidade' => $habilidade->descricao,
-                    'total_respostas' => $totalRespostas,
-                    'acertos' => $acertos,
-                    'porcentagem' => $porcentagem,
-                    'media' => $totalRespostas > 0 ? ($acertos / $totalRespostas) * 10 : 0,
-                    'desempenho_class' => $porcentagem >= 70 ? 'success' : 
-                                         ($porcentagem >= 50 ? 'warning' : 'danger')
-                ]);
-            }
-        }
-    
-        // Médias por turma/simulado
-        if (!$simuladoId) {
-            $agrupadasPorSimulado = $estatisticas->groupBy('simulado_id');
+                ];
             
-            foreach ($agrupadasPorSimulado as $simuladoId => $dados) {
-                $primeiroItem = $dados->first();
-                
-                $mediasTurma->push([
-                    'simulado_id' => $simuladoId,
-                    'simulado' => $primeiroItem['simulado'],
-                    'quantidade_alunos' => $dados->count(),
-                    'media_porcentagem' => $dados->avg('porcentagem'),
-                    'media_nota' => $dados->avg('media')
+                // Paginação
+                $perPage = 15;
+                $estatisticas = $this->paginateCollection($estatisticas, $perPage, 'resultados_page');
+                $estatisticasHabilidades = $this->paginateCollection($estatisticasHabilidades, $perPage, 'habilidades_page');
+                $alunosSemResposta = $this->paginateCollection($alunosSemResposta, $perPage, 'alunos_sem_resposta_page');
+                $mediasTurma = $this->paginateCollection($mediasTurma, $perPage, 'medias_page');
+            
+                // Obter lista de simulados para o filtro
+                $simulados = Simulado::whereHas('respostas', function($q) use ($alunosTurma) {
+                    $q->whereIn('user_id', $alunosTurma->pluck('id'));
+                })->get();
+            
+                return view('respostas_simulados.professor.index', [
+                    'turmas' => $turmas,
+                    'simulados' => $simulados,
+                    'estatisticas' => $estatisticas,
+                    'habilidades' => Habilidade::all(),
+                    'filtros' => $request->all(),
+                    'alunosSemResposta' => $alunosSemResposta,
+                    'estatisticasHabilidades' => $estatisticasHabilidades,
+                    'mediasTurma' => $mediasTurma,
+                    'graficosData' => $graficosData,
+                    'totalAlunosTurma' => $alunosTurma->count(),
+                    'alunosComDeficiencia' => $alunosComDeficiencia,
+                    'turmaSelecionada' => $turmaSelecionada,
+                    'mensagemSemTurma' => null
                 ]);
             }
-        }
-    
-        // Alunos sem resposta
-        $alunosComResposta = $estatisticas->pluck('aluno_id')->unique();
-        $alunosSemResposta = $alunosTurma->whereNotIn('id', $alunosComResposta);
-        $alunosComDeficiencia = $alunosTurma->where('deficiencia', true)->count();
-    
-        // Dados para os novos gráficos
-        $graficosData = [
-            'desempenho' => [
-                'otimo' => $estatisticas->where('porcentagem', '>=', 70)->count(),
-                'regular' => $estatisticas->whereBetween('porcentagem', [50, 69])->count(),
-                'ruim' => $estatisticas->where('porcentagem', '<', 50)->count()
-            ],
-            'habilidades' => [
-                'labels' => $estatisticasHabilidades->pluck('habilidade')->toArray(),
-                'valores' => $estatisticasHabilidades->pluck('porcentagem')->map(function($item) {
-                    return (float) number_format($item, 2);
-                })->toArray()
-            ]
-        ];
-    
-        // Paginação
-        $perPage = 15;
-        $estatisticas = $this->paginateCollection($estatisticas, $perPage, 'resultados_page');
-        $estatisticasHabilidades = $this->paginateCollection($estatisticasHabilidades, $perPage, 'habilidades_page');
-        $alunosSemResposta = $this->paginateCollection($alunosSemResposta, $perPage, 'alunos_sem_resposta_page');
-        $mediasTurma = $this->paginateCollection($mediasTurma, $perPage, 'medias_page');
-    
-        // Obter lista de simulados para o filtro
-        $simulados = Simulado::whereHas('respostas', function($q) use ($alunosTurma) {
-            $q->whereIn('user_id', $alunosTurma->pluck('id'));
-        })->get();
-    
-        return view('respostas_simulados.professor.index', [
-            'turmas' => $turmas,
-            'simulados' => $simulados,
-            'estatisticas' => $estatisticas,
-            'habilidades' => Habilidade::all(),
-            'filtros' => $request->all(),
-            'alunosSemResposta' => $alunosSemResposta,
-            'estatisticasHabilidades' => $estatisticasHabilidades,
-            'mediasTurma' => $mediasTurma,
-            'graficosData' => $graficosData,
-            'totalAlunosTurma' => $alunosTurma->count(),
-            'alunosComDeficiencia' => $alunosComDeficiencia,
-            'turmaSelecionada' => $turmaSelecionada,
-            'mensagemSemTurma' => null
-        ]);
-    }
-    
-    // Método auxiliar para paginar coleções
-    private function paginateCollection($items, $perPage, $pageName = 'page')
-    {
-        $page = LengthAwarePaginator::resolveCurrentPage($pageName);
-        $sliced = $items->slice(($page - 1) * $perPage, $perPage);
-        return new LengthAwarePaginator(
-            $sliced,
-            $items->count(),
-            $perPage,
-            $page,
-            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => $pageName]
-        );
-    }
-    
-    // Método auxiliar para gerar cores dos gráficos
-    private function generateChartColors($count)
-    {
-        $colors = [];
-        for ($i = 0; $i < $count; $i++) {
-            $colors[] = '#' . substr(md5(rand()), 0, 6);
-        }
-        return $colors;
-    }
+            
+            // Método auxiliar para paginar coleções
+            private function paginateCollection($items, $perPage, $pageName = 'page')
+            {
+                $page = LengthAwarePaginator::resolveCurrentPage($pageName);
+                $sliced = $items->slice(($page - 1) * $perPage, $perPage);
+                return new LengthAwarePaginator(
+                    $sliced,
+                    $items->count(),
+                    $perPage,
+                    $page,
+                    ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => $pageName]
+                );
+            }
+            
+            // Método auxiliar para gerar cores dos gráficos
+            private function generateChartColors($count)
+            {
+                $colors = [];
+                for ($i = 0; $i < $count; $i++) {
+                    $colors[] = '#' . substr(md5(rand()), 0, 6);
+                }
+                return $colors;
+            }
     
   
     
@@ -1672,92 +1676,62 @@ class RespostaSimuladoController extends Controller
         );
     }
     
-
-                public function detalhesEscola(Request $request, $escolaId)
-            {
-                $user = Auth::user();
-                
-                if ($user->role !== 'admin') {
-                    abort(403, 'Acesso não autorizado.');
-                }
-
-                // Busca a escola
-                $escola = Escola::findOrFail($escolaId);
-
-                // Busca os alunos da escola
-                $alunosIds = User::where('escola_id', $escolaId)
-                                ->where('role', 'aluno')
-                                ->pluck('id');
-
-                // Estatísticas por aluno
-                $estatisticasPorAluno = [];
-                $respostasPorAluno = RespostaSimulado::whereIn('user_id', $alunosIds)
-                    ->when($request->simulado_id, function ($query, $simuladoId) {
-                        return $query->where('simulado_id', $simuladoId);
-                    })
-                    ->when($request->ano_id, function ($query, $anoId) {
-                        return $query->whereHas('simulado', function ($q) use ($anoId) {
-                            $q->where('ano_id', $anoId);
-                        });
-                    })
-                    ->when($request->habilidade_id, function ($query, $habilidadeId) {
-                        return $query->whereHas('pergunta', function ($q) use ($habilidadeId) {
-                            $q->where('habilidade_id', $habilidadeId);
-                        });
-                    })
-                    ->get()
-                    ->groupBy('user_id');
-
-                foreach ($respostasPorAluno as $alunoId => $respostas) {
-                    $aluno = User::find($alunoId);
-                    $totalRespostas = $respostas->count();
-                    $acertos = $respostas->where('correta', true)->count();
-                    $porcentagemAcertos = ($totalRespostas > 0) ? ($acertos / $totalRespostas) * 100 : 0;
-                    $mediaFinal = ($totalRespostas > 0) ? ($acertos / $totalRespostas) * 10 : 0;
-
-                    $estatisticasPorAluno[] = [
-                        'aluno' => $aluno->name,
-                        'turma' => $aluno->turma ? $aluno->turma->nome_turma : 'N/A',
-                        'total_respostas' => $totalRespostas,
-                        'acertos' => $acertos,
-                        'porcentagem_acertos' => $porcentagemAcertos,
-                        'media_final' => $mediaFinal,
-                    ];
-                }
-
-                // Média geral da escola
-                $totalRespostasEscola = RespostaSimulado::whereIn('user_id', $alunosIds)
-                    ->when($request->simulado_id, function ($query, $simuladoId) {
-                        return $query->where('simulado_id', $simuladoId);
-                    })
-                    ->when($request->ano_id, function ($query, $anoId) {
-                        return $query->whereHas('simulado', function ($q) use ($anoId) {
-                            $q->where('ano_id', $anoId);
-                        });
-                    })
-                    ->count();
-                
-                $acertosEscola = RespostaSimulado::whereIn('user_id', $alunosIds)
-                    ->where('correta', true)
-                    ->when($request->simulado_id, function ($query, $simuladoId) {
-                        return $query->where('simulado_id', $simuladoId);
-                    })
-                    ->when($request->ano_id, function ($query, $anoId) {
-                        return $query->whereHas('simulado', function ($q) use ($anoId) {
-                            $q->where('ano_id', $anoId);
-                        });
-                    })
-                    ->count();
-                
-                $mediaGeralEscola = ($totalRespostasEscola > 0) ? ($acertosEscola / $totalRespostasEscola) * 10 : 0;
-
-                return view('respostas_simulados.admin.detalhes-escola', compact(
-                    'escola',
-                    'estatisticasPorAluno',
-                    'mediaGeralEscola',
-                    'request'
-                ));
+    public function detalhesEscola(Request $request, $escolaId)
+    {
+        $tri = $request->input('tri');
+    
+        // Busca todas as respostas com os relacionamentos necessários
+        $respostas = RespostaSimulado::whereHas('user', function ($query) use ($escolaId) {
+                $query->where('escola_id', $escolaId);
+            })
+            ->with(['simulado.perguntas', 'pergunta', 'user.turma'])
+            ->when($tri, function ($query) use ($tri) {
+                $query->where('trimestre', $tri);
+            })
+            ->get();
+    
+        // Agrupa por simulado_id e user_id
+        $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
+    
+        $estatisticas = collect();
+    
+        foreach ($agrupadas as $simuladoId => $alunos) {
+            foreach ($alunos as $alunoId => $respostasAluno) {
+                $primeiraResposta = $respostasAluno->first();
+                $simulado = $primeiraResposta->simulado;
+                $aluno = $primeiraResposta->user;
+    
+                $pesoTotal = $respostasAluno->sum(fn($resposta) => $resposta->pergunta->peso ?? 1);
+                $pesoAcertos = $respostasAluno->filter(fn($resposta) => $resposta->correta)->sum(fn($resposta) => $resposta->pergunta->peso ?? 1);
+    
+                $porcentagem = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 100 : 0;
+                $media = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 10 : 0;
+    
+                $estatisticas->push([
+                    'aluno' => $aluno->name,
+                    'nome_turma' => $aluno->turma->nome_turma ?? '',
+                    'simulado' => $simulado->nome,
+                    'total_questoes' => $respostasAluno->count(),
+                    'peso_total' => $pesoTotal,
+                    'peso_acertos' => $pesoAcertos,
+                    'porcentagem' => $porcentagem,
+                    'media' => $media,
+                    'data' => $primeiraResposta->created_at,
+                    'desempenho_class' => $porcentagem >= 70 ? 'success' :
+                                          ($porcentagem >= 50 ? 'warning' : 'danger')
+                ]);
             }
+        }
+    
+        $escola = Escola::findOrFail($escolaId);
+    
+        return view('respostas_simulados.admin.detalhes-escola', [
+            'escola' => $escola,
+            'estatisticas' => $estatisticas->sortByDesc('data'),
+            'tri' => $tri
+        ]);
+    }
+        
 
 
     
@@ -2133,9 +2107,8 @@ class RespostaSimuladoController extends Controller
          $user = Auth::user();
      
          if (!in_array($user->role, ['admin', 'inclusiva'])) {
-            abort(403, 'Acesso não autorizado.');
-        }
-        
+             abort(403, 'Acesso não autorizado.');
+         }
      
          // Filtros
          $filtros = [
@@ -2179,8 +2152,10 @@ class RespostaSimuladoController extends Controller
              })
              ->count();
      
-         // Query base para estatísticas de respostas (com correção para coluna ambígua)
+         // Query base para estatísticas de respostas (com peso)
          $baseQuery = RespostaSimulado::query()
+             ->select('respostas_simulados.*', 'perguntas.peso')
+             ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
              ->when($filtros['escola_id'], function ($query) use ($filtros) {
                  return $query->where('respostas_simulados.escola_id', $filtros['escola_id']);
              })
@@ -2193,9 +2168,7 @@ class RespostaSimuladoController extends Controller
                  });
              })
              ->when($filtros['habilidade_id'], function ($query) use ($filtros) {
-                 return $query->whereHas('pergunta', function ($q) use ($filtros) {
-                     $q->where('habilidade_id', $filtros['habilidade_id']);
-                 });
+                 return $query->where('perguntas.habilidade_id', $filtros['habilidade_id']);
              })
              ->when($filtros['deficiencia'], function ($query) use ($filtros) {
                  if ($filtros['deficiencia'] === 'ND') {
@@ -2214,155 +2187,172 @@ class RespostaSimuladoController extends Controller
          $professoresResponderam = (clone $baseUserQuery)
              ->where('role', 'professor')
              ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
-                 $q->whereIn('id', $baseQuery->select('id')->getQuery());
+                 $q->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery());
              })->count();
      
          $alunosResponderam = (clone $baseUserQuery)
              ->where('role', 'aluno')
              ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
-                 $q->whereIn('id', $baseQuery->select('id')->getQuery());
+                 $q->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery());
              })->count();
      
-         // Estatísticas por escola (com correção para coluna ambígua)
+         // Estatísticas por escola (com peso)
          $estatisticasPorEscola = $baseQuery->clone()
              ->select(
                  DB::raw('escolas.nome as escola'),
                  DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos')
+                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+                 DB::raw('SUM(perguntas.peso) as total_peso')
              )
              ->join('escolas', 'respostas_simulados.escola_id', '=', 'escolas.id')
              ->groupBy('escolas.nome')
              ->get()
              ->map(function ($item) {
+                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
+                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
+                 
                  return [
                      'escola' => $item->escola,
                      'total_respostas' => $item->total_respostas,
-                     'acertos' => $item->acertos,
-                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                     'pontos_ponderados' => $item->pontos_ponderados,
+                     'total_peso' => $item->total_peso,
+                     'porcentagem_acertos' => round($percentual, 2),
+                     'media_final' => round($media, 2)
                  ];
              })->toArray();
      
-         // Estatísticas por ano
+         // Estatísticas por ano (com peso)
          $estatisticasPorAno = $baseQuery->clone()
              ->select(
                  DB::raw('anos.nome as ano'),
                  DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos')
+                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+                 DB::raw('SUM(perguntas.peso) as total_peso')
              )
              ->join('simulados', 'respostas_simulados.simulado_id', '=', 'simulados.id')
              ->join('anos', 'simulados.ano_id', '=', 'anos.id')
              ->groupBy('anos.nome')
              ->get()
              ->map(function ($item) {
+                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
+                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
+                 
                  return [
                      'ano' => $item->ano,
                      'total_respostas' => $item->total_respostas,
-                     'acertos' => $item->acertos,
-                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                     'pontos_ponderados' => $item->pontos_ponderados,
+                     'total_peso' => $item->total_peso,
+                     'porcentagem_acertos' => round($percentual, 2),
+                     'media_final' => round($media, 2)
                  ];
              })->toArray();
      
-         // Estatísticas por Questão (com disciplina)
+         // Estatísticas por Questão (com disciplina e peso)
          $estatisticasPorQuestao = $baseQuery->clone()
              ->select(
-                 DB::raw('perguntas.id as pergunta_id'),
-                 DB::raw('perguntas.enunciado as enunciado'),
-                 DB::raw('disciplinas.nome as disciplina'),
+                 'perguntas.id as pergunta_id',
+                 'perguntas.enunciado as enunciado',
+                 'perguntas.peso as peso',
+                 'disciplinas.nome as disciplina',
+                 'habilidades.descricao as habilidade',
+                 DB::raw('SUBSTRING(habilidades.descricao, 1, 50) as habilidade_resumida'),
                  DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos')
+                 DB::raw('SUM(correta) as acertos'),
+                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados')
              )
-             ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
              ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
-             ->groupBy('perguntas.id', 'perguntas.enunciado', 'disciplinas.nome')
+             ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
+             ->groupBy('perguntas.id', 'perguntas.enunciado', 'perguntas.peso', 'disciplinas.nome', 'habilidades.descricao')
              ->orderBy('disciplinas.nome')
              ->orderBy('perguntas.id')
-             ->get()
-             ->map(function ($item) {
-                 return [
-                     'pergunta_id' => $item->pergunta_id,
-                     'enunciado' => $item->enunciado,
-                     'disciplina' => $item->disciplina,
-                     'total_respostas' => $item->total_respostas,
-                     'acertos' => $item->acertos,
-                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
-                 ];
-             })->toArray();
+             ->paginate(10);
      
-         // Agrupar por disciplina para os gráficos
-         $questoesPorDisciplina = [];
-         foreach ($estatisticasPorQuestao as $questao) {
-             $disciplina = $questao['disciplina'];
-             if (!isset($questoesPorDisciplina[$disciplina])) {
-                 $questoesPorDisciplina[$disciplina] = [];
-             }
-             $questoesPorDisciplina[$disciplina][] = $questao;
-         }
+         // Calcula a média ponderada para cada questão
+         $estatisticasPorQuestao->getCollection()->transform(function ($item) {
+             $item->media = $item->total_respostas > 0 
+                 ? ($item->acertos / $item->total_respostas) * 10 
+                 : 0;
+             $item->media_ponderada = $item->total_respostas > 0
+                 ? ($item->pontos_ponderados / ($item->peso * $item->total_respostas)) * 10
+                 : 0;
+             return $item;
+         });
      
-         // Estatísticas por habilidade
+         // Estatísticas por habilidade (com peso)
          $estatisticasPorHabilidade = $baseQuery->clone()
              ->select(
                  DB::raw('habilidades.descricao as habilidade'),
                  DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos')
+                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+                 DB::raw('SUM(perguntas.peso) as total_peso')
              )
-             ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
              ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
              ->groupBy('habilidades.descricao')
              ->get()
              ->map(function ($item) {
+                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
+                 
                  return [
                      'habilidade' => $item->habilidade,
                      'total_respostas' => $item->total_respostas,
-                     'acertos' => $item->acertos,
-                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0
+                     'pontos_ponderados' => $item->pontos_ponderados,
+                     'total_peso' => $item->total_peso,
+                     'porcentagem_acertos' => round($percentual, 2)
                  ];
              })->toArray();
      
-         // Estatísticas por raça (corrigido para usar a coluna da tabela respostas_simulados)
+         // Estatísticas por raça (com peso)
          $estatisticasPorRaca = $baseQuery->clone()
              ->select(
                  DB::raw('COALESCE(raca, "Não informado") as raca'),
                  DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos')
+                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+                 DB::raw('SUM(perguntas.peso) as total_peso')
              )
              ->groupBy(DB::raw('COALESCE(raca, "Não informado")'))
              ->orderBy('raca')
              ->get()
              ->map(function ($item) {
+                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
+                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
+                 
                  return [
                      'raca' => $item->raca,
                      'total_respostas' => $item->total_respostas,
-                     'acertos' => $item->acertos,
-                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                     'pontos_ponderados' => $item->pontos_ponderados,
+                     'total_peso' => $item->total_peso,
+                     'porcentagem_acertos' => round($percentual, 2),
+                     'media_final' => round($media, 2)
                  ];
              })->toArray();
      
-         // Estatísticas por deficiência (com correção para coluna ambígua)
+         // Estatísticas por deficiência (com peso)
          $estatisticasPorDeficiencia = $baseQuery->clone()
              ->select(
                  DB::raw('COALESCE(users.deficiencia, "ND") as deficiencia'),
                  DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos')
+                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+                 DB::raw('SUM(perguntas.peso) as total_peso')
              )
              ->join('users', 'respostas_simulados.user_id', '=', 'users.id')
              ->groupBy('users.deficiencia')
              ->orderBy('users.deficiencia')
              ->get()
              ->map(function ($item) {
+                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
+                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
+                 
                  return [
                      'deficiencia' => $item->deficiencia,
                      'total_respostas' => $item->total_respostas,
-                     'acertos' => $item->acertos,
-                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
+                     'pontos_ponderados' => $item->pontos_ponderados,
+                     'total_peso' => $item->total_peso,
+                     'porcentagem_acertos' => round($percentual, 2),
+                     'media_final' => round($media, 2)
                  ];
              })->toArray();
      
-         // Alunos por deficiência (quantidade)
+         // Alunos por deficiência (quantidade) - não muda
          $alunosPorDeficiencia = (clone $baseUserQuery)
              ->where('role', 'aluno')
              ->select('deficiencia', DB::raw('count(*) as total'))
@@ -2376,87 +2366,85 @@ class RespostaSimuladoController extends Controller
                  ];
              })->toArray();
      
-         // Médias gerais com filtros
+         // Médias gerais com filtros (com peso)
          $mediaGeral1a5 = (clone $baseQuery)
              ->whereHas('simulado', function ($q) {
-                            $q->whereIn('ano_id', range(1, 5));
-                        })
-                        ->avg('correta') * 10;
-                
-                    $mediaGeral6a9 = (clone $baseQuery)
-                        ->whereHas('simulado', function ($q) {
-                            $q->whereIn('ano_id', range(6, 9));
-                        })
-                        ->avg('correta') * 10;
-
-                            // Estatísticas por Questão (com disciplina e habilidade)
-            $estatisticasPorQuestao = $baseQuery->clone()
-            ->select(
-                'perguntas.id as pergunta_id',
-                'perguntas.enunciado as enunciado',
-                'disciplinas.nome as disciplina',
-                'habilidades.descricao as habilidade',
-                DB::raw('SUBSTRING(habilidades.descricao, 1, 50) as habilidade_resumida'),
-                DB::raw('COUNT(*) as total_respostas'),
-                DB::raw('SUM(correta) as acertos')
-            )
-            ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
-            ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
-            ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
-            ->groupBy('perguntas.id', 'perguntas.enunciado', 'disciplinas.nome', 'habilidades.descricao')
-            ->orderBy('disciplinas.nome')
-            ->orderBy('perguntas.id')
-            ->paginate(10); // Paginação com 10 itens por página
-
-            // Calcula a média para cada questão
-            $estatisticasPorQuestao->getCollection()->transform(function ($item) {
-            $item->media = $item->total_respostas > 0 
-                ? ($item->acertos / $item->total_respostas) * 10 
-                : 0;
-            return $item;
-            });
-
-            // Média por questão agrupada por disciplina (nova variável que estava faltando)
-            $mediaPorQuestaoPorDisciplina = $baseQuery->clone()
-            ->select(
-                'disciplinas.nome as disciplina',
-                DB::raw('COUNT(*) as total_respostas'),
-                DB::raw('SUM(correta) as total_acertos'),
-                DB::raw('ROUND((SUM(correta) / COUNT(*)) * 10, 2) as media')
-            )
-            ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
-            ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
-            ->groupBy('disciplinas.nome')
-            ->orderBy('disciplinas.nome')
-            ->get();
-
-            return view('respostas_simulados.admin.estatisticas', compact(
-            'totalSimulados',
-            'totalProfessores',
-            'totalAlunos',
-            'estatisticasPorQuestao',
-            'totalRespostas',
-            'professoresResponderam',
-            'alunosResponderam',
-            'estatisticasPorEscola',
-            'estatisticasPorAno',
-            'estatisticasPorHabilidade',
-            'estatisticasPorRaca',
-            'mediaGeral1a5',
-            'mediaGeral6a9',
-            'totalAlunosComDeficiencia',
-            'alunosPorDeficiencia',
-            'estatisticasPorDeficiencia',
-            'escolas',
-            'anos',
-            'simulados',
-            'habilidades',
-            'questoesPorDisciplina',
-            'mediaPorQuestaoPorDisciplina',
-            'estatisticasPorQuestao',
-            'filtros',
-            'request'
-            ));
+                 $q->whereIn('ano_id', range(1, 5));
+             })
+             ->select(
+                 DB::raw('SUM(correta * perguntas.peso) as pontos'),
+                 DB::raw('SUM(perguntas.peso) as total_peso')
+             )
+             ->first();
+         
+         $mediaGeral1a5 = $mediaGeral1a5->total_peso > 0 
+             ? ($mediaGeral1a5->pontos / $mediaGeral1a5->total_peso) * 10 
+             : 0;
+     
+         $mediaGeral6a9 = (clone $baseQuery)
+             ->whereHas('simulado', function ($q) {
+                 $q->whereIn('ano_id', range(6, 9));
+             })
+             ->select(
+                 DB::raw('SUM(correta * perguntas.peso) as pontos'),
+                 DB::raw('SUM(perguntas.peso) as total_peso')
+             )
+             ->first();
+         
+         $mediaGeral6a9 = $mediaGeral6a9->total_peso > 0 
+             ? ($mediaGeral6a9->pontos / $mediaGeral6a9->total_peso) * 10 
+             : 0;
+     
+         // Média por questão agrupada por disciplina (com peso)
+         $mediaPorQuestaoPorDisciplina = $baseQuery->clone()
+             ->select(
+                 'disciplinas.nome as disciplina',
+                 DB::raw('COUNT(*) as total_respostas'),
+                 DB::raw('SUM(correta * perguntas.peso) as total_pontos'),
+                 DB::raw('SUM(perguntas.peso) as total_peso'),
+                 DB::raw('ROUND((SUM(correta * perguntas.peso) / SUM(perguntas.peso)) * 10, 2) as media_ponderada')
+             )
+             ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
+             ->groupBy('disciplinas.nome')
+             ->orderBy('disciplinas.nome')
+             ->get();
+     
+         // Agrupar por disciplina para os gráficos
+         $questoesPorDisciplina = [];
+         foreach ($estatisticasPorQuestao as $questao) {
+             $disciplina = $questao['disciplina'];
+             if (!isset($questoesPorDisciplina[$disciplina])) {
+                 $questoesPorDisciplina[$disciplina] = [];
+             }
+             $questoesPorDisciplina[$disciplina][] = $questao;
+         }
+     
+         return view('respostas_simulados.admin.estatisticas', compact(
+             'totalSimulados',
+             'totalProfessores',
+             'totalAlunos',
+             'estatisticasPorQuestao',
+             'totalRespostas',
+             'professoresResponderam',
+             'alunosResponderam',
+             'estatisticasPorEscola',
+             'estatisticasPorAno',
+             'estatisticasPorHabilidade',
+             'estatisticasPorRaca',
+             'mediaGeral1a5',
+             'mediaGeral6a9',
+             'totalAlunosComDeficiencia',
+             'alunosPorDeficiencia',
+             'estatisticasPorDeficiencia',
+             'escolas',
+             'anos',
+             'simulados',
+             'habilidades',
+             'questoesPorDisciplina',
+             'mediaPorQuestaoPorDisciplina',
+             'filtros',
+             'request'
+         ));
      }
      public function graficos(Request $request)
      {

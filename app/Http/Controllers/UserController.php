@@ -49,7 +49,7 @@ class UserController extends Controller
     public function create()
     {
         $escolas = Escola::all();
-        $roles = ['admin', 'professor', 'gestor', 'aluno', 'aee', 'inclusiva', 'coordenador', 'aplicador'];
+        $roles = ['admin', 'tutor', 'professor', 'gestor', 'aluno', 'aee', 'inclusiva', 'coordenador', 'aplicador'];
         return view('users.create', compact('escolas', 'roles'));
     }
 
@@ -60,7 +60,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:admin,professor,aluno,aee,inclusiva,coordenador,aplicador',
+            'role' => 'required|in:admin,tutor,professor,aluno,aee,inclusiva,coordenador,aplicador',
             'cpf' => 'nullable|string|max:14',
             'codigo_acesso' => 'nullable|string|max:10',
             'escola_id' => 'nullable|exists:escolas,id',
@@ -95,7 +95,7 @@ class UserController extends Controller
     public function edit(User $user)
     {
         $escolas = Escola::all();
-        $roles = ['admin', 'professor', 'aluno', 'aee', 'inclusiva', 'coordenador', 'aplicador'];
+        $roles = ['admin', 'tutor', 'professor', 'aluno', 'aee', 'inclusiva', 'coordenador', 'aplicador'];
         return view('users.edit', compact('user', 'escolas', 'roles'));
     }
 
@@ -105,7 +105,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|in:admin,professor,aluno,aee,inclusiva,coordenador, aplicador',
+            'role' => 'required|in:admin,tutor,professor,aluno,aee,inclusiva,coordenador, aplicador',
             'cpf' => 'nullable|string|max:14',
             'codigo_acesso' => 'nullable|string|max:10',
             'escola_id' => 'nullable|exists:escolas,id',

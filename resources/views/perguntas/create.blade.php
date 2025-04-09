@@ -23,9 +23,9 @@
                         </div>
                     </div>
                                         <div class="form-group">
-                        <label for="peso">Peso da Pergunta (1-10)</label>
+                        <label for="peso">Peso da Pergunta (1-3)</label>
                         <select class="form-control" id="peso" name="peso" required>
-                            @for($i = 1; $i <= 10; $i++)
+                            @for($i = 1; $i <= 3; $i++)
                                 <option value="{{ $i }}" {{ old('peso') == $i ? 'selected' : '' }}>{{ $i }}</option>
                             @endfor
                         </select>

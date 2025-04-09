@@ -29,4 +29,13 @@ class Escola extends Model
     {
         return $this->hasMany(Prova::class, 'escola_id');
     }
+    public function avaliacoes(): HasMany
+    {
+        return $this->hasMany(AvaliacaoTutoria::class, 'escola_id');
+    }
+    public function notas(): HasMany
+    {
+        return $this->hasMany(NotaAvaliacao::class, 'escola_id'); // ✅ Certo!
+    }
+    
 }

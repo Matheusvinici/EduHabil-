@@ -21,8 +21,9 @@
                             <tr>
                                 <th>Aluno</th>
                                 <th>Simulado</th>
-                                <th>Questões</th>
-                                <th>Acertos</th>
+                                <th>Qtd. Questões</th>
+                                <th>Peso Total</th>
+                                <th>Peso Acertos</th>
                                 <th>%</th>
                                 <th class="text-primary">Média</th>
                                 <th>Data</th>
@@ -34,7 +35,8 @@
                                 <td class="fw-semibold">{{ $est['aluno'] }}</td>
                                 <td>{{ $est['simulado'] }}</td>
                                 <td>{{ $est['total_questoes'] }}</td>
-                                <td>{{ $est['acertos'] }}</td>
+                                <td>{{ $est['peso_total'] }}</td>
+                                <td>{{ $est['peso_acertos'] }}</td>
                                 
                                 <!-- 🔹 Cores para a porcentagem -->
                                 <td>
