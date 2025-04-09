@@ -52,6 +52,41 @@
                     </div>
                 </div>
 
+                {{-- Critérios de Avaliação --}}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5 class="fw-bold">Critérios de Avaliação</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th>Descrição</th>
+                                        <th class="text-center">Nota (1 a 5)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($criterios as $criterio)
+                                        <tr>
+                                            <td>{{ $criterio->categoria }}</td>
+                                            <td>{{ $criterio->descricao }}</td>
+                                            <td class="text-center">
+                                                <select name="avaliacoes[{{ $criterio->id }}]" class="form-select" required>
+                                                    <option value="">Selecione</option>
+                                                    @for ($i = 1; $i <= 5; $i++)
+                                                        <option value="{{ $i }}">{{ $i }}</option>
+                                                    @endfor
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Botão --}}
                 <div class="text-end mt-4">
                     <button type="submit" class="btn btn-success px-4">
                         <i class="fas fa-save me-1"></i> Salvar

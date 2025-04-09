@@ -18,11 +18,13 @@ class AvaliacaoTutoriaController extends Controller
 
     // Formulário de criação
     public function create()
-    {
-        $tutores = User::where('role', 'tutor')->get();
-        $escolas = Escola::all();
-        return view('avaliacoes.create', compact('tutores', 'escolas'));
-    }
+{
+    $tutores = User::where('role', 'tutor')->get();
+    $escolas = Escola::all();
+    $criterios = \App\Models\CriterioAvaliacao::all(); // ← adiciona essa linha
+
+    return view('avaliacoes.create', compact('tutores', 'escolas', 'criterios'));
+}
 
     // Salvar avaliação
     public function store(Request $request)
