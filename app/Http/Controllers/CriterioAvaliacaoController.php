@@ -17,8 +17,12 @@ class CriterioAvaliacaoController extends Controller
     // Formulário de criação
     public function create()
     {
-        return view('criterios.create');
-    }
+    $tutores = User::where('role', 'tutor')->get();
+    $escolas = Escola::all();
+    $criterios = CriterioAvaliacao::all(); // traz os critérios
+
+    return view('avaliacoes.create', compact('tutores', 'escolas', 'criterios'));
+}
 
     // Salvar critério
     public function store(Request $request)
