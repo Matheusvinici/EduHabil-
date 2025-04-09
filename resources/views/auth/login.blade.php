@@ -254,14 +254,7 @@
                                                 <a class="text-muted" href="{{ route('password.request') }}">Esqueceu a senha?</a>
                                             </div>
                                             
-                                            <div class="d-none d-lg-block">
-                                                <span class="text-muted">Não tem uma conta? </span>
-                                                <a href="{{ route('register') }}" class="fw-bold">Cadastre-se aqui</a>
-                                            </div>
-                                            
-                                            <a href="{{ route('register') }}" class="btn btn-register d-lg-none">
-                                                <i class="fas fa-user-plus me-2"></i> Criar nova conta
-                                            </a>
+                                          
                                         </div>
                                     </div>
                                 </div>

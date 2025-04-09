@@ -69,4 +69,8 @@ class User extends Authenticatable
     {
         return $query->where('role', $role);
     }
+    public function avaliacoesTutoria(): HasMany
+    {
+        return $this->hasMany(AvaliacaoTutoria::class, 'tutor_id');
+    }
 }

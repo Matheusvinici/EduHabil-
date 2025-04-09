@@ -50,7 +50,6 @@
               <p class="lead">Facilitando a criação e gestão de atividades pedagógicas na Rede Municipal de Ensino de Juazeiro-BA</p>
               <div class="d-grid gap-2 d-md-flex justify-content-md-start">
                 <a href="{{ route('login') }}" class="btn btn-primary btn-lg px-4 me-md-2">Entrar</a>
-                <a href="{{ route('register') }}" class="btn btn-outline-secondary btn-lg px-4">Cadastre-se</a>
               </div>
             </div>
           </div>
@@ -63,7 +62,6 @@
               <p class="fs-5 mb-4">Desenvolvido pelo CETEJ</p>
               <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
               <a href="{{ route('login') }}" class="btn btn-outline-info btn-lg px-4 me-md-2">Entrar</a>
-              <a href="{{ route('register') }}" class="btn btn-outline-light btn-lg px-4">Cadastre-se</a>
               </div>
             </div>
           </div>

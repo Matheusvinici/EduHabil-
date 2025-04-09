@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     UserController,
     ProfessorTurmaController,
+    AvaliacaoTutoriaController,
+    CriterioAvaliacaoController,
+    NotaAvaliacaoController,
     AdminController,
     RecursoController,
     AdaptacaoController,
@@ -339,6 +342,11 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     Route::get('/adaptacoes/{adaptacao}/pdf', [AdaptacaoController::class, 'gerarPdf'])->name('adaptacoes.gerarPDF');
     // Rotas para escolas, turmas, disciplinas, habilidades, questões, provas, alunos, anos, etc.
     Route::resource('escolas', EscolaController::class);
+
+    Route::resource('avaliacoes', AvaliacaoTutoriaController::class);
+    Route::resource('criterios', CriterioAvaliacaoController::class);
+    Route::resource('notas', NotaAvaliacaoController::class);
+
     Route::resource('disciplinas', DisciplinaController::class);
     Route::resource('habilidades', HabilidadeController::class);
     Route::resource('questoes', QuestaoController::class)->parameters([

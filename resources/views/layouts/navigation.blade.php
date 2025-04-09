@@ -248,6 +248,37 @@
             </li>
         @endif
 
+          <!-- Tutoria -->
+          @if(Auth::check() && Auth::user()->role === 'admin')
+            <li class="nav-item has-treeview">
+                <a href="#" class="nav-link text-white">
+                    <i class="nav-icon fas fa-cogs text-white"></i>
+                    <p>Tutoria<i class="right fas fa-angle-left"></i></p>
+                </a>
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="{{ route('criterios.index') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Critérios de Avaliação</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('avaliacoes.index') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Avaliação</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('notas.index') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Notas</p>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        @endif
+
+
                    
 
     </ul>
