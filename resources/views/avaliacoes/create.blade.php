@@ -1,96 +1,88 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="card shadow rounded-4">
-        <div class="card-header bg-primary text-white rounded-top-4">
-            <h4 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Registrar Visita</h4>
+<div class="container py-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Nova Avaliação</h4>
         </div>
-
         <div class="card-body">
-            <form action="{{ route('avaliacoes.store') }}" method="POST">
+            <form method="POST" action="{{ route('avaliacoes.store') }}">
                 @csrf
 
-                <div class="row">
-                    {{-- Coluna esquerda --}}
+                {{-- Dados gerais --}}
+                <div class="row mb-3">
                     <div class="col-md-6">
-                        {{-- Tutor --}}
-                        <div class="form-group mb-3">
-                            <label class="fw-bold">Tutor</label>
-                            @if(auth()->user()->role === 'tutor')
-                                <input type="hidden" name="tutor_id" value="{{ auth()->id() }}">
-                                <div class="form-control-plaintext">{{ auth()->user()->name }}</div>
-                            @else
-                                <select name="tutor_id" class="form-control" required>
-                                    <option value="" disabled selected>Selecione o tutor</option>
-                                    @foreach($tutores as $tutor)
-                                        <option value="{{ $tutor->id }}">{{ $tutor->name }}</option>
-                                    @endforeach
-                                </select>
-                            @endif
-                        </div>
-
-                        {{-- Data da Visita --}}
-                        <div class="form-group mb-3">
-                            <label class="fw-bold">Data da Visita</label>
-                            <input type="date" name="data_visita" class="form-control" required>
-                        </div>
+                        <label class="form-label">Tutor:</label>
+                        <select name="tutor_id" class="form-select" required>
+                            <option value="">Selecione</option>
+                            @foreach($tutores as $tutor)
+                                <option value="{{ $tutor->id }}">{{ $tutor->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
-                    {{-- Coluna direita --}}
                     <div class="col-md-6">
-                        {{-- Escola com busca --}}
-                        <div class="form-group mb-3">
-                            <label class="fw-bold">Escola</label>
-                            <select name="escola_id" id="escolaSelect" class="form-control" required>
-                                <option value="" disabled selected>Selecione ou busque a escola</option>
-                                @foreach($escolas as $escola)
-                                    <option value="{{ $escola->id }}">{{ $escola->nome }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        <label class="form-label">Escola:</label>
+                        <select name="escola_id" class="form-select" required>
+                            <option value="">Selecione</option>
+                            @foreach($escolas as $escola)
+                                <option value="{{ $escola->id }}">{{ $escola->nome }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 
-                {{-- Critérios de Avaliação --}}
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <h5 class="fw-bold">Critérios de Avaliação</h5>
-                        <div class="table-responsive">
-                            <table class="table table-bordered align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Categoria</th>
-                                        <th>Descrição</th>
-                                        <th class="text-center">Nota (1 a 5)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($criterios as $criterio)
-                                        <tr>
-                                            <td>{{ $criterio->categoria }}</td>
-                                            <td>{{ $criterio->descricao }}</td>
-                                            <td class="text-center">
-                                                <select name="avaliacoes[{{ $criterio->id }}]" class="form-select" required>
-                                                    <option value="">Selecione</option>
-                                                    @for ($i = 1; $i <= 5; $i++)
-                                                        <option value="{{ $i }}">{{ $i }}</option>
-                                                    @endfor
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Data da Visita:</label>
+                        <input type="date" name="data_visita" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Observações:</label>
+                        <textarea name="observacoes" class="form-control" rows="1"></textarea>
                     </div>
                 </div>
 
-                {{-- Botão --}}
-                <div class="text-end mt-4">
-                    <button type="submit" class="btn btn-success px-4">
-                        <i class="fas fa-save me-1"></i> Salvar
-                    </button>
+                {{-- Avaliação por critério --}}
+                <hr>
+                <h5 class="mb-3">Avaliação por Critério</h5>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start" style="width: 45%">Categoria / Descrição</th>
+                                @for($i = 0; $i <= 5; $i++)
+                                    <th style="width: 9%">{{ $i }}</th>
+                                @endfor
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($criterios as $criterio)
+                                <tr>
+                                    <td class="text-start">
+                                        <strong>{{ $criterio->categoria ?? 'Critério' }}</strong><br>
+                                        <small class="text-muted">{{ $criterio->descricao }}</small>
+                                    </td>
+                                    @for($i = 0; $i <= 5; $i++)
+                                        <td>
+                                            <input type="radio" name="avaliacoes[{{ $criterio->id }}]" value="{{ $i }}" class="form-check-input nota" required>
+                                        </td>
+                                    @endfor
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3 text-end">
+                    <h6 class="text-muted">Média Calculada:</h6>
+                    <h4 class="fw-bold text-primary" id="mediaSpan">-</h4>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <button type="submit" class="btn btn-success px-4">Salvar Avaliação</button>
                 </div>
             </form>
         </div>
@@ -99,17 +91,25 @@
 @endsection
 
 @section('scripts')
-<!-- Select2 CSS e JS para busca com autocomplete -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
 <script>
-    $(document).ready(function () {
-        $('#escolaSelect').select2({
-            placeholder: "Busque por nome da escola",
-            width: '100%',
-            language: "pt-BR"
+    function calcularMedia() {
+        let total = 0;
+        let count = 0;
+
+        document.querySelectorAll('.nota:checked').forEach(el => {
+            const val = parseFloat(el.value);
+            if (!isNaN(val)) {
+                total += val;
+                count++;
+            }
         });
+
+        const media = count > 0 ? (total / count).toFixed(2) : '-';
+        document.getElementById('mediaSpan').textContent = media;
+    }
+
+    document.querySelectorAll('.nota').forEach(el => {
+        el.addEventListener('change', calcularMedia);
     });
 </script>
 @endsection
