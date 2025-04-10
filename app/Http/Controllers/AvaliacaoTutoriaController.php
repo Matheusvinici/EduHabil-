@@ -3,43 +3,56 @@
 namespace App\Http\Controllers;
 
 use App\Models\AvaliacaoTutoria;
+use App\Models\AvaliacaoCriterio;
+use App\Models\CriterioAvaliacao;
 use App\Models\Escola;
 use App\Models\User;
 use Illuminate\Http\Request;
 
 class AvaliacaoTutoriaController extends Controller
 {
-    // Listar avaliações
     public function index()
     {
         $avaliacoes = AvaliacaoTutoria::with(['tutor', 'escola'])->get();
         return view('avaliacoes.index', compact('avaliacoes'));
     }
 
-    // Formulário de criação
     public function create()
-{
-    $tutores = User::where('role', 'tutor')->get();
-    $escolas = Escola::all();
-    $criterios = \App\Models\CriterioAvaliacao::all(); // ← adiciona essa linha
+    {
+        $tutores = User::where('role', 'tutor')->get();
+        $escolas = Escola::all();
+        $criterios = CriterioAvaliacao::all();
 
-    return view('avaliacoes.create', compact('tutores', 'escolas', 'criterios'));
-}
+        return view('avaliacoes.create', compact('tutores', 'escolas', 'criterios'));
+    }
 
-    // Salvar avaliação
     public function store(Request $request)
     {
         $request->validate([
             'tutor_id' => 'required|exists:users,id',
             'escola_id' => 'required|exists:escolas,id',
             'data_visita' => 'required|date',
+            'avaliacoes' => 'required|array',
         ]);
 
-        AvaliacaoTutoria::create($request->all());
-        return redirect()->route('avaliacoes.index')->with('success', 'Avaliação registrada!');
+        $avaliacao = AvaliacaoTutoria::create([
+            'tutor_id' => $request->tutor_id,
+            'escola_id' => $request->escola_id,
+            'data_visita' => $request->data_visita,
+            'observacoes' => $request->observacoes,
+        ]);
+
+        foreach ($request->avaliacoes as $criterio_id => $nota) {
+            AvaliacaoCriterio::create([
+                'avaliacao_tutoria_id' => $avaliacao->id,
+                'criterio_avaliacao_id' => $criterio_id,
+                'nota' => $nota,
+            ]);
+        }
+
+        return redirect()->route('avaliacoes.index')->with('success', 'Avaliação registrada com sucesso!');
     }
 
-    // Formulário de edição
     public function edit(AvaliacaoTutoria $avaliacao)
     {
         $tutores = User::where('role', 'tutor')->get();
@@ -47,7 +60,6 @@ class AvaliacaoTutoriaController extends Controller
         return view('avaliacoes.edit', compact('avaliacao', 'tutores', 'escolas'));
     }
 
-    // Atualizar avaliação
     public function update(Request $request, AvaliacaoTutoria $avaliacao)
     {
         $request->validate([
@@ -60,7 +72,6 @@ class AvaliacaoTutoriaController extends Controller
         return redirect()->route('avaliacoes.index')->with('success', 'Avaliação atualizada!');
     }
 
-    // Excluir avaliação
     public function destroy(AvaliacaoTutoria $avaliacao)
     {
         $avaliacao->delete();
