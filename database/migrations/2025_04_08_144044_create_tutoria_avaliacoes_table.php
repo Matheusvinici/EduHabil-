@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('notas_avaliacoes', function (Blueprint $table) {
+        Schema::create('tutoria_avaliacoes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('avaliacao_id')->constrained('avaliacoes_tutoria');
-            $table->foreignId('criterio_id')->constrained('criterios_avaliacao');
-            $table->integer('nota'); // 1 a 5 (1=Ruim, 5=Excelente)
+            $table->foreignId('tutor_id')->constrained('users');
+            $table->foreignId('escola_id')->constrained('escolas');
+            $table->date('data_visita');
+            $table->text('observacoes')->nullable(); // Anotações livres
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('notas_avaliacoes');
+        Schema::dropIfExists('tutoria_avaliacoes');
     }
 };

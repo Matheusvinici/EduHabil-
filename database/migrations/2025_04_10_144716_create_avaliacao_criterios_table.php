@@ -10,8 +10,8 @@ return new class extends Migration {
         //Tabela Pivô
         Schema::create('avaliacao_criterios', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('avaliacao_tutoria_id')->constrained('avaliacoes_tutoria')->onDelete('cascade');
-            $table->foreignId('criterio_avaliacao_id')->constrained('criterios_avaliacao')->onDelete('cascade');
+            $table->foreignId('avaliacao_tutoria_id')->constrained('tutoria_avaliacoes')->onDelete('cascade');
+            $table->foreignId('criterio_avaliacao_id')->constrained('tutoria_criterios')->onDelete('cascade');
             $table->integer('nota'); // ou float, se usar notas com decimal
             $table->timestamps();
         });

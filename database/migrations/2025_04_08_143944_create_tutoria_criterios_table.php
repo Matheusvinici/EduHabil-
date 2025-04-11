@@ -11,12 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('avaliacoes_tutoria', function (Blueprint $table) {
+        Schema::create('tutoria_criterios', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tutor_id')->constrained('users');
-            $table->foreignId('escola_id')->constrained('escolas');
-            $table->date('data_visita');
-            $table->text('observacoes')->nullable(); // Anotações livres
+            $table->string('categoria'); // Ex: "Pedagógico", "Estrutura"
+            $table->string('descricao');  // Ex: "Qualidade da merenda", "Estado das salas"
             $table->timestamps();
         });
     }
@@ -26,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('avaliacoes_tutoria');
+        Schema::dropIfExists('tutoria_criterios');
     }
 };

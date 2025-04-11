@@ -257,24 +257,18 @@
                 </a>
                 <ul class="nav nav-treeview">
                     <li class="nav-item">
-                        <a href="{{ route('criterios.index') }}" class="nav-link text-white">
+                        <a href="{{ route('tutoria_criterios.index') }}" class="nav-link text-white">
                             <i class="far fa-circle nav-icon text-white"></i>
                             <p>Critérios de Avaliação</p>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ route('avaliacoes.index') }}" class="nav-link text-white">
+                        <a href="{{ route('tutoria_avaliacoes.index') }}" class="nav-link text-white">
                             <i class="far fa-circle nav-icon text-white"></i>
                             <p>Avaliação</p>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ route('notas.index') }}" class="nav-link text-white">
-                            <i class="far fa-circle nav-icon text-white"></i>
-                            <p>Notas</p>
-                        </a>
-                    </li>
-                </ul>
+                 </ul>
             </li>
         @endif
 
@@ -331,9 +325,5 @@
                 </ul>
             </li>
         @endif
-
-
-                   
-
     </ul>
 </nav>

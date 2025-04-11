@@ -7,7 +7,7 @@
             <h4 class="mb-0">Nova Avaliação</h4>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ route('avaliacoes.store') }}">
+            <form action="{{ route('tutoria_avaliacoes.store') }}" method="POST">
                 @csrf
 
                 {{-- Dados gerais --}}
@@ -59,15 +59,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($criterios as $criterio)
+                            @foreach($criterios as $criterios)
                                 <tr>
                                     <td class="text-start">
-                                        <strong>{{ $criterio->categoria ?? 'Critério' }}</strong><br>
-                                        <small class="text-muted">{{ $criterio->descricao }}</small>
+                                        <strong>{{ $criterios->categoria ?? 'Critério' }}</strong><br>
+                                        <small class="text-muted">{{ $criterios->descricao }}</small>
                                     </td>
                                     @for($i = 0; $i <= 5; $i++)
                                         <td>
-                                            <input type="radio" name="avaliacoes[{{ $criterio->id }}]" value="{{ $i }}" class="form-check-input nota" required>
+                                            <input type="radio" name="avaliacoes[{{ $criterios->id }}]" value="{{ $i }}" class="form-check-input nota" required>
                                         </td>
                                     @endfor
                                 </tr>
