@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TutoriaAvaliacao extends Model
 {
-    protected $table = 'tutoria_avaliacoes_tutoria';
+    protected $table = 'tutoria_avaliacoes';
 
-    protected $fillable = ['tutor_id', 'escola_id', 'data_visita','observacoes'];
+    protected $fillable = ['tutor_id', 'escola_id', 'data_visita', 'observacoes'];
 
     // Tutor que fez a avaliação
     public function tutor(): BelongsTo
@@ -24,11 +24,12 @@ class TutoriaAvaliacao extends Model
         return $this->belongsTo(Escola::class, 'escola_id');
     }
 
-
-
-    // Notas dos critérios
-    public function notas(): HasMany
+    // Critérios avaliados com notas (tabela pivô)
+    public function criterios(): BelongsToMany
     {
-        return $this->hasMany(NotaAvaliacao::class, 'avaliacao_id');
+    return $this->belongsToMany(TutoriaCriterio::class, 'avaliacao_criterios', 'avaliacao_tutoria_id', 'criterio_avaliacao_id')
+                ->withPivot('nota')
+                ->withTimestamps();
     }
+
 }

@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TutoriaCriterio extends Model
 {
@@ -14,10 +14,12 @@ class TutoriaCriterio extends Model
     protected $fillable = ['categoria', 'descricao'];
 
     /**
-     * Relacionamento: um critério pode ter várias notas associadas
+     * Relacionamento: um critério pode aparecer em várias avaliações
      */
-    public function notas(): HasMany
+    public function avaliacoes(): BelongsToMany
     {
-        return $this->hasMany(NotaAvaliacao::class, 'criterio_id');
+        return $this->belongsToMany(TutoriaAvaliacao::class, 'avaliacao_criterios', 'criterio_avaliacao_id', 'avaliacao_tutoria_id')
+                    ->withPivot('nota')
+                    ->withTimestamps();
     }
 }

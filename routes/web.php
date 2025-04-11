@@ -2,10 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TutoriaCriterioController;
+use App\Http\Controllers\TutoriaAvaliacaoController;
 use App\Http\Controllers\{
     UserController,
     ProfessorTurmaController,
-    AvaliacaoTutoriaController,
     NotaAvaliacaoController,
     AdminController,
     RecursoController,
@@ -344,7 +344,7 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     Route::resource('escolas', EscolaController::class);
 
     //Tutoria
-    Route::resource('tutoria_avaliacoes', AvaliacaoTutoriaController::class);
+    Route::resource('tutoria_avaliacoes', TutoriaAvaliacaoController::class);
     Route::resource('tutoria_criterios', TutoriaCriterioController::class);
 
     Route::resource('disciplinas', DisciplinaController::class);
