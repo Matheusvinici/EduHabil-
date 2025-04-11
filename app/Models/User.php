@@ -44,7 +44,7 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
     
-
+    
     // Para aplicadores - turmas que eles criaram
     public function turmasCriadas()
     {
@@ -68,9 +68,5 @@ class User extends Authenticatable
     public function scopePorRole($query, $role)
     {
         return $query->where('role', $role);
-    }
-    public function avaliacoesTutoria(): HasMany
-    {
-        return $this->hasMany(AvaliacaoTutoria::class, 'tutor_id');
     }
 }

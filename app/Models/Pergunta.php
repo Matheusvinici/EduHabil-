@@ -19,11 +19,13 @@ class Pergunta extends Model
         'alternativa_c',
         'alternativa_d',
         'resposta_correta',
-        'imagem', // Campo para a imagem
-        'peso', 
+        'imagem',
+        'peso',
+        'tri_a',
+        'tri_b',
+        'tri_c'
     ];
 
-    // Relacionamentos
     public function ano()
     {
         return $this->belongsTo(Ano::class);
@@ -34,11 +36,10 @@ class Pergunta extends Model
         return $this->belongsTo(Disciplina::class);
     }
 
-    
-        public function habilidade()
-        {
-            return $this->belongsTo(Habilidade::class)->withDefault([
-                'descricao' => 'Habilidade não definida'
-            ]);
-        }
+    public function habilidade()
+    {
+        return $this->belongsTo(Habilidade::class)->withDefault([
+            'descricao' => 'Habilidade não definida'
+        ]);
+    }
 }
