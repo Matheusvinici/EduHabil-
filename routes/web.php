@@ -32,6 +32,7 @@ use App\Http\Controllers\{
     AvaliacaoController,
     SimuladoController,
     PerguntaController,
+    RelatorioController,
     RespostaSimuladoController
 
 };
@@ -367,6 +368,31 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
 Route::middleware(['auth'])->group(function () {
     Route::get('/users/pdf', [UserController::class, 'generatePdf'])->name('users.pdf');
     Route::resource('users', UserController::class);
+});
+
+Route::prefix('relatorios')->group(function() {
+    Route::get('/rede-municipal', [RelatorioController::class, 'estatisticasRede'])->name('relatorios.rede-municipal');
+    Route::get('/rede-municipal/pdf', [RelatorioController::class, 'pdfRede'])->name('relatorios.rede-municipal.pdf');
+    Route::get('/rede-municipal/excel', [RelatorioController::class, 'excelRede'])->name('relatorios.rede-municipal.excel');
+    Route::get('/relatorios/estatisticas-escola', [RelatorioController::class, 'estatisticasEscola'])->name('relatorios.estatisticas-escola');
+    Route::get('/relatorios/exportar-escola-pdf', [RelatorioController::class, 'exportarEscolaPdf'])->name('relatorios.exportar-escola-pdf');
+    Route::get('/relatorios/exportar-escola-excel', [RelatorioController::class, 'exportarEscolaExcel'])->name('relatorios.exportar-escola-excel');
+    Route::get('/relatorios/por-ano', [RelatorioController::class, 'estatisticasAnoEnsino'])->name('relatorios.estatisticas-ano');
+    Route::get('/relatorios/exportar-ano-excel', [RelatorioController::class, 'exportarAnoExcel'])->name('relatorios.exportar-ano-excel');
+    Route::get('/relatorios/exportar-ano-pdf', [RelatorioController::class, 'exportarAnoPdf'])->name('relatorios.exportar-ano-pdf');
+    Route::get('questoes', [RelatorioController::class, 'estatisticasQuestoes'])->name('relatorios.estatisticas-questoes');
+    Route::get('questoes/pdf', [RelatorioController::class, 'exportPdf'])->name('relatorios.exportar-questoes-pdf');
+    Route::get('questoes/excel', [RelatorioController::class, 'exportExcel'])->name('relatorios.exportar-questoes-excel');
+    Route::get('/relatorios/habilidades', [RelatorioController::class, 'estatisticasHabilidade'])->name('relatorios.habilidades');
+    Route::get('/relatorios/habilidades/pdf', [RelatorioController::class, 'pdfHabilidade'])->name('relatorios.habilidades.pdf');
+    Route::get('/relatorios/habilidades/excel', [RelatorioController::class, 'excelHabilidade'])->name('relatorios.habilidades.excel');
+    Route::get('raca', [RelatorioController::class, 'estatisticasRaca'])->name('relatorios.raca');
+    Route::get('raca/pdf', [RelatorioController::class, 'pdfRaca'])->name('relatorios.raca.pdf');
+    Route::get('raca/excel', [RelatorioController::class, 'excelRaca'])->name('relatorios.raca.excel');
+    Route::get('/relatorios/deficiencias', [RelatorioController::class, 'estatisticasDeficiencia'])->name('relatorios.deficiencias');
+        Route::get('/relatorios/deficiencias/excel', [RelatorioController::class, 'exportDeficienciaExcel'])->name('relatorios.deficiencias.excel');
+    Route::get('/relatorios/deficiencias/pdf', [RelatorioController::class, 'exportDeficienciaPdf'])->name('relatorios.deficiencias.pdf');
+
 });
 
 

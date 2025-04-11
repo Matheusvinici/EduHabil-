@@ -1971,25 +1971,41 @@ class RespostaSimuladoController extends Controller
      
          // Estatísticas por ano
          $estatisticasPorAno = $baseQuery->clone()
-             ->select(
-                 DB::raw('anos.nome as ano'),
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos')
-             )
-             ->join('simulados', 'respostas_simulados.simulado_id', '=', 'simulados.id')
-             ->join('anos', 'simulados.ano_id', '=', 'anos.id')
-             ->groupBy('anos.nome')
-             ->get()
-             ->map(function ($item) {
-                 return [
-                     'ano' => $item->ano,
-                     'total_respostas' => $item->total_respostas,
-                     'acertos' => $item->acertos,
-                     'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                     'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
-                 ];
-             })->toArray();
+         ->select(
+             DB::raw('anos.nome as ano'),
+             DB::raw('COUNT(*) as total_respostas'),
+             DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+             DB::raw('SUM(perguntas.peso) as total_peso'),
+             DB::raw('AVG(correta) as taxa_acerto') // Para cálculo do TRI
+         )
+         ->join('simulados', 'respostas_simulados.simulado_id', '=', 'simulados.id')
+         ->join('anos', 'simulados.ano_id', '=', 'anos.id')
+         ->groupBy('anos.nome')
+         ->get()
+         ->map(function ($item) {
+             // Cálculo da porcentagem de acertos
+             $percentual = $item->total_peso > 0 
+                 ? ($item->pontos_ponderados / $item->total_peso) * 100 
+                 : 0;
+             
+             // Média Final (0-10) - mesma fórmula usada nos alunos
+             $mediaFinal = $item->total_peso > 0
+                 ? ($item->pontos_ponderados / $item->total_peso) * 10
+                 : 0;
+                 
+             // Média TRI - seguindo o mesmo padrão das escolas (taxa de acerto * 3.33)
+             $mediaTri = $item->taxa_acerto * 3.33;
      
+             return [
+                 'ano' => $item->ano,
+                 'total_respostas' => $item->total_respostas,
+                 'pontos_ponderados' => $item->pontos_ponderados,
+                 'total_peso' => $item->total_peso,
+                 'porcentagem_acertos' => round($percentual, 2),
+                 'media_final' => round($mediaFinal, 2),
+                 'media_tri' => round($mediaTri, 2)
+             ];
+         })->toArray();
          // Estatísticas por habilidade
          $estatisticasPorHabilidade = $baseQuery->clone()
              ->select(
@@ -2102,350 +2118,470 @@ class RespostaSimuladoController extends Controller
              'request'
          ));
      }
+
      public function estatisticasAdmin(Request $request)
-     {
-         $user = Auth::user();
-     
-         if (!in_array($user->role, ['admin', 'inclusiva'])) {
-             abort(403, 'Acesso não autorizado.');
-         }
-     
-         // Filtros
-         $filtros = [
-             'escola_id' => $request->input('escola_id'),
-             'ano_id' => $request->input('ano_id'),
-             'simulado_id' => $request->input('simulado_id'),
-             'habilidade_id' => $request->input('habilidade_id'),
-             'deficiencia' => $request->input('deficiencia')
-         ];
-     
-         // Busca todas as escolas, anos, simulados e habilidades para os filtros
-         $escolas = Escola::all();
-         $anos = Ano::all();
-         $simulados = Simulado::all();
-         $habilidades = Habilidade::all();
-     
-         // Query base para usuários com filtros de escola
-         $baseUserQuery = User::query()
-             ->when($filtros['escola_id'], function ($query) use ($filtros) {
-                 return $query->where('escola_id', $filtros['escola_id']);
-             });
-     
-         // Dados gerais COM FILTROS
-         $totalSimulados = Simulado::when($filtros['ano_id'], function($query) use ($filtros) {
-                 return $query->where('ano_id', $filtros['ano_id']);
-             })->count();
-     
-         $totalProfessores = (clone $baseUserQuery)->where('role', 'professor')->count();
-         $totalAlunos = (clone $baseUserQuery)->where('role', 'aluno')->count();
-         
-         $totalAlunosComDeficiencia = (clone $baseUserQuery)
-             ->where('role', 'aluno')
-             ->when($filtros['deficiencia'] && $filtros['deficiencia'] !== 'ND', function($query) use ($filtros) {
-                 return $query->where('deficiencia', $filtros['deficiencia']);
-             })
-             ->when($filtros['deficiencia'] === 'ND', function($query) {
-                 return $query->whereNull('deficiencia');
-             })
-             ->when(!$filtros['deficiencia'], function($query) {
-                 return $query->whereNotNull('deficiencia');
-             })
-             ->count();
-     
-         // Query base para estatísticas de respostas (com peso)
-         $baseQuery = RespostaSimulado::query()
-             ->select('respostas_simulados.*', 'perguntas.peso')
-             ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
-             ->when($filtros['escola_id'], function ($query) use ($filtros) {
-                 return $query->where('respostas_simulados.escola_id', $filtros['escola_id']);
-             })
-             ->when($filtros['simulado_id'], function ($query) use ($filtros) {
-                 return $query->where('simulado_id', $filtros['simulado_id']);
-             })
-             ->when($filtros['ano_id'], function ($query) use ($filtros) {
-                 return $query->whereHas('simulado', function ($q) use ($filtros) {
-                     $q->where('ano_id', $filtros['ano_id']);
-                 });
-             })
-             ->when($filtros['habilidade_id'], function ($query) use ($filtros) {
-                 return $query->where('perguntas.habilidade_id', $filtros['habilidade_id']);
-             })
-             ->when($filtros['deficiencia'], function ($query) use ($filtros) {
-                 if ($filtros['deficiencia'] === 'ND') {
-                     return $query->whereHas('user', function($q) {
-                         $q->whereNull('deficiencia');
-                     });
-                 }
-                 return $query->whereHas('user', function($q) use ($filtros) {
-                     $q->where('deficiencia', $filtros['deficiencia']);
-                 });
-             });
-     
-         // Totais que responderam
-         $totalRespostas = $baseQuery->count();
-         
-         $professoresResponderam = (clone $baseUserQuery)
-             ->where('role', 'professor')
-             ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
-                 $q->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery());
-             })->count();
-     
-         $alunosResponderam = (clone $baseUserQuery)
-             ->where('role', 'aluno')
-             ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
-                 $q->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery());
-             })->count();
-     
-         // Estatísticas por escola (com peso)
-         $estatisticasPorEscola = $baseQuery->clone()
-             ->select(
-                 DB::raw('escolas.nome as escola'),
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
-                 DB::raw('SUM(perguntas.peso) as total_peso')
-             )
-             ->join('escolas', 'respostas_simulados.escola_id', '=', 'escolas.id')
-             ->groupBy('escolas.nome')
-             ->get()
-             ->map(function ($item) {
-                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
-                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
-                 
-                 return [
-                     'escola' => $item->escola,
-                     'total_respostas' => $item->total_respostas,
-                     'pontos_ponderados' => $item->pontos_ponderados,
-                     'total_peso' => $item->total_peso,
-                     'porcentagem_acertos' => round($percentual, 2),
-                     'media_final' => round($media, 2)
-                 ];
-             })->toArray();
-     
-         // Estatísticas por ano (com peso)
-         $estatisticasPorAno = $baseQuery->clone()
-             ->select(
-                 DB::raw('anos.nome as ano'),
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
-                 DB::raw('SUM(perguntas.peso) as total_peso')
-             )
-             ->join('simulados', 'respostas_simulados.simulado_id', '=', 'simulados.id')
-             ->join('anos', 'simulados.ano_id', '=', 'anos.id')
-             ->groupBy('anos.nome')
-             ->get()
-             ->map(function ($item) {
-                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
-                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
-                 
-                 return [
-                     'ano' => $item->ano,
-                     'total_respostas' => $item->total_respostas,
-                     'pontos_ponderados' => $item->pontos_ponderados,
-                     'total_peso' => $item->total_peso,
-                     'porcentagem_acertos' => round($percentual, 2),
-                     'media_final' => round($media, 2)
-                 ];
-             })->toArray();
-     
-         // Estatísticas por Questão (com disciplina e peso)
-         $estatisticasPorQuestao = $baseQuery->clone()
-             ->select(
-                 'perguntas.id as pergunta_id',
-                 'perguntas.enunciado as enunciado',
-                 'perguntas.peso as peso',
-                 'disciplinas.nome as disciplina',
-                 'habilidades.descricao as habilidade',
-                 DB::raw('SUBSTRING(habilidades.descricao, 1, 50) as habilidade_resumida'),
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta) as acertos'),
-                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados')
-             )
-             ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
-             ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
-             ->groupBy('perguntas.id', 'perguntas.enunciado', 'perguntas.peso', 'disciplinas.nome', 'habilidades.descricao')
-             ->orderBy('disciplinas.nome')
-             ->orderBy('perguntas.id')
-             ->paginate(10);
-     
-         // Calcula a média ponderada para cada questão
-         $estatisticasPorQuestao->getCollection()->transform(function ($item) {
-             $item->media = $item->total_respostas > 0 
-                 ? ($item->acertos / $item->total_respostas) * 10 
-                 : 0;
-             $item->media_ponderada = $item->total_respostas > 0
-                 ? ($item->pontos_ponderados / ($item->peso * $item->total_respostas)) * 10
-                 : 0;
-             return $item;
-         });
-     
-         // Estatísticas por habilidade (com peso)
-         $estatisticasPorHabilidade = $baseQuery->clone()
-             ->select(
-                 DB::raw('habilidades.descricao as habilidade'),
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
-                 DB::raw('SUM(perguntas.peso) as total_peso')
-             )
-             ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
-             ->groupBy('habilidades.descricao')
-             ->get()
-             ->map(function ($item) {
-                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
-                 
-                 return [
-                     'habilidade' => $item->habilidade,
-                     'total_respostas' => $item->total_respostas,
-                     'pontos_ponderados' => $item->pontos_ponderados,
-                     'total_peso' => $item->total_peso,
-                     'porcentagem_acertos' => round($percentual, 2)
-                 ];
-             })->toArray();
-     
-         // Estatísticas por raça (com peso)
-         $estatisticasPorRaca = $baseQuery->clone()
-             ->select(
-                 DB::raw('COALESCE(raca, "Não informado") as raca'),
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
-                 DB::raw('SUM(perguntas.peso) as total_peso')
-             )
-             ->groupBy(DB::raw('COALESCE(raca, "Não informado")'))
-             ->orderBy('raca')
-             ->get()
-             ->map(function ($item) {
-                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
-                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
-                 
-                 return [
-                     'raca' => $item->raca,
-                     'total_respostas' => $item->total_respostas,
-                     'pontos_ponderados' => $item->pontos_ponderados,
-                     'total_peso' => $item->total_peso,
-                     'porcentagem_acertos' => round($percentual, 2),
-                     'media_final' => round($media, 2)
-                 ];
-             })->toArray();
-     
-         // Estatísticas por deficiência (com peso)
-         $estatisticasPorDeficiencia = $baseQuery->clone()
-             ->select(
-                 DB::raw('COALESCE(users.deficiencia, "ND") as deficiencia'),
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
-                 DB::raw('SUM(perguntas.peso) as total_peso')
-             )
-             ->join('users', 'respostas_simulados.user_id', '=', 'users.id')
-             ->groupBy('users.deficiencia')
-             ->orderBy('users.deficiencia')
-             ->get()
-             ->map(function ($item) {
-                 $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
-                 $media = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
-                 
-                 return [
-                     'deficiencia' => $item->deficiencia,
-                     'total_respostas' => $item->total_respostas,
-                     'pontos_ponderados' => $item->pontos_ponderados,
-                     'total_peso' => $item->total_peso,
-                     'porcentagem_acertos' => round($percentual, 2),
-                     'media_final' => round($media, 2)
-                 ];
-             })->toArray();
-     
-         // Alunos por deficiência (quantidade) - não muda
-         $alunosPorDeficiencia = (clone $baseUserQuery)
-             ->where('role', 'aluno')
-             ->select('deficiencia', DB::raw('count(*) as total'))
-             ->groupBy('deficiencia')
-             ->orderBy('deficiencia')
-             ->get()
-             ->map(function ($item) {
-                 return [
-                     'deficiencia' => $item->deficiencia ?? 'ND',
-                     'total' => $item->total
-                 ];
-             })->toArray();
-     
-         // Médias gerais com filtros (com peso)
-         $mediaGeral1a5 = (clone $baseQuery)
-             ->whereHas('simulado', function ($q) {
-                 $q->whereIn('ano_id', range(1, 5));
-             })
-             ->select(
-                 DB::raw('SUM(correta * perguntas.peso) as pontos'),
-                 DB::raw('SUM(perguntas.peso) as total_peso')
-             )
-             ->first();
-         
-         $mediaGeral1a5 = $mediaGeral1a5->total_peso > 0 
-             ? ($mediaGeral1a5->pontos / $mediaGeral1a5->total_peso) * 10 
-             : 0;
-     
-         $mediaGeral6a9 = (clone $baseQuery)
-             ->whereHas('simulado', function ($q) {
-                 $q->whereIn('ano_id', range(6, 9));
-             })
-             ->select(
-                 DB::raw('SUM(correta * perguntas.peso) as pontos'),
-                 DB::raw('SUM(perguntas.peso) as total_peso')
-             )
-             ->first();
-         
-         $mediaGeral6a9 = $mediaGeral6a9->total_peso > 0 
-             ? ($mediaGeral6a9->pontos / $mediaGeral6a9->total_peso) * 10 
-             : 0;
-     
-         // Média por questão agrupada por disciplina (com peso)
-         $mediaPorQuestaoPorDisciplina = $baseQuery->clone()
-             ->select(
-                 'disciplinas.nome as disciplina',
-                 DB::raw('COUNT(*) as total_respostas'),
-                 DB::raw('SUM(correta * perguntas.peso) as total_pontos'),
-                 DB::raw('SUM(perguntas.peso) as total_peso'),
-                 DB::raw('ROUND((SUM(correta * perguntas.peso) / SUM(perguntas.peso)) * 10, 2) as media_ponderada')
-             )
-             ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
-             ->groupBy('disciplinas.nome')
-             ->orderBy('disciplinas.nome')
-             ->get();
-     
-         // Agrupar por disciplina para os gráficos
-         $questoesPorDisciplina = [];
-         foreach ($estatisticasPorQuestao as $questao) {
-             $disciplina = $questao['disciplina'];
-             if (!isset($questoesPorDisciplina[$disciplina])) {
-                 $questoesPorDisciplina[$disciplina] = [];
-             }
-             $questoesPorDisciplina[$disciplina][] = $questao;
-         }
-     
-         return view('respostas_simulados.admin.estatisticas', compact(
-             'totalSimulados',
-             'totalProfessores',
-             'totalAlunos',
-             'estatisticasPorQuestao',
-             'totalRespostas',
-             'professoresResponderam',
-             'alunosResponderam',
-             'estatisticasPorEscola',
-             'estatisticasPorAno',
-             'estatisticasPorHabilidade',
-             'estatisticasPorRaca',
-             'mediaGeral1a5',
-             'mediaGeral6a9',
-             'totalAlunosComDeficiencia',
-             'alunosPorDeficiencia',
-             'estatisticasPorDeficiencia',
-             'escolas',
-             'anos',
-             'simulados',
-             'habilidades',
-             'questoesPorDisciplina',
-             'mediaPorQuestaoPorDisciplina',
-             'filtros',
-             'request'
-         ));
-     }
+{
+    $user = Auth::user();
+
+    if (!in_array($user->role, ['admin', 'inclusiva'])) {
+        abort(403, 'Acesso não autorizado.');
+    }
+
+    // Filtros
+    $filtros = [
+        'escola_id' => $request->input('escola_id'),
+        'ano_id' => $request->input('ano_id'),
+        'simulado_id' => $request->input('simulado_id'),
+        'habilidade_id' => $request->input('habilidade_id'),
+        'deficiencia' => $request->input('deficiencia')
+    ];
+
+    // Busca todas as escolas, anos, simulados e habilidades para os filtros
+    $escolas = Escola::all();
+    $anos = Ano::all();
+    $simulados = Simulado::all();
+    $habilidades = Habilidade::all();
+
+    // Query base para usuários com filtros de escola
+    $baseUserQuery = User::query()
+        ->when($filtros['escola_id'], function ($query) use ($filtros) {
+            return $query->where('escola_id', $filtros['escola_id']);
+        });
+
+    // Dados gerais COM FILTROS
+    $totalSimulados = Simulado::when($filtros['ano_id'], function($query) use ($filtros) {
+            return $query->where('ano_id', $filtros['ano_id']);
+        })->count();
+
+    $totalProfessores = (clone $baseUserQuery)->where('role', 'professor')->count();
+    $totalAlunos = (clone $baseUserQuery)->where('role', 'aluno')->count();
+    
+    $totalAlunosComDeficiencia = (clone $baseUserQuery)
+        ->where('role', 'aluno')
+        ->when($filtros['deficiencia'] && $filtros['deficiencia'] !== 'ND', function($query) use ($filtros) {
+            return $query->where('deficiencia', $filtros['deficiencia']);
+        })
+        ->when($filtros['deficiencia'] === 'ND', function($query) {
+            return $query->whereNull('deficiencia');
+        })
+        ->when(!$filtros['deficiencia'], function($query) {
+            return $query->whereNotNull('deficiencia');
+        })
+        ->count();
+
+    // Query base para estatísticas de respostas (com TRI)
+    $baseQuery = RespostaSimulado::query()
+        ->select('respostas_simulados.*', 'perguntas.peso', 'perguntas.tri_a', 'perguntas.tri_b', 'perguntas.tri_c')
+        ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
+        ->when($filtros['escola_id'], function ($query) use ($filtros) {
+            return $query->where('respostas_simulados.escola_id', $filtros['escola_id']);
+        })
+        ->when($filtros['simulado_id'], function ($query) use ($filtros) {
+            return $query->where('simulado_id', $filtros['simulado_id']);
+        })
+        ->when($filtros['ano_id'], function ($query) use ($filtros) {
+            return $query->whereHas('simulado', function ($q) use ($filtros) {
+                $q->where('ano_id', $filtros['ano_id']);
+            });
+        })
+        ->when($filtros['habilidade_id'], function ($query) use ($filtros) {
+            return $query->where('perguntas.habilidade_id', $filtros['habilidade_id']);
+        })
+        ->when($filtros['deficiencia'], function ($query) use ($filtros) {
+            if ($filtros['deficiencia'] === 'ND') {
+                return $query->whereHas('user', function($q) {
+                    $q->whereNull('deficiencia');
+                });
+            }
+            return $query->whereHas('user', function($q) use ($filtros) {
+                $q->where('deficiencia', $filtros['deficiencia']);
+            });
+        });
+
+    // Totais que responderam
+    $totalRespostas = $baseQuery->count();
+    
+    $professoresResponderam = (clone $baseUserQuery)
+        ->where('role', 'professor')
+        ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
+            $q->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery());
+        })->count();
+
+    $alunosResponderam = (clone $baseUserQuery)
+        ->where('role', 'aluno')
+        ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
+            $q->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery());
+        })->count();
+
+    // Obter todos os alunos que responderam para cálculo TRI
+    $alunos = (clone $baseUserQuery)
+        ->where('role', 'aluno')
+        ->whereHas('respostasSimulado', function($q) use ($baseQuery) {
+            $q->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery());
+        })
+        ->with(['respostasSimulado' => function($query) use ($baseQuery) {
+            $query->whereIn('id', $baseQuery->select('respostas_simulados.id')->getQuery())
+                  ->with('pergunta');
+        }])
+        ->get();
+
+    // Calcular theta (habilidade) para cada aluno usando TRI
+    $desempenhoAlunos = [];
+    foreach ($alunos as $aluno) {
+        $respostas = $aluno->respostasSimulado;
+        
+        $theta = $this->calcularThetaAluno($respostas);
+        
+        $acertosEsperados = 0;
+        foreach ($respostas as $resposta) {
+            $a = $resposta->pergunta->tri_a;
+            $b = $resposta->pergunta->tri_b;
+            $c = $resposta->pergunta->tri_c;
+            
+            $prob = $c + (1 - $c) / (1 + exp(-1.7 * $a * ($theta - $b)));
+            $acertosEsperados += $prob;
+        }
+        
+        $desempenhoAlunos[] = (object)[
+            'nome' => $aluno->name,
+            'escola_id' => $aluno->escola_id,  // Adicione esta linha
+
+            'nota_bruta' => $respostas->avg('correta') * 10,
+            'theta' => $theta,
+
+            'acertos_reais' => $respostas->sum('correta'),
+            'acertos_esperados' => $acertosEsperados,
+            'desvio' => $respostas->sum('correta') - $acertosEsperados
+        ];
+    }
+
+    // Calcular médias TRI
+    $mediaTRI = collect($desempenhoAlunos)->avg('theta');
+    $mediaPonderada = collect($desempenhoAlunos)->avg('nota_bruta');
+
+    // Distribuição de theta para o gráfico
+    $distribuicaoTheta = [
+        'muito_baixa' => collect($desempenhoAlunos)->filter(fn($a) => $a->theta < -1.5)->count(),
+        'baixa' => collect($desempenhoAlunos)->filter(fn($a) => $a->theta >= -1.5 && $a->theta <= 0)->count(),
+        'adequada' => collect($desempenhoAlunos)->filter(fn($a) => $a->theta > 0 && $a->theta <= 1.5)->count(),
+        'avancada' => collect($desempenhoAlunos)->filter(fn($a) => $a->theta > 1.5)->count()
+    ];
+
+                    // ========== CÁLCULO DAS MÉDIAS GERAIS POR SEGMENTO ========== //
+            $mediaGeral1a5 = $baseQuery->clone()
+            ->whereHas('simulado.ano', function($q) {
+                $q->where(function($query) {
+                    $query->where('nome', 'LIKE', '1%')
+                        ->orWhere('nome', 'LIKE', '2%')
+                        ->orWhere('nome', 'LIKE', '3%')
+                        ->orWhere('nome', 'LIKE', '4%')
+                        ->orWhere('nome', 'LIKE', '5%');
+                });
+            })
+            ->avg(DB::raw('correta * perguntas.peso')) * 10;
+
+            $mediaGeral6a9 = $baseQuery->clone()
+            ->whereHas('simulado.ano', function($q) {
+                $q->where(function($query) {
+                    $query->where('nome', 'LIKE', '6%')
+                        ->orWhere('nome', 'LIKE', '7%')
+                        ->orWhere('nome', 'LIKE', '8%')
+                        ->orWhere('nome', 'LIKE', '9%');
+                });
+            })
+            ->avg(DB::raw('correta * perguntas.peso')) * 10;
+    // Definir padrão caso não haja dados
+    $mediaGeral1a5 = $mediaGeral1a5 ?: 0;
+    $mediaGeral6a9 = $mediaGeral6a9 ?: 0;
+
+    // ========== NOVOS CÁLCULOS PARA IDEB ========== //
+    $metaIDEB = 6.0;
+    $fatorAjusteIDEB = $this->calcularFatorAjusteIDEB();
+
+    // Notas híbridas (70% TRI + 30% Peso)
+    $notaHibridaGeral1a5 = ($mediaTRI * 3.33 * 0.7) + ($mediaGeral1a5 * 0.3);
+    $notaHibridaGeral6a9 = ($mediaTRI * 3.33 * 0.7) + ($mediaGeral6a9 * 0.3);
+    
+    // Projeções IDEB
+    $projecaoIDEB1a5 = min(10, $notaHibridaGeral1a5 * $fatorAjusteIDEB);
+    $projecaoIDEB6a9 = min(10, $notaHibridaGeral6a9 * $fatorAjusteIDEB);
+
+    // Sistema de alerta
+    $alertaMeta = [
+        'atingiu_meta' => $projecaoIDEB1a5 >= $metaIDEB,
+        'valor_projecao' => $projecaoIDEB1a5,
+        'diferenca_meta' => round($projecaoIDEB1a5 - $metaIDEB, 1)
+    ];
+
+    // Estatísticas por escola com TRI e projeção
+    $estatisticasPorEscola = $baseQuery->clone()
+    ->select(
+        DB::raw('escolas.nome as escola'),
+        DB::raw('escolas.id as escola_id'),
+        DB::raw('COUNT(*) as total_respostas'),
+        DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+        DB::raw('SUM(perguntas.peso) as total_peso')
+    )
+    ->join('escolas', 'respostas_simulados.escola_id', '=', 'escolas.id')
+    ->groupBy('escolas.nome', 'escolas.id')
+    ->get()
+    ->map(function ($item) use ($fatorAjusteIDEB, $desempenhoAlunos) {
+        // Calcular média TRI baseada nos alunos da escola
+        $mediaTriEscola = collect($desempenhoAlunos)
+            ->filter(fn($aluno) => $aluno->escola_id == $item->escola_id)
+            ->avg('theta') ?? 0;
+            
+        $percentual = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 100 : 0;
+        $media_ponderada = $item->total_peso > 0 ? ($item->pontos_ponderados / $item->total_peso) * 10 : 0;
+        $nota_tri_convertida = $mediaTriEscola * 3.33;
+        $media_hibrida = ($nota_tri_convertida * 0.7) + ($media_ponderada * 0.3);
+        
+        return [
+            'escola' => $item->escola,
+            'escola_id' => $item->escola_id,
+            'total_respostas' => $item->total_respostas,
+            'pontos_ponderados' => $item->pontos_ponderados,
+            'total_peso' => $item->total_peso,
+            'porcentagem_acertos' => round($percentual, 2),
+            'media_ponderada' => round($media_ponderada, 2),
+            'media_tri' => round($mediaTriEscola, 3),
+            'nota_tri_convertida' => round($nota_tri_convertida, 2),
+            'media_hibrida' => round($media_hibrida, 2),
+            'media_final' => round($media_hibrida, 2), // Adicione esta linha
+
+            'projecao_ideb' => round($media_hibrida * $fatorAjusteIDEB, 2),
+            'atingiu_meta' => ($media_hibrida * $fatorAjusteIDEB) >= 6.0
+        ];
+    })->toArray();
+
+    // Estatísticas por ano
+    $estatisticasPorAno = $baseQuery->clone()
+        ->select(
+            DB::raw('anos.nome as ano'),
+            DB::raw('COUNT(*) as total_respostas'),
+            DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+            DB::raw('SUM(perguntas.peso) as total_peso')
+        )
+        ->join('simulados', 'respostas_simulados.simulado_id', '=', 'simulados.id')
+        ->join('anos', 'simulados.ano_id', '=', 'anos.id')
+        ->groupBy('anos.nome')
+        ->get();
+
+    // Estatísticas por habilidade
+    $estatisticasPorHabilidade = $baseQuery->clone()
+        ->select(
+            DB::raw('habilidades.descricao as habilidade'),
+            DB::raw('COUNT(*) as total_respostas'),
+            DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+            DB::raw('SUM(perguntas.peso) as total_peso')
+        )
+        ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
+        ->groupBy('habilidades.descricao')
+        ->get();
+
+    // Estatísticas por raça/cor
+    $estatisticasPorRaca = $baseQuery->clone()
+    ->select(
+        DB::raw('respostas_simulados.raca as raca'), // Note a mudança de users. para respostas_simulados.
+        DB::raw('COUNT(*) as total_respostas'),
+        DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+        DB::raw('SUM(perguntas.peso) as total_peso')
+    )
+    ->join('users', 'respostas_simulados.user_id', '=', 'users.id') // Mantém o join se precisar de dados do usuário
+    ->groupBy('respostas_simulados.raca') // Agrupa pelo campo na tabela correta
+    ->get();
+
+    // Estatísticas por deficiência
+   // Distribuição por Deficiência
+$alunosPorDeficiencia = User::where('role', 'aluno')
+->select('deficiencia', DB::raw('count(*) as total'))
+->groupBy('deficiencia')
+->get()
+->map(function ($item) use ($totalAlunos) {
+    return [
+        'deficiencia' => $item->deficiencia ?? 'ND',
+        'total' => $item->total,
+        'percentual' => $totalAlunos > 0 ? round(($item->total/$totalAlunos)*100, 2) : 0
+    ];
+});
+
+// Desempenho por Deficiência
+$estatisticasPorDeficiencia = RespostaSimulado::query()
+->select(
+    DB::raw('COALESCE(users.deficiencia, "ND") as deficiencia'),
+    DB::raw('COUNT(*) as total_respostas'),
+    DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+    DB::raw('SUM(perguntas.peso) as total_peso')
+)
+->join('users', 'respostas_simulados.user_id', '=', 'users.id')
+->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
+->where('users.role', 'aluno')
+->groupBy('users.deficiencia')
+->get()
+->map(function ($item) {
+    $media = $item->total_peso > 0 ? ($item->pontos_ponderados/$item->total_peso)*10 : 0;
+    
+    return [
+        'deficiencia' => $item->deficiencia,
+        'total_respostas' => $item->total_respostas,
+        'pontos_ponderados' => $item->pontos_ponderados,
+        'total_peso' => $item->total_peso,
+        'media_final' => round($media, 2)
+    ];
+});
+    // Questões por disciplina
+    $questoesPorDisciplina = DB::table('perguntas')
+        ->select('disciplinas.nome as disciplina', DB::raw('count(*) as total'))
+        ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
+        ->groupBy('disciplinas.nome')
+        ->get();
+
+    // Média por questão por disciplina
+    $mediaPorQuestaoPorDisciplina = $baseQuery->clone()
+        ->select(
+            'disciplinas.nome as disciplina',
+            DB::raw('AVG(correta * perguntas.peso) as media_ponderada'),
+            DB::raw('COUNT(*) as total_respostas')
+        )
+        ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
+        ->groupBy('disciplinas.nome')
+        ->get();
+
+        $estatisticasPorQuestao = $baseQuery->clone()
+        ->select(
+            'disciplinas.nome as disciplina',
+            'perguntas.enunciado',
+            'perguntas.peso',
+            'habilidades.descricao as habilidade',
+            DB::raw('COUNT(*) as total_respostas'),
+            DB::raw('SUM(correta) as acertos'),
+            DB::raw('AVG(correta) as media_simples'),
+            DB::raw('SUM(correta * perguntas.peso) / SUM(perguntas.peso) as media_ponderada')
+        )
+        ->join('disciplinas', 'perguntas.disciplina_id', '=', 'disciplinas.id')
+        ->join('habilidades', 'perguntas.habilidade_id', '=', 'habilidades.id')
+        ->groupBy('perguntas.id', 'disciplinas.nome', 'perguntas.enunciado', 'perguntas.peso', 'habilidades.descricao')
+        ->paginate(15); // Paginação para melhor performance
+
+
+    return view('respostas_simulados.admin.estatisticas', compact(
+        'totalSimulados',
+        'totalProfessores',
+        'totalAlunos',
+        'estatisticasPorQuestao',
+        'totalRespostas',
+        'professoresResponderam',
+        'alunosResponderam',
+        'estatisticasPorEscola',
+        'estatisticasPorAno',
+        'estatisticasPorHabilidade',
+        'estatisticasPorRaca',
+        'mediaGeral1a5',
+        'mediaGeral6a9',
+        'totalAlunosComDeficiencia',
+        'alunosPorDeficiencia',
+        'estatisticasPorDeficiencia',
+        'escolas',
+        'anos',
+        'simulados',
+        'habilidades',
+        'questoesPorDisciplina',
+        'mediaPorQuestaoPorDisciplina',
+        'desempenhoAlunos',
+        'mediaTRI',
+        'mediaPonderada',
+        'distribuicaoTheta',
+        'filtros',
+        'request',
+        'notaHibridaGeral1a5',
+        'notaHibridaGeral6a9',
+        'projecaoIDEB1a5',
+        'projecaoIDEB6a9',
+        'fatorAjusteIDEB',
+        'alertaMeta',
+        'metaIDEB'
+    ));
+}
+
+private function calcularFatorAjusteIDEB($escolaId = null)
+{
+    // Tenta buscar fator específico para a escola
+    if ($escolaId) {
+        $fatorEscola = DB::table('calibracao_ideb')
+                       ->where('escola_id', $escolaId)
+                       ->latest()
+                       ->value('fator_calculado');
+        
+        if ($fatorEscola) {
+            return $fatorEscola;
+        }
+    }
+
+    // Valor padrão baseado em estudos de redes similares
+    return 0.82; // Valor conservador para primeira aplicação
+}
+
+private function calcularThetaAluno($respostas)
+{
+    if ($respostas->isEmpty()) {
+        return 0; // Retorna theta neutro se não houver respostas
+    }
+
+    $theta = 0.0; // Valor inicial
+    $precisao = 0.01;
+    $maxIteracoes = 100;
+    $minDenominador = 0.0001; // Valor mínimo para evitar divisão por zero
+    
+    for ($i = 0; $i < $maxIteracoes; $i++) {
+        $somaNumerador = 0;
+        $somaDenominador = 0;
+        
+        foreach ($respostas as $resposta) {
+            $a = $resposta->pergunta->tri_a ?? 1.0;
+            $b = $resposta->pergunta->tri_b ?? 0.0;
+            $c = $resposta->pergunta->tri_c ?? 0.25;
+            
+            // Garante que os parâmetros estão dentro de limites razoáveis
+            $a = max(0.3, min(2.5, $a));
+            $b = max(-3.0, min(3.0, $b));
+            $c = max(0.0, min(0.4, $c));
+            
+            // Probabilidade de acerto dado theta atual
+            $exponencial = exp(-1.7 * $a * ($theta - $b));
+            $p = $c + (1 - $c) / (1 + $exponencial);
+            
+            // Evita divisões por zero e valores extremos
+            $p = max(0.0001, min(0.9999, $p));
+            
+            if ($resposta->correta) {
+                $somaNumerador += 1.7 * $a * (1 - $p) * ($p - $c) / $p;
+            } else {
+                $somaNumerador += -1.7 * $a * ($p - $c) / (1 - $p);
+            }
+            
+            $denominadorParcial = pow(1.7 * $a, 2) * (1 - $p) * ($p - $c) * (1 - $c) / ($p * pow(1 - $c, 2));
+            $somaDenominador += max($minDenominador, $denominadorParcial);
+        }
+        
+        // Se o denominador for muito pequeno, usa um valor mínimo
+        if (abs($somaDenominador) < $minDenominador) {
+            $somaDenominador = $somaDenominador >= 0 ? $minDenominador : -$minDenominador;
+        }
+        
+        $novoTheta = $theta + $somaNumerador / $somaDenominador;
+        
+        // Limita o theta a um intervalo razoável
+        $novoTheta = max(-3.0, min(3.0, $novoTheta));
+        
+        if (abs($novoTheta - $theta) < $precisao) {
+            break;
+        }
+        
+        $theta = $novoTheta;
+    }
+    
+    return $theta;
+}
      public function graficos(Request $request)
      {
          // Filtros recebidos do formulário ou query string
@@ -2790,24 +2926,55 @@ class RespostaSimuladoController extends Controller
 
     // Estatísticas por escola (com correção para coluna ambígua)
     $estatisticasPorEscola = $baseQuery->clone()
-        ->select(
-            DB::raw('escolas.nome as escola'),
-            DB::raw('COUNT(*) as total_respostas'),
-            DB::raw('SUM(correta) as acertos')
-        )
-        ->join('escolas', 'respostas_simulados.escola_id', '=', 'escolas.id')
-        ->groupBy('escolas.nome')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'escola' => $item->escola,
-                'total_respostas' => $item->total_respostas,
-                'acertos' => $item->acertos,
-                'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
-            ];
-        })->toArray();
+    ->select(
+        DB::raw('escolas.nome as escola'),
+        DB::raw('escolas.id as escola_id'),
+        DB::raw('COUNT(*) as total_respostas'),
+        DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+        DB::raw('SUM(perguntas.peso) as total_peso')
+    )
+    ->join('escolas', 'respostas_simulados.escola_id', '=', 'escolas.id')
+    ->groupBy('escolas.nome', 'escolas.id')
+    ->get()
+    ->map(function ($item) use ($fatorAjusteIDEB, $desempenhoAlunos) {
+        // Filtrar alunos da escola atual
+        $alunosDaEscola = collect($desempenhoAlunos)
+            ->filter(function($aluno) use ($item) {
+                return property_exists($aluno, 'escola_id') && 
+                       $aluno->escola_id == $item->escola_id;
+            });
+        
+        // Calcular média TRI
+        $mediaTriEscola = $alunosDaEscola->isNotEmpty() 
+            ? $alunosDaEscola->avg('theta') 
+            : 0;
 
+        $percentual = $item->total_peso > 0 
+            ? ($item->pontos_ponderados / $item->total_peso) * 100 
+            : 0;
+            
+        $media_ponderada = $item->total_peso > 0 
+            ? ($item->pontos_ponderados / $item->total_peso) * 10 
+            : 0;
+            
+        $nota_tri_convertida = $mediaTriEscola * 3.33;
+        $media_hibrida = ($nota_tri_convertida * 0.7) + ($media_ponderada * 0.3);
+        
+        return [
+            'escola' => $item->escola,
+            'escola_id' => $item->escola_id,
+            'total_respostas' => $item->total_respostas,
+            'pontos_ponderados' => $item->pontos_ponderados,
+            'total_peso' => $item->total_peso,
+            'porcentagem_acertos' => round($percentual, 2),
+            'media_ponderada' => round($media_ponderada, 2),
+            'media_tri' => round($mediaTriEscola, 3),
+            'nota_tri_convertida' => round($nota_tri_convertida, 2),
+            'media_hibrida' => round($media_hibrida, 2),
+            'projecao_ideb' => round($media_hibrida * $fatorAjusteIDEB, 2),
+            'atingiu_meta' => ($media_hibrida * $fatorAjusteIDEB) >= 6.0
+        ];
+    })->toArray();
     // Estatísticas por ano
     $estatisticasPorAno = $baseQuery->clone()
         ->select(
@@ -2881,24 +3048,34 @@ class RespostaSimuladoController extends Controller
 
     // Estatísticas por raça (corrigido para usar a coluna da tabela respostas_simulados)
     $estatisticasPorRaca = $baseQuery->clone()
-        ->select(
-            DB::raw('COALESCE(raca, "Não informado") as raca'),
-            DB::raw('COUNT(*) as total_respostas'),
-            DB::raw('SUM(correta) as acertos')
-        )
-        ->groupBy(DB::raw('COALESCE(raca, "Não informado")'))
-        ->orderBy('raca')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'raca' => $item->raca,
-                'total_respostas' => $item->total_respostas,
-                'acertos' => $item->acertos,
-                'porcentagem_acertos' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 100 : 0,
-                'media_final' => $item->total_respostas > 0 ? ($item->acertos / $item->total_respostas) * 10 : 0
-            ];
-        })->toArray();
+    ->select(
+        DB::raw('COALESCE(users.raca, "Não informado") as raca'),
+        DB::raw('COUNT(*) as total_respostas'),
+        DB::raw('SUM(correta * perguntas.peso) as pontos_ponderados'),
+        DB::raw('SUM(perguntas.peso) as total_peso'),
+        DB::raw('AVG(correta) as taxa_acerto') // Para cálculo TRI
+    )
+    ->join('users', 'respostas_simulados.user_id', '=', 'users.id')
+    ->groupBy('users.raca')
+    ->get()
+    ->map(function ($item) {
+        // Cálculo da porcentagem de acertos ponderada
+        $percentual = $item->total_peso > 0 
+            ? ($item->pontos_ponderados / $item->total_peso) * 100 
+            : 0;
+        
+        // Média TRI (taxa de acerto convertida para escala 0-10)
+        $mediaTri = $item->taxa_acerto * 3.33;
 
+        return [
+            'raca' => $item->raca,
+            'total_respostas' => $item->total_respostas,
+            'pontos_ponderados' => $item->pontos_ponderados,
+            'total_peso' => $item->total_peso,
+            'porcentagem_acertos' => round($percentual, 2),
+            'media_tri' => round($mediaTri, 2)
+        ];
+    });
     // Estatísticas por deficiência (com correção para coluna ambígua)
     $estatisticasPorDeficiencia = $baseQuery->clone()
         ->select(
@@ -2956,11 +3133,12 @@ class RespostaSimuladoController extends Controller
         })->toArray();
 
     // Médias gerais com filtros
-    $mediaGeral1a5 = (clone $baseQuery)
-        ->whereHas('simulado', function ($q) {
-            $q->whereIn('ano_id', range(1, 5));
-        })
-        ->avg('correta') * 10;
+    $mediaGeral1a5 = $estatisticasPorEscola
+    ->filter(fn($e) => $e['total_respostas'] > 0) // Ignora escolas sem respostas
+    ->whenEmpty(function($collection) {
+        return collect([['media_ponderada' => 0]]);
+    })
+    ->avg('media_ponderada');
     
     $mediaGeral6a9 = (clone $baseQuery)
         ->whereHas('simulado', function ($q) {

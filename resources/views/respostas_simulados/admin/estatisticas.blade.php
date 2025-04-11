@@ -185,6 +185,170 @@
         </div>
     </div>
 
+        <!-- ========== NOVA SEÇÃO: RESUMO TRI ========== -->
+        <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0"><i class="fas fa-brain mr-2"></i> Análise TRI</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-card bg-light p-3 rounded border">
+                        <h6 class="stat-title">Média Theta (Habilidade)</h6>
+                        <p class="stat-value">{{ number_format($mediaTRI, 3) }} θ</p>
+                        <small class="text-muted">Escala: -3.0 (baixa) a +3.0 (alta)</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card bg-light p-3 rounded border">
+                        <h6 class="stat-title">Nota TRI Convertida</h6>
+                        <p class="stat-value">{{ number_format($mediaTRI * 3.33, 1) }}</p>
+                        <small class="text-muted">Equivalente na escala 0-10</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card bg-light p-3 rounded border">
+                        <h6 class="stat-title">Distribuição de Habilidade</h6>
+                        <div class="d-flex justify-content-between">
+                            <span class="badge bg-danger">Muito Baixa: {{ $distribuicaoTheta['muito_baixa'] }}</span>
+                            <span class="badge bg-warning">Baixa: {{ $distribuicaoTheta['baixa'] }}</span>
+                            <span class="badge bg-info">Adequada: {{ $distribuicaoTheta['adequada'] }}</span>
+                            <span class="badge bg-success">Avançada: {{ $distribuicaoTheta['avancada'] }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== NOVA SEÇÃO: PROJEÇÃO IDEB ========== -->
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0"><i class="fas fa-chart-line mr-2"></i> Projeção IDEB</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <strong>Atenção:</strong> Projeção baseada em modelo preliminar (fator: {{ $fatorAjusteIDEB }}). 
+                Será calibrada após primeiro IDEB oficial.
+            </div>
+
+            <div class="row text-center">
+                <!-- Anos Iniciais -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 {{ $alertaMeta['atingiu_meta'] ? 'border-success' : 'border-danger' }}">
+                        <div class="card-header bg-{{ $alertaMeta['atingiu_meta'] ? 'success' : 'danger' }} text-white">
+                            <h6>Anos Iniciais (1º-5º)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-around mb-3">
+                                <div>
+                                    <small>TRI</small>
+                                    <div class="h5 text-primary">{{ number_format($mediaTRI * 3.33, 1) }}</div>
+                                </div>
+                                <div>
+                                    <small>Peso</small>
+                                    <div class="h5 text-warning">{{ number_format($mediaGeral1a5, 1) }}</div>
+                                </div>
+                                <div>
+                                    <small>Híbrida</small>
+                                    <div class="h5 text-dark">{{ number_format($notaHibridaGeral1a5, 1) }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-{{ $projecaoIDEB1a5 >= 6 ? 'success' : 'danger' }}" 
+                                     style="width: {{ $projecaoIDEB1a5 * 10 }}%">
+                                    <strong>{{ number_format($projecaoIDEB1a5, 1) }}</strong>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small>Meta: 6.0</small>
+                                <small class="{{ $alertaMeta['diferenca_meta'] >= 0 ? 'text-success' : 'text-danger' }}">
+                                    {{ $alertaMeta['diferenca_meta'] >= 0 ? '+' : '' }}{{ $alertaMeta['diferenca_meta'] }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Anos Finais -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-secondary text-white">
+                            <h6>Anos Finais (6º-9º)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-around mb-3">
+                                <div>
+                                    <small>TRI</small>
+                                    <div class="h5 text-primary">{{ number_format($mediaTRI * 3.33, 1) }}</div>
+                                </div>
+                                <div>
+                                    <small>Peso</small>
+                                    <div class="h5 text-warning">{{ number_format($mediaGeral6a9, 1) }}</div>
+                                </div>
+                                <div>
+                                    <small>Híbrida</small>
+                                    <div class="h5 text-dark">{{ number_format($notaHibridaGeral6a9, 1) }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-info" 
+                                     style="width: {{ $projecaoIDEB6a9 * 10 }}%">
+                                    <strong>{{ number_format($projecaoIDEB6a9, 1) }}</strong>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small>Fator: {{ $fatorAjusteIDEB }}</small>
+                                <small>Híbrida: 70% TRI + 30% Peso</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Comparativa por Escola -->
+            <div class="mt-4">
+                <h5><i class="fas fa-school mr-2"></i> Desempenho por Escola</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Escola</th>
+                                <th class="text-center">TRI (θ)</th>
+                                <th class="text-center">Nota TRI</th>
+                                <th class="text-center">Nota Peso</th>
+                                <th class="text-center bg-light">Híbrida</th>
+                                <th class="text-center {{ $metaIDEB >= 6 ? 'bg-success text-white' : 'bg-warning' }}">Projeção IDEB</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($estatisticasPorEscola as $escola)
+                            <tr>
+                                <td>{{ $escola['escola'] }}</td>
+                                <td class="text-center">{{ number_format($escola['media_tri'], 3) }}</td>
+                                <td class="text-center">{{ $escola['nota_tri_convertida'] }}</td>
+                                <td class="text-center">{{ $escola['media_ponderada'] }}</td>
+                                <td class="text-center bg-light">{{ $escola['media_hibrida'] }}</td>
+                                <td class="text-center {{ $escola['atingiu_meta'] ? 'text-success' : 'text-danger' }}">
+                                    <strong>{{ $escola['projecao_ideb'] }}</strong>
+                                    @if($escola['atingiu_meta'])
+                                        <i class="fas fa-check ml-1"></i>
+                                    @else
+                                        <i class="fas fa-exclamation-triangle ml-1"></i>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Estatísticas por Escola -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
@@ -243,34 +407,32 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <thead class="thead-primary bg-primary text-white">
-                        <tr>
-                            <th>Ano</th>
-                            <th>Respostas</th>
-                            <th>Pontos Ponderados</th>
-                            <th>Total de Pesos</th>
-                            <th>% Acertos</th>
-                            <th>Média TRI (0-10)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($estatisticasPorAno as $estatistica)
-                            <tr>
-                                <td>{{ $estatistica['ano'] }}</td>
-                                <td>{{ $estatistica['total_respostas'] }}</td>
-                                <td>{{ $estatistica['pontos_ponderados'] }}</td>
-                                <td>{{ $estatistica['total_peso'] }}</td>
-                                <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
-                                <td>
-                                    <span class="badge bg-{{ $estatistica['media_final'] >= 7 ? 'success' : ($estatistica['media_final'] >= 5 ? 'warning' : 'danger') }}">
-                                        {{ number_format($estatistica['media_final'], 2) }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Ano</th>
+            <th>Respostas</th>
+            <th>Pontos Ponderados</th>
+            <th>Total de Pesos</th>
+            <th>% Acertos</th>
+            <th>Média Final (0-10)</th>
+            <th>Média TRI (0-10)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($estatisticasPorAno as $estatistica)
+        <tr>
+            <td>{{ $estatistica['ano'] }}</td>
+            <td>{{ $estatistica['total_respostas'] }}</td>
+            <td>{{ $estatistica['pontos_ponderados'] }}</td>
+            <td>{{ $estatistica['total_peso'] }}</td>
+            <td>{{ $estatistica['porcentagem_acertos'] }}%</td>
+            <td>{{ $estatistica['media_final'] }}</td>
+            <td>{{ $estatistica['media_tri'] }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
             </div>
         </div>
     </div>
@@ -319,177 +481,178 @@
 
     <!-- Estatísticas por Questão -->
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0">Desempenho por Questão - Modelo TRI</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <thead class="thead-primary bg-primary text-white">
+    <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">Desempenho por Questão - Modelo TRI</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="thead-primary bg-primary text-white">
+                    <tr>
+                        <th>Disciplina</th>
+                        <th>Questão</th>
+                        <th>Peso</th>
+                        <th>Habilidade</th>
+                        <th>Respostas</th>
+                        <th>Acertos</th>
+                        <th>Média Simples</th>
+                        <th>Média Ponderada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($estatisticasPorQuestao as $questao)
                         <tr>
-                            <th>Disciplina</th>
-                            <th>Questão</th>
-                            <th>Peso</th>
-                            <th>Habilidade</th>
-                            <th>Respostas</th>
-                            <th>Acertos</th>
-                            <th>Média Simples</th>
-                            <th>Média Ponderada</th>
+                            <td>{{ $questao->disciplina }}</td>
+                            <td>{{ Str::limit($questao->enunciado, 50) }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ $questao->peso == 3 ? 'danger' : ($questao->peso == 2 ? 'warning' : 'primary') }}">
+                                    {{ $questao->peso }}
+                                </span>
+                            </td>
+                            <td>{{ Str::limit($questao->habilidade, 30) }}</td>
+                            <td>{{ $questao->total_respostas }}</td>
+                            <td>{{ $questao->acertos }}</td>
+                            <td>{{ number_format($questao->media_simples * 100, 2) }}%</td>
+                            <td>{{ number_format($questao->media_ponderada * 100, 2) }}%</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($estatisticasPorQuestao as $questao)
-                            <tr>
-                                <td>{{ $questao->disciplina }}</td>
-                                <td>{{ Str::limit($questao->enunciado, 50) }}</td>
-                                <td class="text-center">
-                                    <span class="badge bg-{{ $questao->peso == 3 ? 'danger' : ($questao->peso == 2 ? 'warning' : 'primary') }}">
-                                        {{ $questao->peso }}
-                                    </span>
-                                </td>
-                                <td>{{ $questao->habilidade_resumida }}...</td>
-                                <td>{{ $questao->total_respostas }}</td>
-                                <td>{{ $questao->acertos }}</td>
-                                <td>{{ number_format($questao->media, 2) }}</td>
-                                <td>{{ number_format($questao->media_ponderada, 2) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="card-footer clearfix">
-                {{ $estatisticasPorQuestao->links() }}
-            </div>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center">Nenhuma questão encontrada com os filtros aplicados</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+        <div class="card-footer clearfix">
+            {{ $estatisticasPorQuestao->links() }}
+        </div>
+    </div>
+</div>
     </div>
 
     <!-- Estatísticas por Raça/Cor -->
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0">Desempenho por Raça/Cor - Modelo TRI</h5>
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">Desempenho por Raça/Cor - Modelo TRI</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="bg-primary text-white">
+                    <tr>
+                        <th>Raça/Cor</th>
+                        <th>Respostas</th>
+                        <th>Pontos Ponderados</th>
+                        <th>Total de Pesos</th>
+                        <th>% Acertos</th>
+                        <th>Média TRI (0-10)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($estatisticasPorRaca as $estatistica)
+                    <tr>
+                        <td>{{ $estatistica['raca'] }}</td>
+                        <td>{{ $estatistica['total_respostas'] }}</td>
+                        <td>{{ $estatistica['pontos_ponderados'] }}</td>
+                        <td>{{ $estatistica['total_peso'] }}</td>
+                        <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
+                        <td>
+                            <span class="badge bg-{{ $estatistica['media_tri'] >= 7 ? 'success' : ($estatistica['media_tri'] >= 5 ? 'warning' : 'danger') }}">
+                                {{ number_format($estatistica['media_tri'], 2) }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped table-hover">
-                    <thead class="thead-primary bg-primary text-white">
+    </div>
+</div>
+    <!-- Estatísticas por Deficiência -->
+    <div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title">Distribuição por Deficiência</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
                         <tr>
-                            <th>Raça/Cor</th>
-                            <th>Respostas</th>
-                            <th>Pontos Ponderados</th>
-                            <th>Total de Pesos</th>
-                            <th>% Acertos</th>
-                            <th>Média TRI (0-10)</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>% do Total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($estatisticasPorRaca as $estatistica)
-                            <tr>
-                                <td>{{ $estatistica['raca'] }}</td>
-                                <td>{{ $estatistica['total_respostas'] }}</td>
-                                <td>{{ $estatistica['pontos_ponderados'] }}</td>
-                                <td>{{ $estatistica['total_peso'] }}</td>
-                                <td>{{ number_format($estatistica['porcentagem_acertos'], 2) }}%</td>
-                                <td>
-                                    <span class="badge bg-{{ $estatistica['media_final'] >= 7 ? 'success' : ($estatistica['media_final'] >= 5 ? 'warning' : 'danger') }}">
-                                        {{ number_format($estatistica['media_final'], 2) }}
-                                    </span>
-                                </td>
-                            </tr>
+                        @foreach($alunosPorDeficiencia as $item)
+                        <tr>
+                            <td>
+                                @switch($item['deficiencia'])
+                                    @case('DV') Def. Visual @break
+                                    @case('DA') Def. Auditiva @break
+                                    @case('DF') Def. Física @break
+                                    @case('DI') Def. Intelectual @break
+                                    @case('TEA') Autismo @break
+                                    @case('ND') Sem deficiência @break
+                                    @default Outros
+                                @endswitch
+                            </td>
+                            <td>{{ $item['total'] }}</td>
+                            <td>{{ $item['percentual'] }}%</td>
+                        </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-
-    <!-- Estatísticas por Deficiência -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Distribuição por Deficiência</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover">
-                            <thead class="thead-primary bg-primary text-white">
-                                <tr>
-                                    <th>Tipo de Deficiência</th>
-                                    <th>Quantidade</th>
-                                    <th>% do Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($alunosPorDeficiencia as $item)
-                                    <tr>
-                                        <td>
-                                            @switch($item['deficiencia'])
-                                                @case('DV') Deficiência Visual @break
-                                                @case('DA') Deficiência Auditiva @break
-                                                @case('DF') Deficiência Física @break
-                                                @case('DI') Deficiência Intelectual @break
-                                                @case('TEA') Autismo @break
-                                                @default {{ $item['deficiencia'] }}
-                                            @endswitch
-                                        </td>
-                                        <td>{{ $item['total'] }}</td>
-                                        <td>{{ $totalAlunos > 0 ? number_format(($item['total'] / $totalAlunos) * 100, 2) : 0 }}%</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title">Desempenho por Deficiência</h5>
             </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Desempenho por Deficiência - Modelo TRI</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover">
-                            <thead class="thead-primary bg-primary text-white">
-                                <tr>
-                                    <th>Deficiência</th>
-                                    <th>Respostas</th>
-                                    <th>Pontos Ponderados</th>
-                                    <th>Total de Pesos</th>
-                                    <th>Média TRI (0-10)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($estatisticasPorDeficiencia as $estatistica)
-                                    <tr>
-                                        <td>
-                                            @switch($estatistica['deficiencia'])
-                                                @case('DV') Deficiência Visual @break
-                                                @case('DA') Deficiência Auditiva @break
-                                                @case('DF') Deficiência Física @break
-                                                @case('DI') Deficiência Intelectual @break
-                                                @case('TEA') Autismo @break
-                                                @case('ND') Sem deficiência @break
-                                                @default {{ $estatistica['deficiencia'] }}
-                                            @endswitch
-                                        </td>
-                                        <td>{{ $estatistica['total_respostas'] }}</td>
-                                        <td>{{ $estatistica['pontos_ponderados'] }}</td>
-                                        <td>{{ $estatistica['total_peso'] }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ $estatistica['media_final'] >= 7 ? 'success' : ($estatistica['media_final'] >= 5 ? 'warning' : 'danger') }}">
-                                                {{ number_format($estatistica['media_final'], 2) }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Respostas</th>
+                            <th>Pontos</th>
+                            <th>Pesos</th>
+                            <th>Média</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($estatisticasPorDeficiencia as $estat)
+                        <tr>
+                            <td>
+                                @switch($estat['deficiencia'])
+                                    @case('DV') Def. Visual @break
+                                    @case('DA') Def. Auditiva @break
+                                    @case('DF') Def. Física @break
+                                    @case('DI') Def. Intelectual @break
+                                    @case('TEA') Autismo @break
+                                    @case('ND') Sem deficiência @break
+                                    @default Outros
+                                @endswitch
+                            </td>
+                            <td>{{ $estat['total_respostas'] }}</td>
+                            <td>{{ $estat['pontos_ponderados'] }}</td>
+                            <td>{{ $estat['total_peso'] }}</td>
+                            <td class="{{ $estat['media_final'] >= 7 ? 'text-success' : ($estat['media_final'] >= 5 ? 'text-warning' : 'text-danger') }}">
+                                <strong>{{ $estat['media_final'] }}</strong>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Médias Gerais -->
     <div class="card mb-4">
@@ -603,41 +766,7 @@
 <!-- Scripts para Gráficos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Gráfico de Desempenho por Habilidade
-    const ctxHabilidades = document.getElementById('graficoHabilidades').getContext('2d');
-    new Chart(ctxHabilidades, {
-        type: 'bar',
-        data: {
-            labels: {!! json_encode(array_column($estatisticasPorHabilidade, 'habilidade')) !!},
-            datasets: [{
-                label: '% de Acertos (TRI)',
-                data: {!! json_encode(array_column($estatisticasPorHabilidade, 'porcentagem_acertos')) !!},
-                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    title: {
-                        display: true,
-                        text: 'Porcentagem de Acertos (%)'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Habilidades'
-                    }
-                }
-            }
-        }
-    });
-
+    
     // Gráfico de Média por Escola
     const ctxEscolas = document.getElementById('graficoEscolas').getContext('2d');
     new Chart(ctxEscolas, {
