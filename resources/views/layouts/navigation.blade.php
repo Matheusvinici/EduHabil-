@@ -252,7 +252,7 @@
           @if(Auth::check() && Auth::user()->role === 'admin')
             <li class="nav-item has-treeview">
                 <a href="#" class="nav-link text-white">
-                    <i class="nav-icon fas fa-cogs text-white"></i>
+                    <i class="nav-icon fas fa-chalkboard-teacher text-white"></i>
                     <p>Tutoria<i class="right fas fa-angle-left"></i></p>
                 </a>
                 <ul class="nav nav-treeview">
@@ -269,6 +269,60 @@
                         </a>
                     </li>
                  </ul>
+            </li>
+        @endif
+
+         <!-- Relatórios -->
+         @if(Auth::check() && Auth::user()->role === 'admin')
+            <li class="nav-item has-treeview">
+                <a href="#" class="nav-link text-white">
+                    <i class="nav-icon fas fa-chart-bar text-white"></i>
+                    <p>Relatórios<i class="right fas fa-angle-left"></i></p>
+                </a>
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="{{ route('relatorios.rede-municipal') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Estatisticas da Rede Municipal</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('relatorios.estatisticas-ano') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Estatísticas por Ano</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('relatorios.estatisticas-escola') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Estatísticas por Escola</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('relatorios.estatisticas-questoes') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Estatísticas por Questão</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('relatorios.habilidades') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Estatísticas por Habilidade</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('relatorios.raca') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Estatísticas por Raça</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('relatorios.deficiencias') }}" class="nav-link text-white">
+                            <i class="far fa-circle nav-icon text-white"></i>
+                            <p>Estatísticas de Alunos com Deficiências</p>
+                        </a>
+                    </li>
+                </ul>
             </li>
         @endif
     </ul>
