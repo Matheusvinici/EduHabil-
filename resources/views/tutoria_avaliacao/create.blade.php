@@ -8,7 +8,7 @@
         </div>
 
         <div class="card-body">
-            <form action="{{ route('avaliacoes.store') }}" method="POST">
+            <form action="{{ route('tutoria_avaliacoes.store') }}" method="POST">
                 @csrf
 
                 <div class="row">
@@ -71,7 +71,7 @@
                                             <td>{{ $criterio->categoria }}</td>
                                             <td>{{ $criterio->descricao }}</td>
                                             <td class="text-center">
-                                                <select name="avaliacoes[{{ $criterio->id }}]" class="form-select" required>
+                                                <select name="tutoria_avaliacoes[{{ $criterio->id }}]" class="form-select" required>
                                                     <option value="">Selecione</option>
                                                     @for ($i = 1; $i <= 5; $i++)
                                                         <option value="{{ $i }}">{{ $i }}</option>

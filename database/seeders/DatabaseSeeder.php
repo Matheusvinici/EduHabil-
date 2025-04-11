@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
          $this->call(QuestoesTableSeeder::class);
 
         // Chama o seeder das Critérios de avalição (Tutores)
-        $this->call(CriteriosAvaliacaoSeeder::class);
+        $this->call(TutoriaCriteriosSeeder::class);
 
     }
 }

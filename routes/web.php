@@ -1,11 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TutoriaCriterioController;
 use App\Http\Controllers\{
     UserController,
     ProfessorTurmaController,
     AvaliacaoTutoriaController,
-    CriterioAvaliacaoController,
     NotaAvaliacaoController,
     AdminController,
     RecursoController,
@@ -52,15 +52,15 @@ Route::prefix('auth')->group(function () {
     // Seleção inicial de escola
     Route::get('/professor-turma/select-escola', [ProfessorTurmaController::class, 'selectEscola'])
          ->name('professor-turma.select-escola');
-         
+
     // Formulário de vinculação
     Route::get('/professor-turma/create', [ProfessorTurmaController::class, 'create'])
          ->name('professor-turma.create');
-         
+
     // Processar vinculação
     Route::post('/professor-turma', [ProfessorTurmaController::class, 'store'])
          ->name('professor-turma.store');
-         
+
     // Listagem de vinculações
     Route::get('/professor-turma', [ProfessorTurmaController::class, 'index'])
          ->name('professor-turma.index');
@@ -76,7 +76,7 @@ Route::prefix('auth')->group(function () {
             $turmas = \App\Models\Turma::where('escola_id', $escolaId)->orderBy('nome_turma')->get(['id', 'nome_turma']);
             return response()->json($turmas);
         });
-        
+
 });
 
 
@@ -89,10 +89,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('respostas_simulados', RespostaSimuladoController::class);
     Route::get('/respostas_simulados/aluno/index', [RespostaSimuladoController::class, 'alunoIndex'])->name('respostas_simulados.aluno.index');
     Route::get('/respostas_simulados/create/{simulado}', [RespostaSimuladoController::class, 'create'])->name('respostas_simulados.create');
-    Route::post('/respostas_simulados/store/{simulado}', [RespostaSimuladoController::class, 'store'])->name('respostas_simulados.store');  
+    Route::post('/respostas_simulados/store/{simulado}', [RespostaSimuladoController::class, 'store'])->name('respostas_simulados.store');
       Route::get('/respostas_simulados/show/{simulado}', [RespostaSimuladoController::class, 'show'])->name('respostas_simulados.show');
 
-    
+
 });
 
               // Rotas para professores
@@ -120,11 +120,11 @@ Route::middleware('auth')->group(function () {
         // Rota principal (mantida como estava)
         Route::get('respostas_simulados/professor', [RespostaSimuladoController::class, 'estatisticasProfessor'])
             ->name('respostas_simulados.professor.index');
-        
+
         // Rota de visualização específica
         Route::get('/professor/{simulado}/{aluno}', [RespostaSimuladoController::class, 'showProfessor'])
             ->name('respostas_simulados.professor.show');
-        
+
                 // Rotas de exportação (também com caminho duplicado)
             Route::get('respostas_simulados/professor/exportar/pdf', [RespostaSimuladoController::class, 'exportarPdf'])
             ->name('respostas_simulados.professor.exportar.pdf');
@@ -133,7 +133,7 @@ Route::middleware('auth')->group(function () {
             ->name('respostas_simulados.professor.exportar.excel');
         });
 
-    
+
     // Rotas de provas
     Route::prefix('provas')->group(function () {
         Route::resource('/', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
@@ -143,7 +143,7 @@ Route::middleware('auth')->group(function () {
             ->name('provas.gerarPDF');
     });
 
-   
+
 
     // Rotas de atividades
     Route::resource('atividades_professores', AtividadeProfessorController::class);
@@ -166,7 +166,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/turmas/{turma}/update-nome', [TurmaController::class, 'updateTurma'])
             ->name('turmas.update-nome');
             Route::get('/turmas/{id}/gerar-pdf', [TurmaController::class, 'gerarPdf'])
-            ->name('turmas.gerar-pdf');        
+            ->name('turmas.gerar-pdf');
 
             Route::get('/{turma}/alunos/{aluno}/edit', [TurmaController::class, 'edit'])
             ->name('turmas.alunos.edit');
@@ -192,7 +192,7 @@ Route::middleware('auth')->group(function () {
 Route::prefix('aplicador')->group(function() {
     Route::get('/simulados', [RespostaSimuladoController::class, 'indexForAplicador'])
         ->name('respostas_simulados.aplicador.index');
-    
+
         Route::get('/aplicador/respostas-simulados/detalhes/{id}', [RespostaSimuladoController::class, 'detalhesForAplicador'])
     ->name('respostas_simulados.aplicador.detalhes');
 
@@ -218,7 +218,7 @@ Route::get('/respostas_simulados/aplicador/{simulado}/alunos-pendentes', [Respos
 
 Route::get('/respostas_simulados/aplicador/create/{simulado}/{aluno_id}', [RespostaSimuladoController::class, 'createForAluno'])
     ->name('respostas_simulados.aplicador.create_aluno');
-        
+
    // Rota para finalizar o simulado (POST)
    Route::post('/simulados/{simulado}/finalizar', [RespostaSimuladoController::class, 'finalizarSimulado'])
         ->name('respostas_simulados.aplicador.finalizar');
@@ -343,9 +343,9 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     // Rotas para escolas, turmas, disciplinas, habilidades, questões, provas, alunos, anos, etc.
     Route::resource('escolas', EscolaController::class);
 
-    Route::resource('avaliacoes', AvaliacaoTutoriaController::class);
-    Route::resource('criterios', CriterioAvaliacaoController::class);
-    Route::resource('notas', NotaAvaliacaoController::class);
+    //Tutoria
+    Route::resource('tutoria_avaliacoes', AvaliacaoTutoriaController::class);
+    Route::resource('tutoria_criterios', TutoriaCriterioController::class);
 
     Route::resource('disciplinas', DisciplinaController::class);
     Route::resource('habilidades', HabilidadeController::class);

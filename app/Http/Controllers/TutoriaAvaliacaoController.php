@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AvaliacaoTutoria;
+use App\Models\TutoriaAvaliacao;
 use App\Models\Escola;
 use App\Models\User;
 use Illuminate\Http\Request;
 
-class AvaliacaoTutoriaController extends Controller
+class TutoriaAvaliacaoController extends Controller
 {
     // Listar avaliações
     public function index()
     {
-        $avaliacoes = AvaliacaoTutoria::with(['tutor', 'escola'])->get();
-        return view('avaliacoes.index', compact('avaliacoes'));
+        $tutoria_avaliacoes = AvaliacaoTutoria::with(['tutor', 'escola'])->get();
+        return view('tutoria_avaliacoes.index', compact('tutoria_avaliacoes'));
     }
 
     // Formulário de criação
@@ -21,9 +21,9 @@ class AvaliacaoTutoriaController extends Controller
 {
     $tutores = User::where('role', 'tutor')->get();
     $escolas = Escola::all();
-    $criterios = \App\Models\CriterioAvaliacao::all(); // ← adiciona essa linha
+    $criterios = \App\Models\TutoriaAvaliacao::all(); // ← adiciona essa linha
 
-    return view('avaliacoes.create', compact('tutores', 'escolas', 'criterios'));
+    return view('tutoria_avaliacoes.create', compact('tutores', 'escolas', 'criterios'));
 }
 
     // Salvar avaliação
@@ -36,15 +36,15 @@ class AvaliacaoTutoriaController extends Controller
         ]);
 
         AvaliacaoTutoria::create($request->all());
-        return redirect()->route('avaliacoes.index')->with('success', 'Avaliação registrada!');
+        return redirect()->route('tutoria_avaliacoes.index')->with('success', 'Avaliação registrada!');
     }
 
     // Formulário de edição
-    public function edit(AvaliacaoTutoria $avaliacao)
+    public function edit(TutoriaAvaliacao $avaliacao)
     {
         $tutores = User::where('role', 'tutor')->get();
         $escolas = Escola::all();
-        return view('avaliacoes.edit', compact('avaliacao', 'tutores', 'escolas'));
+        return view('tutoria_avaliacoes.edit', compact('avaliacao', 'tutores', 'escolas'));
     }
 
     // Atualizar avaliação
@@ -57,13 +57,13 @@ class AvaliacaoTutoriaController extends Controller
         ]);
 
         $avaliacao->update($request->all());
-        return redirect()->route('avaliacoes.index')->with('success', 'Avaliação atualizada!');
+        return redirect()->route('tutoria_avaliacoes.index')->with('success', 'Avaliação atualizada!');
     }
 
     // Excluir avaliação
     public function destroy(AvaliacaoTutoria $avaliacao)
     {
         $avaliacao->delete();
-        return redirect()->route('avaliacoes.index')->with('success', 'Avaliação removida!');
+        return redirect()->route('tutoria_avaliacoes.index')->with('success', 'Avaliação removida!');
     }
 }

@@ -6,7 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class CriteriosAvaliacaoSeeder extends Seeder
+class TutoriaCriteriosSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -48,7 +48,7 @@ class CriteriosAvaliacaoSeeder extends Seeder
             ['categoria' => 'Resultados de aprendizagem', 'descricao' => 'Intervenções pedagógicas para alunos com dificuldades.'],
         ];
 
-        DB::table('criterios_avaliacao')->insert($criterios);
+        DB::table('tutoria_criterios')->insert($criterios);
 
         $this->command->info('Critérios de avaliação inseridos com sucesso!');
     }
