@@ -17,7 +17,10 @@ class Escola extends Model
         'telefone',
         'codigo_escola'
     ];
-
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_escola');
+    }
     // Relacionamento com o modelo Turma
     public function turmas(): HasMany
     {

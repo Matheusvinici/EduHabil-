@@ -85,6 +85,7 @@
         td {
             padding: 6px;
             border-bottom: 1px solid #ddd;
+            vertical-align: top;
         }
 
         tr:nth-child(even) {
@@ -102,7 +103,10 @@
         .badge-admin { background-color: #dc3545; color: white; }
         .badge-coordenador { background-color: #ffc107; color: #212529; }
         .badge-professor { background-color: #17a2b8; color: white; }
-        .badge-aluno { background-color: #28a745; color: white; }
+        .badge-aee { background-color: #6610f2; color: white; }
+        .badge-inclusiva { background-color: #20c997; color: white; }
+        .badge-gestor { background-color: #fd7e14; color: white; }
+        .badge-aluno { background-color: #6c757d; color: white; }
         .badge-default { background-color: #6c757d; color: white; }
 
         .footer {
@@ -112,6 +116,15 @@
             color: #777;
             border-top: 1px solid #eee;
             padding-top: 10px;
+        }
+
+        .escola-list {
+            margin: 0;
+            padding-left: 15px;
+        }
+
+        .escola-item {
+            margin-bottom: 3px;
         }
     </style>
 </head>
@@ -160,7 +173,7 @@
                 <th>Nome</th>
                 <th>Email</th>
                 <th>Papel</th>
-                <th>Escola</th>
+                <th>Escola(s)</th>
                 <th>CPF</th>
                 <th>Código Acesso</th>
             </tr>
@@ -175,12 +188,40 @@
                         $user->role == 'admin' ? 'admin' :
                         ($user->role == 'coordenador' ? 'coordenador' :
                         ($user->role == 'professor' ? 'professor' :
-                        ($user->role == 'aluno' ? 'aluno' : 'default')))
+                        ($user->role == 'aee' ? 'aee' :
+                        ($user->role == 'inclusiva' ? 'inclusiva' :
+                        ($user->role == 'gestor' ? 'gestor' :
+                        ($user->role == 'aluno' ? 'aluno' : 'default'))))))
                     }}">
                         {{ ucfirst($user->role) }}
                     </span>
                 </td>
-                <td>{{ $user->escola->nome ?? 'N/A' }}</td>
+                <td>
+                    @if($user->role === 'aluno')
+                        {{-- Para alunos, mostra a escola através da turma --}}
+                        @if($user->turma && $user->turma->escola)
+                            {{ $user->turma->escola->nome }}
+                        @else
+                            N/A
+                        @endif
+                    @else
+                        {{-- Para outros usuários, mostra através do relacionamento escolas --}}
+                        @if($user->escolas->isNotEmpty())
+                            <ul class="escola-list">
+                                @foreach($user->escolas as $escola)
+                                    <li class="escola-item">
+                                        {{ $escola->nome }}
+                                        @if($escola->pivot->created_at)
+                                            <small class="text-muted">({{ $escola->pivot->created_at->format('d/m/Y') }})</small>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            N/A
+                        @endif
+                    @endif
+                </td>
                 <td>{{ $user->cpf ? mask($user->cpf, '###.###.###-##') : 'N/A' }}</td>
                 <td>{{ $user->codigo_acesso ?? 'N/A' }}</td>
             </tr>

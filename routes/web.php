@@ -98,7 +98,8 @@ Route::middleware('auth')->group(function () {
 
               // Rotas para professores
     Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])->name('professor.dashboard');
-
+    Route::get('/selecionar-escola', [ProfessorController::class, 'selecionarEscola'])->name('professor.selecionar-escola');
+    Route::post('/definir-escola', [ProfessorController::class, 'definirEscola'])->name('professor.definir-escola');
 
 
     // Rotas de respostas
@@ -370,12 +371,15 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     Route::resource('perguntas', PerguntaController::class);
     Route::post('/perguntas/save-content', [PerguntaController::class, 'saveContent'])->name('perguntas.saveContent');
 
-    // Rotas para Users (admin)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/users/pdf', [UserController::class, 'generatePdf'])->name('users.pdf');
-    Route::resource('users', UserController::class);
-});
-
+    Route::middleware(['auth'])->group(function () {
+        // Rotas de usuários
+         // Cadastro em lote
+         Route::get('users/create-lote', [UserController::class, 'createLote'])->name('users.create-lote');
+         Route::post('users/store-lote', [UserController::class, 'storeLote'])->name('users.store-lote');
+           
+        Route::get('/users/pdf', [UserController::class, 'generatePdf'])->name('users.pdf');
+        Route::resource('users', UserController::class);
+    });
 Route::prefix('relatorios')->group(function() {
     Route::get('/rede-municipal', [RelatorioController::class, 'estatisticasRede'])->name('relatorios.rede-municipal');
     Route::get('/rede-municipal/pdf', [RelatorioController::class, 'pdfRede'])->name('relatorios.rede-municipal.pdf');
