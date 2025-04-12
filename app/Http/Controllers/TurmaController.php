@@ -141,24 +141,7 @@ class TurmaController extends Controller
                 }
 
 
-            public function create()
-            {
-                $user = Auth::user();
-            
-                if (!$user) {
-                    abort(403, 'Usuário não autenticado.');
-                }
-            
-                // Verifica os papéis permitidos (admin ou aplicador)
-                if (!in_array($user->role, ['admin', 'aplicador'])) {
-                    abort(403, 'Acesso não autorizado.');
-                }
-            
-                // Para admin e aplicador, mostramos todas as escolas
-                $escolas = Escola::all();
-            
-                return view('turmas.create', compact('escolas'));
-            }
+           
             public function addAlunosForm(Turma $turma)
             {
                 $user = Auth::user();
@@ -222,55 +205,141 @@ class TurmaController extends Controller
                         return redirect()->route('turmas.show', $turma->id)
                                         ->with('success', count($novosAlunos) . ' alunos foram adicionados à turma com sucesso!');
                     }
-            public function store(Request $request)
-                    {
-                        $request->validate([
-                            'nome_turma' => 'required|string|max:255',
-                            'alunos' => 'required|array|min:1',
-                            'alunos.*' => 'required|string|max:255',
-                            'escola_id' => 'required|exists:escolas,id',
-                        ]);
+         
+                   // Adicione estes métodos ao seu TurmaController
 
-                        $user = Auth::user();
-
-                        // Gera um código único para a turma
-                        $codigoTurma = Str::random(8);
-
-                        // Cria a turma
-                        $turma = Turma::create([
-                            'nome_turma' => $request->input('nome_turma'),
-                            'quantidade_alunos' => count($request->input('alunos')),
-                            'escola_id' => $request->input('escola_id'),
-                            'aplicador_id' => $user->id,
-                            'codigo_turma' => $codigoTurma,
-                        ]);  
-                        
-                        // Gera códigos de acesso para os alunos
-                        $alunos = [];
-                        foreach ($request->input('alunos') as $nomeAluno) {
-                            $codigoAcesso = Str::random(6);
-                            $email = "{$codigoAcesso}@juazeiro.ba.gov.br";
-                    
-                            $alunos[] = [
-                                'name' => $nomeAluno,
-                                'email' => $email,
-                                'codigo_acesso' => $codigoAcesso,
-                                'escola_id' => $request->input('escola_id'),
-                                'turma_id' => $turma->id,
-                                'role' => 'aluno',
-                                'password' => Hash::make($codigoAcesso),
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ];
-                        }
-                    
-                        User::insert($alunos);
-                    
-        return redirect()->route('turmas.index')
-              ->with('success', 'Turma e alunos cadastrados com sucesso!');
+            public function create()
+            {
+                $user = Auth::user();
+                
+                if (!$user) {
+                    abort(403, 'Usuário não autenticado.');
                 }
+                
+                if (!in_array($user->role, ['admin', 'aplicador'])) {
+                    abort(403, 'Acesso não autorizado.');
+                }
+                
+                $escolas = Escola::all();
+                return view('turmas.create', compact('escolas'));
+            }
+
+            public function createLote()
+            {
+                $user = Auth::user();
+                
+                if (!$user) {
+                    abort(403, 'Usuário não autenticado.');
+                }
+                
+                if (!in_array($user->role, ['admin', 'aplicador'])) {
+                    abort(403, 'Acesso não autorizado.');
+                }
+                
+                $escolas = Escola::all();
+                return view('turmas.create-lote', compact('escolas'));
+            }
+
+            public function store(Request $request)
+            {
+                $validated = $request->validate([
+                    'nome_turma' => 'required|string|max:255',
+                    'escola_id' => 'required|exists:escolas,id',
+                    'alunos' => 'required|array|min:1',
+                    'alunos.*' => 'required|string|max:255'
+                ]);
+
+                $alunos = collect($request->input('alunos', []))
+                    ->map(fn($nome) => trim($nome))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                if (empty($alunos)) {
+                    return back()->withErrors(['alunos' => 'É necessário cadastrar pelo menos um aluno.'])->withInput();
+                }
+
+                $turma = Turma::create([
+                    'nome_turma' => $validated['nome_turma'],
+                    'quantidade_alunos' => count($alunos),
+                    'escola_id' => $validated['escola_id'],
+                    'aplicador_id' => auth()->id(),
+                    'codigo_turma' => Str::random(8),
+                ]);
+
+                $alunosParaCadastro = array_map(function($nome) use ($validated, $turma) {
+                    $codigoAcesso = Str::random(6);
                     
-            
+                    return [
+                        'name' => $nome,
+                        'email' => "$codigoAcesso@juazeiro.ba.gov.br",
+                        'codigo_acesso' => $codigoAcesso,
+                        'escola_id' => $validated['escola_id'],
+                        'turma_id' => $turma->id,
+                        'role' => 'aluno',
+                        'password' => Hash::make($codigoAcesso),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }, $alunos);
+
+                User::insert($alunosParaCadastro);
+
+                return redirect()->route('turmas.index')
+                    ->with('success', 'Turma e alunos cadastrados com sucesso!');
+            }
+
+            public function storeLote(Request $request)
+            {
+                $validated = $request->validate([
+                    'nome_turma' => 'required|string|max:255',
+                    'escola_id' => 'required|exists:escolas,id',
+                    'arquivo_excel' => 'required|file|mimes:xlsx,xls,csv',
+                    'alunos_excel' => 'required|array|min:1',
+                    'alunos_excel.*' => 'required|string|max:255'
+                ]);
+
+                $alunos = collect($request->input('alunos_excel', []))
+                    ->map(fn($nome) => trim($nome))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                if (empty($alunos)) {
+                    return back()->withErrors(['alunos_excel' => 'Nenhum aluno válido encontrado no arquivo.'])->withInput();
+                }
+
+                $turma = Turma::create([
+                    'nome_turma' => $validated['nome_turma'],
+                    'quantidade_alunos' => count($alunos),
+                    'escola_id' => $validated['escola_id'],
+                    'aplicador_id' => auth()->id(),
+                    'codigo_turma' => Str::random(8),
+                ]);
+
+                $alunosParaCadastro = array_map(function($nome) use ($validated, $turma) {
+                    $codigoAcesso = Str::random(6);
+                    
+                    return [
+                        'name' => $nome,
+                        'email' => "$codigoAcesso@juazeiro.ba.gov.br",
+                        'codigo_acesso' => $codigoAcesso,
+                        'escola_id' => $validated['escola_id'],
+                        'turma_id' => $turma->id,
+                        'role' => 'aluno',
+                        'password' => Hash::make($codigoAcesso),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }, $alunos);
+
+                User::insert($alunosParaCadastro);
+
+                return redirect()->route('turmas.index')
+                    ->with('success', 'Turma e alunos cadastrados com sucesso via arquivo Excel!');
+            }
                 public function show(Turma $turma)
                 {
                     $user = Auth::user();

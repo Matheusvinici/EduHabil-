@@ -2,13 +2,18 @@
 
 @section('content')
 <div class="container">
-    <div class="card border-primary shadow">
-        <div class="card-header bg-primary text-white">
-            <div class="d-flex justify-content-between align-items-center">
+                <div class="card border-primary shadow">
+                    <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
                 <h3 class="mb-0">Listagem de Turmas</h3>
-                <a href="{{ route('turmas.create') }}" class="btn btn-light">
-                    Nova Turma
-                </a>
+                <div>
+                    <a href="{{ route('turmas.create') }}" class="btn btn-light mr-2">
+                        <i class="fas fa-users mr-1"></i> Cadastro Manual
+                    </a>
+                    <a href="{{ route('turmas.create-lote') }}" class="btn btn-light">
+                        <i class="fas fa-file-excel mr-1"></i> Cadastro em Lote
+                    </a>
+                </div>
             </div>
         </div>
 
