@@ -40,7 +40,7 @@ class RespostaSimuladoController extends Controller
 
                 switch ($user->role) {
                     case 'admin':
-                        return redirect()->route('respostas_simulados.admin.estatisticas');
+                        return redirect()->route('respostas_simulados.aplicador.index');
                     case 'inclusiva':
                         return redirect()->route('respostas_simulados.admin.estatisticas');
                     case 'professor':

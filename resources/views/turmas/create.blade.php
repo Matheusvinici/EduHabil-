@@ -8,9 +8,14 @@
                 <h3 class="mb-0">
                     <i class="fas fa-users mr-2"></i>Cadastrar Nova Turma
                 </h3>
-                <a href="{{ route('turmas.index') }}" class="btn btn-light btn-sm">
-                    <i class="fas fa-arrow-left mr-1"></i> Voltar
-                </a>
+                <div>
+                    <a href="{{ route('turmas.create-lote') }}" class="btn btn-light btn-sm mr-2">
+                        <i class="fas fa-file-excel mr-1"></i> Cadastro em Lote
+                    </a>
+                    <a href="{{ route('turmas.index') }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left mr-1"></i> Voltar
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -19,11 +24,10 @@
                 @csrf
                 
                 <div class="row mb-4">
-                    <!-- Adicione este campo para seleção de escola -->
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="escola_id" class="font-weight-bold">Escola</label>
-                            <select name="escola_id" class="form-control form-control-lg" required>
+                            <select name="escola_id" id="escola_id" class="form-control form-control-lg" required>
                                 <option value="">Selecione uma escola</option>
                                 @foreach($escolas as $escola)
                                     <option value="{{ $escola->id }}">{{ $escola->nome }}</option>
@@ -35,12 +39,11 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="nome_turma" class="font-weight-bold">Nome da Turma</label>
-                            <input type="text" name="nome_turma" class="form-control form-control-lg" placeholder="Digite o nome da turma" required>
+                            <input type="text" name="nome_turma" id="nome_turma" class="form-control form-control-lg" placeholder="Digite o nome da turma" required>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Restante do formulário permanece igual -->
                 <div class="form-group">
                     <label class="font-weight-bold">Alunos</label>
                     <div class="alert alert-info">
@@ -69,7 +72,7 @@
                 </div>
                 
                 <div class="form-group mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg btn-block">
+                    <button type="submit" class="btn btn-primary btn-lg">
                         <i class="fas fa-save mr-1"></i> Cadastrar Turma
                     </button>
                 </div>
@@ -77,55 +80,78 @@
         </div>
     </div>
 </div>
+@endsection
 
-<!-- O script JavaScript permanece igual -->
+@section('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Adiciona novo campo de aluno
-    document.getElementById('adicionar-aluno').addEventListener('click', function() {
-        const container = document.getElementById('alunos-container');
-        const novoInput = document.createElement('div');
-        novoInput.className = 'input-group mb-2 aluno-input';
-        novoInput.innerHTML = `
-            <input type="text" name="alunos[]" class="form-control" placeholder="Nome completo do aluno" required>
-            <div class="input-group-append">
-                <button class="btn btn-outline-danger remover-aluno" type="button">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
+$(document).ready(function() {
+    // Adiciona novo campo de aluno (cadastro manual)
+    $('#adicionar-aluno').click(function() {
+        const container = $('#alunos-container');
+        const novoInput = $(`
+            <div class="input-group mb-2 aluno-input">
+                <input type="text" name="alunos[]" class="form-control" placeholder="Nome completo do aluno" required>
+                <div class="input-group-append">
+                    <button class="btn btn-outline-danger remover-aluno" type="button">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
             </div>
-        `;
-        container.appendChild(novoInput);
+        `);
+        container.append(novoInput);
     });
 
     // Remove campo de aluno
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remover-aluno') || 
-            e.target.closest('.remover-aluno')) {
-            const btn = e.target.classList.contains('remover-aluno') 
-                ? e.target 
-                : e.target.closest('.remover-aluno');
-            const inputGroup = btn.closest('.aluno-input');
-            
-            if (document.querySelectorAll('.aluno-input').length > 1) {
-                inputGroup.remove();
-            } else {
-                alert('É necessário cadastrar pelo menos um aluno.');
-            }
+    $(document).on('click', '.remover-aluno', function() {
+        const inputGroup = $(this).closest('.aluno-input');
+        
+        if ($('.aluno-input').length > 1) {
+            inputGroup.remove();
+        } else {
+            Swal.fire({
+                title: 'Atenção!',
+                text: 'É necessário cadastrar pelo menos um aluno.',
+                icon: 'warning'
+            });
         }
     });
 
     // Validação do formulário
-    document.getElementById('turmaForm').addEventListener('submit', function(e) {
-        const inputs = document.querySelectorAll('input[name="alunos[]"]');
-        let vazios = 0;
+    $('#turmaForm').submit(function(e) {
+        const inputsManuais = $('input[name="alunos[]"]');
         
-        inputs.forEach(input => {
-            if (input.value.trim() === '') vazios++;
+        let temAlunos = false;
+        
+        // Verifica alunos manuais
+        inputsManuais.each(function() {
+            if ($(this).val().trim() !== '') temAlunos = true;
+        });
+        
+        if (!temAlunos) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Atenção!',
+                text: 'Por favor, adicione pelo menos um aluno.',
+                icon: 'warning',
+                confirmButtonText: 'Entendi'
+            });
+            return;
+        }
+        
+        // Verifica se há campos vazios
+        let vazios = 0;
+        inputsManuais.each(function() {
+            if ($(this).val().trim() === '') vazios++;
         });
         
         if (vazios > 0) {
             e.preventDefault();
-            alert('Por favor, preencha todos os nomes dos alunos ou remova os campos vazios.');
+            Swal.fire({
+                title: 'Atenção!',
+                text: 'Por favor, preencha todos os nomes dos alunos ou remova os campos vazios.',
+                icon: 'warning',
+                confirmButtonText: 'Entendi'
+            });
         }
     });
 });

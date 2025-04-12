@@ -191,6 +191,12 @@ Route::middleware('auth')->group(function () {
 
             // Rotas para aplicador
 Route::prefix('aplicador')->group(function() {
+
+    Route::get('/', [TurmaController::class, 'index'])->name('turmas.index');
+    Route::get('/create', [TurmaController::class, 'create'])->name('turmas.create');
+    Route::get('/create-lote', [TurmaController::class, 'createLote'])->name('turmas.create-lote');
+    Route::post('/', [TurmaController::class, 'store'])->name('turmas.store');
+    Route::post('/store-lote', [TurmaController::class, 'storeLote'])->name('turmas.store-lote');
     Route::get('/simulados', [RespostaSimuladoController::class, 'indexForAplicador'])
         ->name('respostas_simulados.aplicador.index');
 
