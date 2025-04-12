@@ -25,11 +25,11 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // Relacionamento com a escola
-    public function escola()
-    {
-        return $this->belongsTo(Escola::class);
-    }
+            public function escolas()
+            {
+                return $this->belongsToMany(Escola::class, 'user_escola')
+                    ->withTimestamps();
+            }
 
     // Relacionamento com a turma (para alunos)
     public function turma()

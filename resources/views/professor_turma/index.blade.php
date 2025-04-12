@@ -47,6 +47,7 @@
             <tr>
                 <th>Escola</th>
                 <th>Turma</th>
+                <th>Código do Professor</th>
                 <th>Professor</th>
                 <th class="text-center">Ações</th>
             </tr>
@@ -56,6 +57,7 @@
                 <tr>
                     <td>{{ $vinculo->escola ?? 'Não informada' }}</td>
                     <td>{{ $vinculo->nome_turma ?? 'Não informada' }}</td>
+                    <td>{{ $vinculo->professor_id ?? 'N/A' }}</td>
                     <td>{{ $vinculo->professor ?? 'Não informado' }}</td>
                     <td class="text-center d-flex gap-2 justify-content-center">
                         <a href="{{ route('professor-turma.edit', ['professor_id' => $vinculo->professor_id, 'turma_id' => $vinculo->turma_id]) }}"

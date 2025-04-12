@@ -27,27 +27,65 @@
          */
         public function create(Request $request)
         {
+            // Verifica permissões
             if (!in_array(Auth::user()->role, ['admin', 'aplicador'])) {
                 abort(403, 'Acesso não autorizado.');
             }
-    
+        
+            // Validação
             $request->validate(['escola_id' => 'required|exists:escolas,id']);
-    
             $escola = Escola::findOrFail($request->escola_id);
-            
-            $turmas = Turma::where('escola_id', $escola->id)
-                         ->orderBy('nome_turma')
-                         ->get();
-    
-            $professores = User::where('escola_id', $escola->id)
-                             ->where('role', 'professor')
-                             ->orderBy('name')
-                             ->get();
-    
+        
+            // Obtém todas as turmas da escola com seus professores
+            $turmasComProfessores = Turma::with('professores')
+                ->where('escola_id', $escola->id)
+                ->get();
+        
+            // Lista de professores já vinculados a turmas
+            $professoresVinculados = collect();
+            foreach ($turmasComProfessores as $turma) {
+                $professoresVinculados = $professoresVinculados->merge($turma->professores);
+            }
+            $professoresVinculadosIds = $professoresVinculados->pluck('id')->unique();
+        
+            // Obtém professores disponíveis (não vinculados e que pertencem à escola)
+            $professoresDisponiveis = User::whereHas('escolas', function($q) use ($escola) {
+                $q->where('escola_id', $escola->id);
+            })
+            ->where('role', 'professor')
+            ->whereNotIn('id', $professoresVinculadosIds)
+            ->orderBy('name')
+            ->get();
+        
+            // Lista de turmas que já possuem professores
+            $turmasVinculadasIds = $turmasComProfessores
+                ->filter(function($turma) {
+                    return $turma->professores->isNotEmpty();
+                })
+                ->pluck('id');
+        
+            // Obtém turmas disponíveis (sem professor)
+            $turmasDisponiveis = Turma::where('escola_id', $escola->id)
+                ->whereNotIn('id', $turmasVinculadasIds)
+                ->orderBy('nome_turma')
+                ->get();
+        
+            // Prepara o resumo das vinculações existentes
+            $vinculacoesExistentes = collect();
+            foreach ($turmasComProfessores as $turma) {
+                foreach ($turma->professores as $professor) {
+                    $vinculacoesExistentes->push([
+                        'turma' => $turma->nome_turma,
+                        'professor' => $professor->name
+                    ]);
+                }
+            }
+        
             return view('professor_turma.create', [
                 'escola' => $escola,
-                'turmas' => $turmas,
-                'professores' => $professores
+                'turmasDisponiveis' => $turmasDisponiveis,
+                'professoresDisponiveis' => $professoresDisponiveis,
+                'vinculacoesExistentes' => $vinculacoesExistentes
             ]);
         }
     
