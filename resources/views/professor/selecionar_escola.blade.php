@@ -8,24 +8,28 @@
                 <div class="card-header">Selecionar Escola</div>
 
                 <div class="card-body">
-                    <p>Por favor, selecione a escola com a qual deseja trabalhar:</p>
-                    
-                    <form method="POST" action="{{ route('professor.definir-escola') }}">
+                    <form method="POST" action="{{ route('definir.escola') }}">
                         @csrf
-                        
-                        <div class="form-group">
-                            <label for="escola_id">Escola</label>
-                            <select name="escola_id" id="escola_id" class="form-control" required>
-                                @foreach($escolas as $escola)
-                                    <option value="{{ $escola->id }}">{{ $escola->nome }}</option>
-                                @endforeach
-                            </select>
+
+                        <div class="form-group row">
+                            <label for="escola_id" class="col-md-4 col-form-label text-md-right">Escola</label>
+
+                            <div class="col-md-6">
+                                <select id="escola_id" class="form-control" name="escola_id" required>
+                                    <option value="">Selecione uma escola</option>
+                                    @foreach($escolas as $escola)
+                                        <option value="{{ $escola->id }}">{{ $escola->nome }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
-                        
-                        <div class="form-group mt-3">
-                            <button type="submit" class="btn btn-primary">
-                                Confirmar Escola
-                            </button>
+
+                        <div class="form-group row mb-0">
+                            <div class="col-md-8 offset-md-4">
+                                <button type="submit" class="btn btn-primary">
+                                    Acessar
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
