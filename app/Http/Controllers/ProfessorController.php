@@ -3,67 +3,42 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Escola; // Adicione esta linha
+use App\Models\Escola;
 
 class ProfessorController extends Controller
 {
-    public function dashboard(Request $request)
+    public function dashboard()
     {
-        $user = Auth::user();
-        
-        // Verifica se já tem escola selecionada na sessão
-        $escolaSelecionada = session('escola_professor');
-        
-        // Se não tem escola selecionada ou foi solicitada mudança
-        if (!$escolaSelecionada || $request->has('mudar_escola')) {
-            return $this->selecionarEscola();
+        // Se for professor e não tiver escola selecionada, redireciona
+        if (auth()->user()->isProfessor() && !session('escola_selecionada')) {
+            return redirect()->route('selecionar.escola');
         }
-        
-        // Carrega os dados da escola selecionada
-        $escola = $user->escolas()->find($escolaSelecionada);
-        
-        if (!$escola) {
-            // Se a escola não existe mais no vínculo do professor
-            return $this->selecionarEscola();
+
+        // Busca a ID da escola selecionada na sessão
+        $escolaId = session('escola_selecionada');
+
+        // Busca os dados da escola no banco de dados, se a ID existir
+        $escola = null;
+        if ($escolaId) {
+            $escola = Escola::findOrFail($escolaId);
         }
-        
-        // Obter o tipo da escola para determinar os acessos
-        $tipoEscola = $escola->tipo; // Assumindo que há um campo 'tipo' na tabela escolas
-        
-        return view('professor.dashboard', compact('escola', 'tipoEscola'));
+
+        return view('professor.dashboard', compact('escola'));
     }
-    
+
     public function selecionarEscola()
     {
-        $user = Auth::user();
-        $escolas = $user->escolas()->get();
-        
-        if ($escolas->count() === 1) {
-            // Se só tem uma escola, seleciona automaticamente
-            session(['escola_professor' => $escolas->first()->id]);
-            return redirect()->route('professor.dashboard');
-        }
-        
+        $escolas = auth()->user()->escolas()->get();
         return view('professor.selecionar_escola', compact('escolas'));
     }
-    
+
     public function definirEscola(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'escola_id' => 'required|exists:escolas,id'
         ]);
-        
-        $user = Auth::user();
-        
-        // Verifica se o professor está vinculado à escola selecionada
-        if (!$user->escolas()->where('escolas.id', $request->escola_id)->exists()) {
-            return back()->withErrors(['escola_id' => 'Você não está vinculado a esta escola']);
-        }
-        
-        // Armazena a escola selecionada na sessão
-        session(['escola_professor' => $request->escola_id]);
-        
-        return redirect()->route('professor.dashboard');
+
+        session(['escola_selecionada' => $validated['escola_id']]);
+        return redirect()->intended(route('professor.dashboard'));
     }
 }

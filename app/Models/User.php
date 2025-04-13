@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -6,13 +7,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'escola_id', 'turma_id', 
-        'codigo_acesso', 'deficiencia'
+        'name',
+        'email',
+        'password',
+        'role',
+        'escola_id',
+        'turma_id',
+        'codigo_acesso',
+        'deficiencia',
+        'email_verified_at'
     ];
 
     protected $hidden = [
@@ -25,11 +33,23 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-            public function escolas()
-            {
-                return $this->belongsToMany(Escola::class, 'user_escola')
-                    ->withTimestamps();
-            }
+    /**
+     * Relacionamento many-to-many com escolas usando a tabela pivot personalizada
+     */
+    public function escolas()
+    {
+        return $this->belongsToMany(Escola::class, 'user_escola')
+                   ->using(UserEscola::class)
+                   ->withTimestamps();
+    }
+
+    /**
+     * Relacionamento com a tabela pivot personalizada
+     */
+    public function vinculosEscolas()
+    {
+        return $this->hasMany(UserEscola::class);
+    }
 
     // Relacionamento com a turma (para alunos)
     public function turma()
@@ -43,19 +63,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Turma::class, 'professor_turma', 'professor_id', 'turma_id')
                     ->withTimestamps();
     }
-    
-    
+
     // Para aplicadores - turmas que eles criaram
     public function turmasCriadas()
     {
         return $this->hasMany(Turma::class, 'aplicador_id');
-    }
-
-    // Para professores - alunos que eles ensinam (em todas suas turmas)
-    public function alunos()
-    {
-        return User::whereIn('turma_id', $this->turmasLecionadas()->pluck('id'))
-                 ->where('role', 'aluno');
     }
 
     // Respostas de simulado
@@ -64,9 +76,10 @@ class User extends Authenticatable
         return $this->hasMany(RespostaSimulado::class);
     }
 
-    // Escopo para filtrar por role
-    public function scopePorRole($query, $role)
+    public function isProfessor()
     {
-        return $query->where('role', $role);
+        return $this->role === 'professor';
     }
+
+    
 }

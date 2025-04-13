@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class UserEscola extends Model
+class UserEscola extends Pivot
 {
     use HasFactory;
 
@@ -14,6 +14,7 @@ class UserEscola extends Model
     protected $fillable = [
         'user_id',
         'escola_id',
+        // Adicione aqui outros campos extras se necessário
     ];
 
     public function user()

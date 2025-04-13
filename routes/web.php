@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TutoriaCriterioController;
+use App\Http\Middleware\CheckEscolaSelecionada;
+use App\Http\Middleware\CheckRole; // Importe seu middleware de role
 use App\Http\Controllers\TutoriaAvaliacaoController;
 use App\Http\Controllers\{
     UserController,
@@ -96,12 +98,21 @@ Route::middleware('auth')->group(function () {
 
 });
 
-              // Rotas para professores
-    Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])->name('professor.dashboard');
-    Route::get('/selecionar-escola', [ProfessorController::class, 'selecionarEscola'])->name('professor.selecionar-escola');
-    Route::post('/definir-escola', [ProfessorController::class, 'definirEscola'])->name('professor.definir-escola');
-
-
+              Route::middleware(['auth', 'role:professor'])->group(function () {
+                // Rotas de seleção (sem verificação de escola)
+                Route::get('/professor/selecionar-escola', [ProfessorController::class, 'selecionarEscola'])
+                     ->name('selecionar.escola');
+                     
+                Route::post('/professor/definir-escola', [ProfessorController::class, 'definirEscola'])
+                     ->name('definir.escola');
+                     
+                // Demais rotas (com verificação de escola)
+                Route::middleware('escola.selecionada')->group(function () {
+                    Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])
+                         ->name('professor.dashboard');
+                    
+                });
+            });
     // Rotas de respostas
     Route::prefix('respostas')->group(function () {
         Route::get('/professor/estatisticas', [RespostaController::class, 'professorEstatisticas'])
