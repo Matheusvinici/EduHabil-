@@ -46,13 +46,15 @@
                                 <a href="{{ route('tutoria_avaliacoes.edit', $avaliacao->id) }}" class="btn btn-sm btn-warning">
                                     <i class="fas fa-edit"></i> Editar
                                 </a>
-                                <form action="{{ route('tutoria_avaliacoes.destroy', $avaliacao->id) }}" method="POST" class="d-inline">
+                                <form action="{{ route('tutoria_avaliacoes.destroy', $avaliacao->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta avaliação?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-danger" onclick="return confirm('Deseja remover esta avaliação?')">
+                                    <button type="submit" class="btn btn-sm btn-danger">
                                         <i class="fas fa-trash-alt"></i> Excluir
                                     </button>
                                 </form>
+
+                             
                             </td>
                         </tr>
                     @empty

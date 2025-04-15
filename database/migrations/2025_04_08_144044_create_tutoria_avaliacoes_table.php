@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('tutoria_avaliacoes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tutor_id')->constrained('users');
-            $table->foreignId('escola_id')->constrained('escolas');
+            $table->foreignId('tutor_id');
+            $table->foreignId('escola_id');
             $table->date('data_visita');
             $table->text('observacoes')->nullable(); // Anotações livres
             $table->timestamps();

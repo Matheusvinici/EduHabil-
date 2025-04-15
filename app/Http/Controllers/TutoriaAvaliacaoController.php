@@ -88,9 +88,21 @@ class TutoriaAvaliacaoController extends Controller
         return redirect()->route('tutoria_avaliacoes.index')->with('message', 'Avaliação atualizada!')->with('type', 'success');
     }
 
-    public function destroy(TutoriaAvaliacao $tutoria_avaliacao)
+    
+    public function destroy($id)
     {
-        $tutoria_avaliacao->delete();
-        return redirect()->route('tutoria_avaliacoes.index')->with('message', 'Avaliação removida!')->with('type', 'danger');
+        // Encontra a avaliação
+        $avaliacao = TutoriaAvaliacao::findOrFail($id);
+        
+        // Primeiro deleta os registros da tabela pivô (avaliacao_criterios)
+        $avaliacao->avaliacaoCriterios()->delete();
+        
+        // Depois deleta a avaliação em si
+        $avaliacao->delete();
+        
+        return redirect()->route('tutoria_avaliacoes.index')
+            ->with('success', 'Avaliação deletada com sucesso!');
     }
+    
+    
 }
