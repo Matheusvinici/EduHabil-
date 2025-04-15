@@ -3,35 +3,15 @@
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
-use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class RedeMunicipalExport implements WithMultipleSheets
-{
-    protected $data;
-
-    public function __construct($data)
-    {
-        $this->data = $data;
-    }
-
-    public function sheets(): array
-    {
-        $sheets = [
-            new ResumoGeralSheet($this->data),
-            new DadosTRISheet($this->data),
-            new EscolasSheet($this->data),
-            new ProjecaoIDEBSheet($this->data)
-        ];
-
-        return $sheets;
-    }
-}
-
-class ResumoGeralSheet implements FromCollection, WithTitle, WithHeadings, WithStyles
+class RedeMunicipalExport implements FromCollection, WithHeadings, WithStyles, WithTitle, WithColumnWidths, WithEvents
 {
     protected $data;
 
@@ -42,148 +22,176 @@ class ResumoGeralSheet implements FromCollection, WithTitle, WithHeadings, WithS
 
     public function collection()
     {
-        $resumo = [
-            ['Total de Simulados', $this->data['totalSimulados']],
-            ['Total de Professores', $this->data['totalProfessores']],
-            ['Total de Alunos', $this->data['totalAlunos']],
-            ['Alunos com Deficiência', $this->data['totalAlunosComDeficiencia']],
-            ['Total de Respostas', $this->data['totalRespostas']],
-            ['Alunos que Responderam', $this->data['alunosResponderam']],
-            ['Média Theta (TRI)', number_format($this->data['mediaTRI'], 3)],
-            ['Nota TRI Convertida', number_format($this->data['notaTRIConvertida'], 1)],
-            ['Média 1º-5º Ano', number_format($this->data['mediaGeral1a5'], 2)],
-            ['Média 6º-9º Ano', number_format($this->data['mediaGeral6a9'], 2)],
-            ['Projeção IDEB 1º-5º', number_format($this->data['projecaoIDEB1a5'], 1)],
-            ['Projeção IDEB 6º-9º', number_format($this->data['projecaoIDEB6a9'], 1)]
-        ];
+        $rows = [];
+        
+        // Cabeçalho
+        $rows[] = ['RELATÓRIO DA REDE MUNICIPAL'];
+        $rows[] = ['Data:', now()->format('d/m/Y H:i:s')];
+        $rows[] = ['Simulado:', $this->data['simuladoSelecionado']->nome ?? 'N/A'];
+        $rows[] = [];
+        
+        // Dados Gerais
+        $rows[] = ['DADOS GERAIS'];
+        $rows[] = ['Total de Alunos', $this->data['totalAlunos']];
+        $rows[] = ['Alunos Responderam', $this->data['alunosResponderam']];
+        $rows[] = ['Taxa de Participação', $this->data['alunosAtivos'] > 0 
+            ? round(($this->data['alunosResponderam']/$this->data['alunosAtivos'])*100, 2).'%' 
+            : '0%'];
+        $rows[] = [];
+        
+        // Médias Ponderadas
+        $rows[] = ['MÉDIAS PONDERADAS'];
+        $rows[] = ['Peso 1', $this->data['mediasPeso']['peso_1']];
+        $rows[] = ['Peso 2', $this->data['mediasPeso']['peso_2']];
+        $rows[] = ['Peso 3', $this->data['mediasPeso']['peso_3']];
+        $rows[] = ['Média Geral', $this->data['mediasPeso']['geral']];
+        $rows[] = [];
+        
+        // Projeção TRI
+        $rows[] = ['PROJEÇÃO TRI'];
+        $rows[] = ['Peso 1', $this->data['projecaoTRI']['peso_1']];
+        $rows[] = ['Peso 2', $this->data['projecaoTRI']['peso_2']];
+        $rows[] = ['Peso 3', $this->data['projecaoTRI']['peso_3']];
+        $rows[] = ['Média Geral TRI', $this->data['projecaoTRI']['geral']];
+        $rows[] = [];
+        
+        // Escolas
+        if (!empty($this->data['escolas'])) {
+            $rows[] = ['DESEMPENHO POR ESCOLA'];
+            $rows[] = ['Escola', 'Alunos', 'Respondentes', 'Participação', 'Média', 'TRI', 'Meta'];
+            
+            foreach ($this->data['escolas'] as $escola) {
+                $rows[] = [
+                    $escola['nome'],
+                    $escola['alunos_ativos'],
+                    $escola['alunos_responderam'],
+                    $escola['alunos_ativos'] > 0 
+                        ? round(($escola['alunos_responderam']/$escola['alunos_ativos'])*100, 2).'%' 
+                        : '0%',
+                    $escola['media_ponderada'],
+                    $escola['projecao_tri'],
+                    $escola['atingiu_meta'] ? 'Sim' : 'Não'
+                ];
+            }
+            $rows[] = [];
+        }
+        
+        // Alunos
+        if (!empty($this->data['alunos'])) {
+            $rows[] = ['DESEMPENHO POR ALUNO'];
+            $rows[] = ['Aluno', 'Acertos', 'Total', 'Percentual', 'TRI'];
+            
+            foreach ($this->data['alunos'] as $aluno) {
+                $rows[] = [
+                    $aluno['nome'],
+                    $aluno['acertos'],
+                    $aluno['total'],
+                    $aluno['porcentagem'].'%',
+                    $aluno['tri']
+                ];
+            }
+        }
 
-        return collect($resumo);
+        return collect($rows);
     }
 
     public function headings(): array
     {
-        return ['Indicador', 'Valor'];
-    }
-
-    public function title(): string
-    {
-        return 'Resumo Geral';
+        return [];
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true]],
-            'A:B' => ['alignment' => ['horizontal' => 'left']]
+            // Estilo para títulos principais
+            'A1' => ['font' => ['bold' => true, 'size' => 16]],
+            
+            // Estilo para seções
+            'A5' => ['font' => ['bold' => true, 'size' => 14]],
+            'A11' => ['font' => ['bold' => true, 'size' => 14]],
+            'A17' => ['font' => ['bold' => true, 'size' => 14]],
+            'A24' => ['font' => ['bold' => true, 'size' => 14]],
+            
+            // Estilo para cabeçalhos de tabela
+            'A6:B6' => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'D9E1F2']]],
+            'A12:B12' => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'D9E1F2']]],
+            'A18:B18' => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'D9E1F2']]],
+            'A25:G25' => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'D9E1F2']]],
+            'A32:E32' => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'D9E1F2']]],
         ];
-    }
-}
-
-class DadosTRISheet implements FromCollection, WithTitle, WithHeadings
-{
-    protected $data;
-
-    public function __construct($data)
-    {
-        $this->data = $data;
-    }
-
-    public function collection()
-    {
-        $dadosTRI = [
-            ['Muito Baixa (< -1.5)', $this->data['distribuicaoTheta']['muito_baixa']],
-            ['Baixa (-1.5 a -0.5)', $this->data['distribuicaoTheta']['baixa']],
-            ['Adequada (-0.5 a 1.0)', $this->data['distribuicaoTheta']['adequada']],
-            ['Avançada (> 1.0)', $this->data['distribuicaoTheta']['avancada']]
-        ];
-
-        return collect($dadosTRI);
-    }
-
-    public function headings(): array
-    {
-        return ['Nível de Habilidade', 'Quantidade de Alunos'];
     }
 
     public function title(): string
     {
-        return 'Distribuição TRI';
-    }
-}
-
-class EscolasSheet implements FromCollection, WithTitle, WithHeadings
-{
-    protected $data;
-
-    public function __construct($data)
-    {
-        $this->data = $data;
+        return 'Relatório Rede';
     }
 
-    public function collection()
+    public function columnWidths(): array
     {
-        return collect($this->data['estatisticasPorEscola'])->map(function($escola) {
-            return [
-                'Escola' => $escola['escola'],
-                'Média TRI' => number_format($escola['media_tri'], 3),
-                'Nota TRI' => $escola['nota_tri_convertida'],
-                'Nota Peso' => $escola['media_ponderada'],
-                'Nota Híbrida' => $escola['media_hibrida'],
-                'Projeção IDEB' => $escola['projecao_ideb'],
-                'Meta Atingida' => $escola['atingiu_meta'] ? 'Sim' : 'Não'
-            ];
-        });
-    }
-
-    public function headings(): array
-    {
-        return ['Escola', 'Média TRI', 'Nota TRI', 'Nota Peso', 'Nota Híbrida', 'Projeção IDEB', 'Meta Atingida'];
-    }
-
-    public function title(): string
-    {
-        return 'Escolas';
-    }
-}
-
-class ProjecaoIDEBSheet implements FromCollection, WithTitle, WithHeadings
-{
-    protected $data;
-
-    public function __construct($data)
-    {
-        $this->data = $data;
-    }
-
-    public function collection()
-    {
-        $projecoes = [
-            ['Anos Iniciais (1º-5º)', 
-             number_format($this->data['mediaGeral1a5'], 2),
-             number_format($this->data['notaTRIConvertida'], 1),
-             number_format($this->data['notaHibridaGeral1a5'], 1),
-             number_format($this->data['projecaoIDEB1a5'], 1),
-             $this->data['alertaMeta']['atingiu_meta'] ? 'Sim' : 'Não'
-            ],
-            ['Anos Finais (6º-9º)', 
-             number_format($this->data['mediaGeral6a9'], 2),
-             number_format($this->data['notaTRIConvertida'], 1),
-             number_format($this->data['notaHibridaGeral6a9'], 1),
-             number_format($this->data['projecaoIDEB6a9'], 1),
-             $this->data['projecaoIDEB6a9'] >= 5.0 ? 'Sim' : 'Não'
-            ]
+        return [
+            'A' => 30,
+            'B' => 15,
+            'C' => 15,
+            'D' => 15,
+            'E' => 15,
+            'F' => 15,
+            'G' => 10,
         ];
-
-        return collect($projecoes);
     }
 
-    public function headings(): array
+    public function registerEvents(): array
     {
-        return ['Segmento', 'Média Theta', 'Nota TRI', 'Nota Híbrida', 'Projeção IDEB', 'Meta Atingida'];
-    }
-
-    public function title(): string
-    {
-        return 'Projeção IDEB';
+        return [
+            AfterSheet::class => function(AfterSheet $event) {
+                // Mesclar células para títulos
+                $event->sheet->mergeCells('A1:G1');
+                $event->sheet->mergeCells('A5:G5');
+                $event->sheet->mergeCells('A11:G11');
+                $event->sheet->mergeCells('A17:G17');
+                $event->sheet->mergeCells('A24:G24');
+                $event->sheet->mergeCells('A31:G31');
+                
+                // Alinhamento central para títulos
+                $event->sheet->getStyle('A1:G1')->getAlignment()->setHorizontal('center');
+                $event->sheet->getStyle('A5:G5')->getAlignment()->setHorizontal('center');
+                $event->sheet->getStyle('A11:G11')->getAlignment()->setHorizontal('center');
+                $event->sheet->getStyle('A17:G17')->getAlignment()->setHorizontal('center');
+                $event->sheet->getStyle('A24:G24')->getAlignment()->setHorizontal('center');
+                $event->sheet->getStyle('A31:G31')->getAlignment()->setHorizontal('center');
+                
+                // Bordas para tabelas
+                $event->sheet->getStyle('A6:B9')->applyFromArray([
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => 'thin']
+                    ]
+                ]);
+                
+                $event->sheet->getStyle('A12:B15')->applyFromArray([
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => 'thin']
+                    ]
+                ]);
+                
+                $event->sheet->getStyle('A18:B21')->applyFromArray([
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => 'thin']
+                    ]
+                ]);
+                
+                $event->sheet->getStyle('A25:G'.(24 + count($this->data['escolas'])))->applyFromArray([
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => 'thin']
+                    ]
+                ]);
+                
+                if (!empty($this->data['alunos'])) {
+                    $event->sheet->getStyle('A32:E'.(32 + count($this->data['alunos'])))->applyFromArray([
+                        'borders' => [
+                            'allBorders' => ['borderStyle' => 'thin']
+                        ]
+                    ]);
+                }
+            },
+        ];
     }
 }

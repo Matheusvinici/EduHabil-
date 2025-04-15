@@ -8,7 +8,6 @@ use App\Models\Ano;
 use App\Models\Escola;
 use App\Models\Disciplina;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache; // Adicione esta linha
 
 use App\Models\Habilidade;
 use App\Models\RespostaSimulado;
@@ -88,22 +87,29 @@ class RelatorioController extends Controller
         ];
     
         // Cálculo TRI completo
-        $analiseTRI = $this->calcularAnaliseTRICompleta($queryRespostas);
+// Cálculo TRI completo
+$analiseTRI = $this->calcularAnaliseTRICompleta($queryRespostas);
     
-        // Dados das escolas
-        $dadosEscolas = $this->prepararDadosEscolas($request->simulado_id, $request);
-    
-        // Quadrantes baseados na média TRI
-        $quadrantes = $this->analisarQuadrantes($dadosEscolas, $analiseTRI['media_geral']);
-    
-        // Projeção por segmento com TRI
+// Dados das escolas
+$dadosEscolas = $this->prepararDadosEscolas($request->simulado_id, $request);
+
+// Quadrantes baseados na média TRI
+$quadrantes = $this->analisarQuadrantes($dadosEscolas, $analiseTRI['media_geral']);
+
+        // Projeção por segmento
         $projecaoSegmento = [
-            '1a5' => $this->calcularProjecaoSegmentoTRI($queryRespostas, range(1, 5)),
-            '6a9' => $this->calcularProjecaoSegmentoTRI($queryRespostas, range(6, 9))
+            '1a5' => $this->calcularProjecaoSegmento($queryRespostas, range(1, 5)),
+            '6a9' => $this->calcularProjecaoSegmento($queryRespostas, range(6, 9))
         ];
     
         // Dados para gráficos
         $graficoData = $this->prepararDadosGraficos($queryRespostas);
+    
+        // Dados das escolas com médias TRI
+        $dadosEscolas = $this->prepararDadosEscolas($request->simulado_id, $request);
+    
+        // Quadrantes baseados na média TRI - CORREÇÃO AQUI: passando a média TRI geral como segundo argumento
+        $quadrantes = $this->analisarQuadrantes($dadosEscolas, $analiseTRI['media_geral']);
     
         return view('relatorios.rede-municipal', [
             'simulados' => $simulados,
@@ -118,744 +124,660 @@ class RelatorioController extends Controller
             'graficoData' => $graficoData,
             'dadosEscolas' => $dadosEscolas,
             'quadrantes' => $quadrantes,
+            'quadrantes' => $quadrantes,
             'mediaGeralTRI' => $analiseTRI['media_geral'],
+    
             'filtros' => $request->only(['simulado_id', 'ano_id', 'escola_id', 'deficiencia'])
         ]);
     }
-    
-    private function calcularProjecaoSegmentoTRI($queryRespostas, $rangeAnos)
-    {
-        // Mapeamento direto de turmas para anos (você precisa definir essa relação)
-        // Exemplo: turmas de ID 1-10 são do 1º ao 5º ano, 11-20 são do 6º ao 9º
-        $turmasPorAno = [
-            1 => range(1, 2),   // Turmas do 1º ano (IDs 1-2)
-            2 => range(3, 4),    // Turmas do 2º ano (IDs 3-4)
-            3 => range(5, 6),    // Turmas do 3º ano (IDs 5-6)
-            4 => range(7, 8),    // Turmas do 4º ano (IDs 7-8)
-            5 => range(9, 10),   // Turmas do 5º ano (IDs 9-10)
-            6 => range(11, 13),  // Turmas do 6º ano (IDs 11-13)
-            7 => range(14, 16),  // Turmas do 7º ano (IDs 14-16)
-            8 => range(17, 19),  // Turmas do 8º ano (IDs 17-19)
-            9 => range(20, 22)   // Turmas do 9º ano (IDs 20-22)
-        ];
-    
-        // Obter todas as turmas dos anos solicitados
-        $turmasFiltro = [];
-        foreach ($rangeAnos as $ano) {
-            if (isset($turmasPorAno[$ano])) {
-                $turmasFiltro = array_merge($turmasFiltro, $turmasPorAno[$ano]);
-            }
-        }
-    
-        $respostas = (clone $queryRespostas)
-            ->whereHas('aluno', function($q) use ($turmasFiltro) {
-                $q->where('role', 'aluno')
-                  ->whereIn('turma_id', $turmasFiltro);
-            })
-            ->with(['pergunta', 'aluno'])
-            ->get();
-    
-        // Restante do cálculo permanece igual
+    private function prepararDadosEscolas($simuladoId, $request)
+{
+    $escolas = Escola::withCount(['alunos' => function($q) {
+        $q->where('role', 'aluno');
+    }])
+    ->with(['alunos' => function($q) use ($simuladoId) {
+        $q->where('role', 'aluno')
+          ->with(['respostasSimulado' => function($q) use ($simuladoId) {
+              $q->where('simulado_id', $simuladoId)
+                ->with('pergunta');
+          }]);
+    }])
+    ->get()
+    ->map(function ($escola) {
+        $alunosComRespostas = $escola->alunos->filter(function ($aluno) {
+            return $aluno->respostasSimulado->isNotEmpty();
+        });
+        
+        // Cálculo da média tradicional
+        $mediaSimulado = 0;
         $totalPontos = 0;
         $totalPeso = 0;
-        $somaTRI = 0;
-        $countTRI = 0;
         
-        foreach ($respostas as $resposta) {
-            // Média tradicional
-            $totalPontos += $resposta->correta * $resposta->pergunta->peso;
-            $totalPeso += $resposta->pergunta->peso;
-            
-            // Cálculo TRI
-            $triA = $resposta->pergunta->tri_a ?? 1;
-            $triB = $resposta->pergunta->tri_b ?? 0;
-            $triC = $resposta->pergunta->tri_c ?? 0.2;
-            
-            $probabilidade = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
-            $valorTRI = $resposta->correta ? $probabilidade : (1 - $probabilidade);
-            $somaTRI += $valorTRI * $resposta->pergunta->peso;
-            $countTRI += $resposta->pergunta->peso;
+        // Cálculo da média TRI
+        $mediaTri = 0;
+        $totalTri = 0;
+        $countTri = 0;
+        
+        foreach ($alunosComRespostas as $aluno) {
+            foreach ($aluno->respostasSimulado as $resposta) {
+                // Média tradicional
+                $totalPontos += $resposta->correta * $resposta->pergunta->peso;
+                $totalPeso += $resposta->pergunta->peso;
+                
+                // Cálculo TRI
+                $triA = $resposta->pergunta->tri_a ?? 1;
+                $triB = $resposta->pergunta->tri_b ?? 0;
+                $triC = $resposta->pergunta->tri_c ?? 0.2;
+                
+                $probabilidade = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
+                $valorTRI = $resposta->correta ? $probabilidade : (1 - $probabilidade);
+                $totalTri += $valorTRI;
+                $countTri++;
+            }
         }
         
-        $mediaTradicional = $totalPeso > 0 ? round(($totalPontos / $totalPeso) * 10, 2) : 0;
-        $mediaTRI = $countTRI > 0 ? round(($somaTRI / $countTRI) * 10, 2) : 0;
-    
-        $meta = in_array(1, $rangeAnos) ? 6.0 : 5.0;
-        $projecaoTRI = min(10, $mediaTRI * 1.05);
-    
+        $mediaSimulado = $totalPeso > 0 ? round(($totalPontos / $totalPeso) * 10, 2) : 0;
+        $mediaTri = $countTri > 0 ? round(($totalTri / $countTri) * 10, 2) : 0;
+        
         return [
-            'media' => $mediaTradicional,
-            'media_tri' => $mediaTRI,
-            'projecao' => round($projecaoTRI, 2),
-            'atingiu_meta' => $projecaoTRI >= $meta,
-            'diferenca' => round($projecaoTRI - $meta, 2)
+            'id' => $escola->id,
+            'nome' => $escola->nome,
+            'total_alunos' => $escola->alunos_count,
+            'media_simulado' => $mediaSimulado,
+            'media_tri' => $mediaTri,
+            'alunos_respondentes' => $alunosComRespostas->count(),
+            'debug' => [
+                'total_pontos' => $totalPontos,
+                'total_peso' => $totalPeso,
+                'total_tri' => $totalTri,
+                'count_tri' => $countTri
+            ]
+        ];
+    })
+    ->toArray();
+
+    return $escolas;
+}
+private function analisarQuadrantes(array $dadosEscolas, float $mediaGeralTRI): array
+{
+    $limiteGrande = 200; // Definição de escola grande
+    
+    $quadrantes = [
+        'q1' => [
+            'count' => 0, 
+            'escolas' => [], 
+            'media' => 0, // Mantendo 'media' para compatibilidade
+            'media_tri' => 0,
+            'total_alunos' => 0,
+            'label' => 'Alto Desempenho/Grande',
+            'descricao' => '200+ alunos e nota TRI acima da média'
+        ],
+        'q2' => [
+            'count' => 0, 
+            'escolas' => [], 
+            'media' => 0,
+            'media_tri' => 0,
+            'total_alunos' => 0,
+            'label' => 'Baixo Desempenho/Grande',
+            'descricao' => '200+ alunos e nota TRI abaixo da média'
+        ],
+        'q3' => [
+            'count' => 0, 
+            'escolas' => [], 
+            'media' => 0,
+            'media_tri' => 0,
+            'total_alunos' => 0,
+            'label' => 'Baixo Desempenho/Pequena',
+            'descricao' => 'Menos de 200 alunos e nota TRI abaixo da média'
+        ],
+        'q4' => [
+            'count' => 0, 
+            'escolas' => [], 
+            'media' => 0,
+            'media_tri' => 0,
+            'total_alunos' => 0,
+            'label' => 'Alto Desempenho/Pequena',
+            'descricao' => 'Menos de 200 alunos e nota TRI acima da média'
+        ]
+    ];
+
+    foreach ($dadosEscolas as $escola) {
+        if (empty($escola['total_alunos'])) {
+            continue;
+        }
+        
+        $grande = $escola['total_alunos'] >= $limiteGrande;
+        $acimaMedia = ($escola['media_tri'] ?? 0) > $mediaGeralTRI;
+
+        if ($grande && $acimaMedia) {
+            $quadrante = 'q1';
+        } elseif ($grande && !$acimaMedia) {
+            $quadrante = 'q2';
+        } elseif (!$grande && !$acimaMedia) {
+            $quadrante = 'q3';
+        } else {
+            $quadrante = 'q4';
+        }
+
+        $quadrantes[$quadrante]['count']++;
+        $quadrantes[$quadrante]['escolas'][] = $escola['nome'];
+        $mediaTri = $escola['media_tri'] ?? 0;
+        $quadrantes[$quadrante]['media_tri'] += $mediaTri;
+        $quadrantes[$quadrante]['media'] = $mediaTri; // Manter compatibilidade
+        $quadrantes[$quadrante]['total_alunos'] += $escola['total_alunos'];
+    }
+
+    // Calcular médias finais
+    foreach ($quadrantes as $key => &$quadrante) {
+        if ($quadrante['count'] > 0) {
+            $quadrante['media_tri'] = round($quadrante['media_tri'] / $quadrante['count'], 2);
+            $quadrante['media'] = $quadrante['media_tri']; // Sincronizar valores
+        }
+    }
+    
+    return $quadrantes;
+}
+private function calcularAnaliseTRICompleta($queryRespostas)
+{
+    $respostas = (clone $queryRespostas)->with('pergunta')->get();
+    
+    if ($respostas->isEmpty()) {
+        return [
+            'peso_1' => ['media' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
+            'peso_2' => ['media' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
+            'peso_3' => ['media' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
+            'media_geral' => 0,
+            'indice_consistencia' => 0
         ];
     }
-    public function escolasQuadrante(Request $request)
+
+    // Agrupar por peso
+    $porPeso = [
+        1 => ['soma' => 0, 'count' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
+        2 => ['soma' => 0, 'count' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
+        3 => ['soma' => 0, 'count' => 0, 'dificuldade' => 0, 'discriminacao' => 0]
+    ];
+
+    foreach ($respostas as $resposta) {
+        $peso = $resposta->pergunta->peso;
+        $triA = $resposta->pergunta->tri_a;
+        $triB = $resposta->pergunta->tri_b;
+        $triC = $resposta->pergunta->tri_c;
+        
+        // Fórmula TRI completa
+        $probabilidade = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
+        $valorTRI = $resposta->correta ? $probabilidade : (1 - $probabilidade);
+        
+        $porPeso[$peso]['soma'] += $valorTRI;
+        $porPeso[$peso]['count']++;
+        $porPeso[$peso]['dificuldade'] += $triB;
+        $porPeso[$peso]['discriminacao'] += $triA;
+    }
+
+    // Calcular médias por peso
+    $resultados = [];
+    foreach ([1, 2, 3] as $peso) {
+        $count = $porPeso[$peso]['count'];
+        $resultados["peso_$peso"] = [
+            'media' => $count > 0 ? round(($porPeso[$peso]['soma'] / $count) * 10, 2) : 0,
+            'dificuldade' => $count > 0 ? round($porPeso[$peso]['dificuldade'] / $count, 2) : 0,
+            'discriminacao' => $count > 0 ? round($porPeso[$peso]['discriminacao'] / $count, 2) : 0
+        ];
+    }
+
+    // Média geral TRI
+    $totalCount = $porPeso[1]['count'] + $porPeso[2]['count'] + $porPeso[3]['count'];
+    $resultados['media_geral'] = $totalCount > 0 
+        ? round(($porPeso[1]['soma'] + $porPeso[2]['soma'] + $porPeso[3]['soma']) / $totalCount * 10, 2)
+        : 0;
+    
+    // Índice de consistência interna (Alpha de Cronbach simplificado)
+    $resultados['indice_consistencia'] = $this->calcularConsistenciaInterna($respostas);
+
+    return $resultados;
+}
+    
+
+
+private function calcularConsistenciaInterna($respostas)
+{
+    // Implementação simplificada do Alpha de Cronbach
+    $alunos = $respostas->groupBy('user_id');
+    $n = $alunos->count();
+    
+    if ($n < 2) return 0;
+    
+    // Converter para array os scores antes de calcular a variância
+    $scores = $alunos->map(function ($respostasAluno) {
+        return $respostasAluno->sum('correta');
+    })->values()->all();
+    
+    $varianciaTotal = $this->calcularVariancia($scores);
+    
+    $varianciaItens = $respostas->groupBy('pergunta_id')->map(function ($respostasItem) {
+        // Converter para array os valores antes de calcular a variância
+        return $this->calcularVariancia($respostasItem->pluck('correta')->all());
+    })->sum();
+    
+    return round(($n / ($n - 1)) * (1 - ($varianciaItens / $varianciaTotal)), 2);
+}
+
+private function calcularVariancia($valores)
+{
+    if (!is_array($valores)) {
+        $valores = (array)$valores;
+    }
+    
+    $count = count($valores);
+    if ($count < 2) return 0;
+    
+    $media = array_sum($valores) / $count;
+    $somaQuadrados = 0;
+    
+    foreach ($valores as $valor) {
+        $somaQuadrados += pow($valor - $media, 2);
+    }
+    
+    return $somaQuadrados / $count;
+}
+
+private function calcularMediaPorPeso($query, $peso)
+{
+    $respostas = (clone $query)
+        ->whereHas('pergunta', fn($q) => $q->where('peso', $peso))
+        ->selectRaw('SUM(correta) as acertos, COUNT(*) as total')
+        ->first();
+
+    $total = $respostas->total ?: 1;
+    return round(($respostas->acertos / $total) * 10, 2);
+}
+
+private function calcularMediaGeral($query)
+{
+    $respostas = (clone $query)
+        ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
+        ->selectRaw('SUM(correta * peso) as pontos, SUM(peso) as total_peso')
+        ->first();
+
+    $totalPeso = $respostas->total_peso ?: 1;
+    return round(($respostas->pontos / $totalPeso) * 10, 2);
+}
+
+private function calcularProjecaoSegmento($query, $rangeAnos)
+{
+    $respostas = (clone $query)
+        ->whereHas('aluno', fn($q) => $q->whereIn('ano_id', $rangeAnos))
+        ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
+        ->selectRaw('SUM(correta * peso) as pontos, SUM(peso) as total_peso')
+        ->first();
+
+    $totalPeso = $respostas->total_peso ?: 1;
+    $media = round(($respostas->pontos / $totalPeso) * 10, 2);
+    
+    $meta = in_array(1, $rangeAnos) ? 6.0 : 5.0;
+    $projecao = min(10, $media * 1.05); // Ajuste mais conservador
+
+    return [
+        'media' => $media,
+        'projecao' => round($projecao, 2),
+        'atingiu_meta' => $projecao >= $meta,
+        'diferenca' => round($projecao - $meta, 2)
+    ];
+}
+
+private function prepararDadosGraficos($queryRespostas)
+{
+    $respostas = (clone $queryRespostas)->with('pergunta')->get();
+    
+    // Dados para gráfico de desempenho por peso
+    $pesos = [
+        'Peso 1' => $respostas->where('pergunta.peso', 1)->count(),
+        'Peso 2' => $respostas->where('pergunta.peso', 2)->count(),
+        'Peso 3' => $respostas->where('pergunta.peso', 3)->count()
+    ];
+
+    // Dados para gráfico de acertos/erros
+    $acertos = $respostas->where('correta', true)->count();
+    $erros = $respostas->where('correta', false)->count();
+
+    return [
+        'pesos' => $pesos,
+        'acertos_erros' => ['Acertos' => $acertos, 'Erros' => $erros],
+        'cores' => [
+            'pesos' => ['#4e73df', '#1cc88a', '#36b9cc'],
+            'acertos_erros' => ['#1cc88a', '#e74a3b']
+        ]
+    ];
+}
+ 
+
+public function exportarPdf(Request $request)
+{
+    $data = $this->getReportDataForPdf($request);
+    
+    $pdf = PDF::loadView('relatorios.pdf.rede-municipal', $data);
+    $pdf->setPaper('A4', 'landscape');
+    return $pdf->download('relatorio-rede-municipal.pdf');
+}
+private function getReportDataForPdf(Request $request)
+{
+    $simuladoId = $request->simulado_id;
+    
+    // Dados básicos
+    $simulado = Simulado::findOrFail($simuladoId);
+    $totalAlunos = User::role('aluno')->count();
+    
+    // Query base para respostas
+    $queryRespostas = RespostaSimulado::where('simulado_id', $simuladoId)
+        ->with(['aluno.roles', 'pergunta']);
+
+
+    // Dados calculados
+    $alunosResponderam = $queryRespostas->distinct('user_id')->count('user_id');
+    
+    $mediasPeso = [
+        'peso_1' => $this->calcularMediaPorPeso($queryRespostas, 1),
+        'peso_2' => $this->calcularMediaPorPeso($queryRespostas, 2),
+        'peso_3' => $this->calcularMediaPorPeso($queryRespostas, 3),
+        'media_geral' => $this->calcularMediaGeral($queryRespostas)
+    ];
+
+    $analiseTRI = $this->calcularAnaliseTRICompleta($queryRespostas);
+
+    return [
+        'simulado' => $simulado,
+        'totalAlunos' => $totalAlunos,
+        'alunosResponderam' => $alunosResponderam,
+        'mediasPeso' => $mediasPeso,
+        'analiseTRI' => $analiseTRI,
+        'filtros'
+        
+    ];
+}
+    
+    public function excelRede(Request $request)
     {
-        $request->validate([
-            'simulado_id' => 'required|exists:simulados,id',
-            'quadrante' => 'required|in:q1,q2,q3,q4',
-            'ano_id' => 'nullable|exists:anos,id',
-            'deficiencia' => 'nullable|string'
-        ]);
-    
-        // Obter dados das escolas (já filtrados por alunos respondentes)
-        $dadosEscolas = $this->prepararDadosEscolas($request->simulado_id, $request);
-        
-        // Calcular média geral TRI
-        $analiseTRI = $this->calcularAnaliseTRICompleta(
-            RespostaSimulado::where('simulado_id', $request->simulado_id)
-        );
-        
-        // Filtrar escolas por quadrante com regras consistentes
-        $limiteGrande = 200;
-        $escolasQuadrante = collect($dadosEscolas)->filter(function($escola) use ($request, $analiseTRI, $limiteGrande) {
-            // Ignorar escolas sem alunos respondentes
-            if ($escola['total_alunos'] <= 0) return false;
-            
-            $grande = $escola['total_alunos'] >= $limiteGrande;
-            $acimaMedia = $escola['media_tri'] >= $analiseTRI['media_geral']; // >= em vez de >
-            
-            switch($request->quadrante) {
-                case 'q1': return $grande && $acimaMedia;
-                case 'q2': return $grande && !$acimaMedia;
-                case 'q3': return !$grande && !$acimaMedia;
-                case 'q4': return !$grande && $acimaMedia;
-                default: return false;
-            }
-        })->values(); // Reindexar o array
-    
-        // Títulos dos quadrantes
-        $titulosQuadrantes = [
-            'q1' => 'Escolas com grande quantidade de matrículas (200+) e desempenho TRI acima da média',
-            'q2' => 'Escolas com grande quantidade de matrículas (200+) e desempenho TRI abaixo da média',
-            'q3' => 'Escolas com menor quantidade de matrículas (<200) e desempenho TRI abaixo da média',
-            'q4' => 'Escolas com menor quantidade de matrículas (<200) e desempenho TRI acima da média'
-        ];
-    
-        return view('relatorios.escolas-quadrante', [
-            'escolas' => $escolasQuadrante,
-            'quadrante' => $request->quadrante,
-            'tituloQuadrante' => $titulosQuadrantes[$request->quadrante],
-            'mediaGeralTRI' => $analiseTRI['media_geral'],
-            'filtros' => $request->only(['simulado_id', 'ano_id', 'deficiencia'])
-        ]);
+        $data = $this->prepareExcelData($request);
+        return Excel::download(new RedeMunicipalExport($data), 'relatorio-rede-municipal.xlsx');
     }
-            private function prepararDadosEscolas($simuladoId, $request)
-        {
-            $escolas = Escola::withCount(['alunos' => function($q) {
-                $q->where('role', 'aluno');
-            }])
-            ->with(['alunos' => function($q) use ($simuladoId) {
-                $q->where('role', 'aluno')
-                ->with(['respostasSimulado' => function($q) use ($simuladoId) {
-                    $q->where('simulado_id', $simuladoId)
-                        ->with('pergunta');
-                }]);
-            }])
-            ->get()
-            ->map(function ($escola) {
-                $alunosComRespostas = $escola->alunos->filter(function ($aluno) {
-                    return $aluno->respostasSimulado->isNotEmpty();
-                });
-                
+private function getReportData(Request $request)
+{
+    // Reutiliza a lógica do método estatisticasRede
+    $simuladoId = $request->simulado_id;
+    $simulados = Simulado::orderBy('nome')->get();
+    $anos = Ano::orderBy('nome')->get();
+    $escolas = Escola::orderBy('nome')->get();
+
+    $queryAlunos = User::where('role', 'aluno');
+    $queryRespostas = RespostaSimulado::where('simulado_id', $simuladoId)
+        ->with(['aluno', 'pergunta']);
+
+    // Aplicar filtros
+    if ($request->ano_id) {
+        $queryAlunos->where('ano_id', $request->ano_id);
+        $queryRespostas->whereHas('aluno', fn($q) => $q->where('ano_id', $request->ano_id));
+    }
+
+    if ($request->escola_id) {
+        $queryAlunos->where('escola_id', $request->escola_id);
+        $queryRespostas->whereHas('aluno', fn($q) => $q->where('escola_id', $request->escola_id));
+    }
+
+    if ($request->deficiencia) {
+        if ($request->deficiencia === 'ND') {
+            $queryAlunos->whereNull('deficiencia');
+            $queryRespostas->whereHas('aluno', fn($q) => $q->whereNull('deficiencia'));
+        } else {
+            $queryAlunos->where('deficiencia', $request->deficiencia);
+            $queryRespostas->whereHas('aluno', fn($q) => $q->where('deficiencia', $request->deficiencia));
+        }
+    }
+
+    // Dados gerais
+    $totalAlunos = $queryAlunos->count();
+    $alunosAtivos = $queryAlunos->count();
+    $alunosResponderam = $queryRespostas->distinct('user_id')->count('user_id');
+
+    // Cálculo das médias
+    $mediasPeso = [
+        'peso_1' => $this->calcularMediaPorPeso($queryRespostas, 1),
+        'peso_2' => $this->calcularMediaPorPeso($queryRespostas, 2),
+        'peso_3' => $this->calcularMediaPorPeso($queryRespostas, 3),
+        'media_geral' => $this->calcularMediaGeral($queryRespostas)
+    ];
+
+    // Projeção TRI
+    $projecaoTRI = $this->calcularProjecaoTRI($queryRespostas);
+
+    // Projeção por segmento
+    $projecaoSegmento = [
+        '1a5' => $this->calcularProjecaoSegmento($queryRespostas, range(1, 5)),
+        '6a9' => $this->calcularProjecaoSegmento($queryRespostas, range(6, 9))
+    ];
+
+    // Estatísticas por escola
+    $estatisticasPorEscola = $this->prepararEstatisticasPorEscola($queryRespostas, $simuladoId, $request);
+
+    return compact(
+        'simulados', 'anos', 'escolas',
+        'totalAlunos', 'alunosAtivos', 'alunosResponderam',
+        'mediasPeso', 'projecaoTRI', 'projecaoSegmento',
+        'estatisticasPorEscola'
+    );
+}
+
+private function prepareExcelData(Request $request)
+{
+    $data = $this->getReportData($request);
+    
+    // Formatar os dados para o Excel
+    return [
+        'simuladoSelecionado' => $data['simulados']->firstWhere('id', $request->simulado_id),
+        'totalAlunos' => $data['totalAlunos'],
+        'alunosResponderam' => $data['alunosResponderam'],
+        'taxaFaltantes' => $data['alunosAtivos'] > 0 
+            ? round((($data['alunosAtivos'] - $data['alunosResponderam'])/$data['alunosAtivos'])*100, 2).'%'
+            : '0%',
+        
+        'mediasPeso' => [
+            'peso_1' => $data['mediasPeso']['peso_1'],
+            'peso_2' => $data['mediasPeso']['peso_2'],
+            'peso_3' => $data['mediasPeso']['peso_3'],
+            'geral' => $data['mediasPeso']['media_geral']
+        ],
+        
+        'projecaoTRI' => [
+            'peso_1' => $data['projecaoTRI']['peso_1'],
+            'peso_2' => $data['projecaoTRI']['peso_2'],
+            'peso_3' => $data['projecaoTRI']['peso_3'],
+            'geral' => $data['projecaoTRI']['media_geral']
+        ],
+        
+        // Dados adicionais para o Excel
+        'alunos' => $this->prepararDadosAlunosExcel($request),
+        'escolas' => $data['estatisticasPorEscola']
+    ];
+}
+
+private function prepararEstatisticasPorEscola($queryRespostas, $simuladoId, $request)
+{
+    return Escola::withCount(['users as alunos_count' => function($q) use ($request) {
+            $q->where('role', 'aluno');
+            if ($request->ano_id) $q->where('ano_id', $request->ano_id);
+            if ($request->deficiencia) {
+                $request->deficiencia === 'ND' 
+                    ? $q->whereNull('deficiencia')
+                    : $q->where('deficiencia', $request->deficiencia);
+            }
+        }])
+        ->with(['users as alunos' => function($q) use ($simuladoId, $request) {
+            $q->where('role', 'aluno');
+            if ($request->ano_id) $q->where('ano_id', $request->ano_id);
+            if ($request->deficiencia) {
+                $request->deficiencia === 'ND' 
+                    ? $q->whereNull('deficiencia')
+                    : $q->where('deficiencia', $request->deficiencia);
+            }
+            $q->with(['respostasSimulado' => function($q) use ($simuladoId) {
+                $q->where('simulado_id', $simuladoId)
+                  ->with('pergunta');
+            }]);
+        }])
+        ->get()
+        ->map(function ($escola) use ($queryRespostas) {
+            $alunosComRespostas = $escola->alunos->filter(function ($aluno) {
+                return $aluno->respostasSimulado->isNotEmpty();
+            });
+            
+            $mediaEscola = 0;
+            $mediaTRI = 0;
+            
+            if ($alunosComRespostas->isNotEmpty()) {
                 // Cálculo da média tradicional
-                $mediaSimulado = 0;
                 $totalPontos = 0;
                 $totalPeso = 0;
                 
                 // Cálculo da média TRI
-                $mediaTri = 0;
-                $totalTri = 0;
-                $countTri = 0;
+                $somaTRI = 0;
+                $countTRI = 0;
                 
                 foreach ($alunosComRespostas as $aluno) {
                     foreach ($aluno->respostasSimulado as $resposta) {
-                        // Média tradicional
                         $totalPontos += $resposta->correta * $resposta->pergunta->peso;
                         $totalPeso += $resposta->pergunta->peso;
                         
-                        // Cálculo TRI
-                        $triA = $resposta->pergunta->tri_a ?? 1;
-                        $triB = $resposta->pergunta->tri_b ?? 0;
-                        $triC = $resposta->pergunta->tri_c ?? 0.2;
+                        // Cálculo TRI para cada resposta
+                        $triA = $resposta->pergunta->tri_a;
+                        $triB = $resposta->pergunta->tri_b;
+                        $triC = $resposta->pergunta->tri_c;
+                        $prob = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
+                        $valorTRI = $resposta->correta ? $prob : (1 - $prob);
                         
-                        $probabilidade = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
-                        $valorTRI = $resposta->correta ? $probabilidade : (1 - $probabilidade);
-                        $totalTri += $valorTRI;
-                        $countTri++;
+                        $somaTRI += $valorTRI * $resposta->pergunta->peso;
+                        $countTRI += $resposta->pergunta->peso;
                     }
                 }
                 
-                $mediaSimulado = $totalPeso > 0 ? round(($totalPontos / $totalPeso) * 10, 2) : 0;
-                $mediaTri = $countTri > 0 ? round(($totalTri / $countTri) * 10, 2) : 0;
-                
-                return [
-                    'id' => $escola->id,
-                    'nome' => $escola->nome,
-                    'total_alunos' => $escola->alunos_count,
-                    'media_simulado' => $mediaSimulado,
-                    'media_tri' => $mediaTri,
-                    'alunos_respondentes' => $alunosComRespostas->count(),
-                    'debug' => [
-                        'total_pontos' => $totalPontos,
-                        'total_peso' => $totalPeso,
-                        'total_tri' => $totalTri,
-                        'count_tri' => $countTri
-                    ]
-                ];
-            })
-            ->toArray();
-
-            return $escolas;
-        }
-        private function analisarQuadrantes(array $dadosEscolas, float $mediaGeralTRI): array
-        {
-            $limiteGrande = 200;
-            
-            $quadrantes = [
-                'q1' => ['count' => 0, 'escolas' => [], 'media_tri' => 0, 'total_alunos' => 0],
-                'q2' => ['count' => 0, 'escolas' => [], 'media_tri' => 0, 'total_alunos' => 0],
-                'q3' => ['count' => 0, 'escolas' => [], 'media_tri' => 0, 'total_alunos' => 0],
-                'q4' => ['count' => 0, 'escolas' => [], 'media_tri' => 0, 'total_alunos' => 0]
-            ];
-        
-            foreach ($dadosEscolas as $escola) {
-                if (empty($escola['total_alunos'])) continue;
-                
-                $grande = $escola['total_alunos'] >= $limiteGrande;
-                $acimaMedia = $escola['media_tri'] >= $mediaGeralTRI; // Corrigido para >=
-        
-                if ($grande && $acimaMedia) {
-                    $quadrante = 'q1';
-                } elseif ($grande && !$acimaMedia) {
-                    $quadrante = 'q2';
-                } elseif (!$grande && !$acimaMedia) {
-                    $quadrante = 'q3';
-                } else {
-                    $quadrante = 'q4';
-                }
-        
-                $quadrantes[$quadrante]['count']++;
-                $quadrantes[$quadrante]['escolas'][] = $escola['nome'];
-                $quadrantes[$quadrante]['media_tri'] += $escola['media_tri'];
-                $quadrantes[$quadrante]['total_alunos'] += $escola['total_alunos'];
-            }
-        
-            // Calcular médias finais
-            foreach ($quadrantes as $key => $quadrante) {
-                if ($quadrante['count'] > 0) {
-                    $quadrantes[$key]['media_tri'] = round($quadrante['media_tri'] / $quadrante['count'], 2);
-                }
+                $mediaEscola = $totalPeso > 0 ? round(($totalPontos / $totalPeso) * 10, 2) : 0;
+                $mediaTRI = $countTRI > 0 ? round(($somaTRI / $countTRI) * 10, 2) : 0;
             }
             
-            return $quadrantes;
-        }
-        private function calcularAnaliseTRICompleta($queryRespostas)
-        {
-            $respostas = (clone $queryRespostas)->with('pergunta')->get();
-            
-            if ($respostas->isEmpty()) {
-                return [
-                    'peso_1' => ['media' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
-                    'peso_2' => ['media' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
-                    'peso_3' => ['media' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
-                    'media_geral' => 0,
-                    'indice_consistencia' => 0
-                ];
-            }
-
-            // Agrupar por peso
-            $porPeso = [
-                1 => ['soma' => 0, 'count' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
-                2 => ['soma' => 0, 'count' => 0, 'dificuldade' => 0, 'discriminacao' => 0],
-                3 => ['soma' => 0, 'count' => 0, 'dificuldade' => 0, 'discriminacao' => 0]
-            ];
-
-            foreach ($respostas as $resposta) {
-                $peso = $resposta->pergunta->peso;
-                $triA = $resposta->pergunta->tri_a;
-                $triB = $resposta->pergunta->tri_b;
-                $triC = $resposta->pergunta->tri_c;
-                
-                // Fórmula TRI completa
-                $probabilidade = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
-                $valorTRI = $resposta->correta ? $probabilidade : (1 - $probabilidade);
-                
-                $porPeso[$peso]['soma'] += $valorTRI;
-                $porPeso[$peso]['count']++;
-                $porPeso[$peso]['dificuldade'] += $triB;
-                $porPeso[$peso]['discriminacao'] += $triA;
-            }
-
-            // Calcular médias por peso
-            $resultados = [];
-            foreach ([1, 2, 3] as $peso) {
-                $count = $porPeso[$peso]['count'];
-                $resultados["peso_$peso"] = [
-                    'media' => $count > 0 ? round(($porPeso[$peso]['soma'] / $count) * 10, 2) : 0,
-                    'dificuldade' => $count > 0 ? round($porPeso[$peso]['dificuldade'] / $count, 2) : 0,
-                    'discriminacao' => $count > 0 ? round($porPeso[$peso]['discriminacao'] / $count, 2) : 0
-                ];
-            }
-
-            // Média geral TRI
-            $totalCount = $porPeso[1]['count'] + $porPeso[2]['count'] + $porPeso[3]['count'];
-            $resultados['media_geral'] = $totalCount > 0 
-                ? round(($porPeso[1]['soma'] + $porPeso[2]['soma'] + $porPeso[3]['soma']) / $totalCount * 10, 2)
-                : 0;
-            
-            // Índice de consistência interna (Alpha de Cronbach simplificado)
-            $resultados['indice_consistencia'] = $this->calcularConsistenciaInterna($respostas);
-
-            return $resultados;
-        }
-            
-
-
-        private function calcularConsistenciaInterna($respostas)
-        {
-            // Implementação simplificada do Alpha de Cronbach
-            $alunos = $respostas->groupBy('user_id');
-            $n = $alunos->count();
-            
-            if ($n < 2) return 0;
-            
-            // Converter para array os scores antes de calcular a variância
-            $scores = $alunos->map(function ($respostasAluno) {
-                return $respostasAluno->sum('correta');
-            })->values()->all();
-            
-            $varianciaTotal = $this->calcularVariancia($scores);
-            
-            $varianciaItens = $respostas->groupBy('pergunta_id')->map(function ($respostasItem) {
-                // Converter para array os valores antes de calcular a variância
-                return $this->calcularVariancia($respostasItem->pluck('correta')->all());
-            })->sum();
-            
-            return round(($n / ($n - 1)) * (1 - ($varianciaItens / $varianciaTotal)), 2);
-        }
-
-        private function calcularVariancia($valores)
-        {
-            if (!is_array($valores)) {
-                $valores = (array)$valores;
-            }
-            
-            $count = count($valores);
-            if ($count < 2) return 0;
-            
-            $media = array_sum($valores) / $count;
-            $somaQuadrados = 0;
-            
-            foreach ($valores as $valor) {
-                $somaQuadrados += pow($valor - $media, 2);
-            }
-            
-            return $somaQuadrados / $count;
-        }
-
-        private function calcularMediaPorPeso($query, $peso)
-        {
-            $respostas = (clone $query)
-                ->whereHas('pergunta', fn($q) => $q->where('peso', $peso))
-                ->selectRaw('SUM(correta) as acertos, COUNT(*) as total')
-                ->first();
-
-            $total = $respostas->total ?: 1;
-            return round(($respostas->acertos / $total) * 10, 2);
-        }
-
-        private function calcularMediaGeral($query)
-        {
-            $respostas = (clone $query)
-                ->join('perguntas', 'respostas_simulados.pergunta_id', '=', 'perguntas.id')
-                ->selectRaw('SUM(correta * peso) as pontos, SUM(peso) as total_peso')
-                ->first();
-
-            $totalPeso = $respostas->total_peso ?: 1;
-            return round(($respostas->pontos / $totalPeso) * 10, 2);
-        }
-
-       
-
-        private function prepararDadosGraficos($queryRespostas)
-        {
-            $respostas = (clone $queryRespostas)->with('pergunta')->get();
-            
-            // Dados para gráfico de desempenho por peso
-            $pesos = [
-                'Peso 1' => $respostas->where('pergunta.peso', 1)->count(),
-                'Peso 2' => $respostas->where('pergunta.peso', 2)->count(),
-                'Peso 3' => $respostas->where('pergunta.peso', 3)->count()
-            ];
-
-            // Dados para gráfico de acertos/erros
-            $acertos = $respostas->where('correta', true)->count();
-            $erros = $respostas->where('correta', false)->count();
-
             return [
-                'pesos' => $pesos,
-                'acertos_erros' => ['Acertos' => $acertos, 'Erros' => $erros],
-                'cores' => [
-                    'pesos' => ['#4e73df', '#1cc88a', '#36b9cc'],
-                    'acertos_erros' => ['#1cc88a', '#e74a3b']
-                ]
+                'nome' => $escola->nome,
+                'alunos_ativos' => $escola->alunos_count,
+                'alunos_responderam' => $alunosComRespostas->count(),
+                'media_ponderada' => $mediaEscola,
+                'projecao_tri' => $mediaTRI,
+                'atingiu_meta' => $mediaEscola >= ($escola->alunos_count > 400 ? 6.0 : 5.0)
             ];
-        }
-        
-
-        public function exportarPdf(Request $request)
-{
-    try {
-        $data = $this->getReportDataForPdf($request);
-        
-        $pdf = PDF::loadView('relatorios.rede-municipal-pdf', $data)
-                  ->setPaper('A4', 'portrait')
-                  ->setOptions([
-                      'defaultFont' => 'helvetica',
-                      'isPhpEnabled' => false,
-                      'isRemoteEnabled' => false,
-                  ]);
-        
-        $fileName = 'relatorio-rede-municipal-'.now()->format('Y-m-d').'.pdf';
-
-        // Solução definitiva para forçar download
-        return response($pdf->output(), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
-            'Cache-Control' => 'no-store, no-cache, must-revalidate',
-            'Pragma' => 'no-cache',
-            'Expires' => '0'
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error("Erro ao gerar PDF: ".$e->getMessage());
-        return back()->with('error', 'Erro ao gerar PDF: '.$e->getMessage());
-    }
+        })
+        ->sortByDesc('media_ponderada')
+        ->values()
+        ->toArray();
 }
-    
-        private function getOptimizedReportData(Request $request)
-        {
-            // Consultas otimizadas
-            $query = RespostaSimulado::with(['aluno' => function($q) {
-                        $q->select('id', 'name', 'ano_id', 'escola_id');
-                     }, 'pergunta'])
-                     ->when($request->simulado_id, function($q) use ($request) {
-                        $q->where('simulado_id', $request->simulado_id);
-                     });
+
+private function prepararDadosAlunosExcel(Request $request)
+{
+    $query = User::where('role', 'aluno')
+        ->with(['respostasSimulado' => function($q) use ($request) {
+            $q->where('simulado_id', $request->simulado_id)
+              ->with('pergunta');
+        }]);
+
+    // Aplicar filtros
+    if ($request->ano_id) $query->where('ano_id', $request->ano_id);
+    if ($request->escola_id) $query->where('escola_id', $request->escola_id);
+    if ($request->deficiencia) {
+        $request->deficiencia === 'ND' 
+            ? $query->whereNull('deficiencia')
+            : $query->where('deficiencia', $request->deficiencia);
+    }
+
+    return $query->get()
+        ->map(function ($aluno) {
+            $respostas = $aluno->respostasSimulado;
+            $total = $respostas->count();
+            $acertos = $respostas->where('correta', true)->count();
             
-            // Aplicar filtros
-            if ($request->ano_id) {
-                $query->whereHas('aluno', function($q) use ($request) {
-                    $q->where('ano_id', $request->ano_id);
+            // Cálculo TRI simplificado
+            $triScore = 0;
+            if ($total > 0) {
+                $triScore = $respostas->sum(function ($resposta) {
+                    $triA = $resposta->pergunta->tri_a;
+                    $triB = $resposta->pergunta->tri_b;
+                    $triC = $resposta->pergunta->tri_c;
+                    $prob = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
+                    return $resposta->correta ? $prob : (1 - $prob);
                 });
+                $triScore = round(($triScore / $total) * 10, 2);
             }
-    
-            // Dados essenciais
-            return [
-                'totalAlunos' => User::where('role', 'aluno')->count(),
-                'alunosAtivos' => User::where('role', 'aluno')->active()->count(),
-                'alunosResponderam' => $query->distinct('user_id')->count('user_id'),
-                'mediasPeso' => $this->calcularMediasOtimizado($query),
-                // ... outros dados necessários
-            ];
-        }
-    
-        private function calcularMediasOtimizado($query)
-        {
-            // Cálculo otimizado das médias
-            return [
-                'peso_1' => $query->clone()->whereHas('pergunta', fn($q) => $q->where('peso', 1))->avg('nota'),
-                'peso_2' => $query->clone()->whereHas('pergunta', fn($q) => $q->where('peso', 2))->avg('nota'),
-                'peso_3' => $query->clone()->whereHas('pergunta', fn($q) => $q->where('peso', 3))->avg('nota'),
-                'media_geral' => $query->avg('nota')
-            ];
-        }       
-            public function excelRede(Request $request)
-            {
-                $data = $this->prepareExcelData($request);
-                return Excel::download(new RedeMunicipalExport($data), 'relatorio-rede-municipal.xlsx');
-            }
-        private function getReportData(Request $request)
-        {
-            // Reutiliza a lógica do método estatisticasRede
-            $simuladoId = $request->simulado_id;
-            $simulados = Simulado::orderBy('nome')->get();
-            $anos = Ano::orderBy('nome')->get();
-            $escolas = Escola::orderBy('nome')->get();
-
-            $queryAlunos = User::where('role', 'aluno');
-            $queryRespostas = RespostaSimulado::where('simulado_id', $simuladoId)
-                ->with(['aluno', 'pergunta']);
-
-            // Aplicar filtros
-            if ($request->ano_id) {
-                $queryAlunos->where('ano_id', $request->ano_id);
-                $queryRespostas->whereHas('aluno', fn($q) => $q->where('ano_id', $request->ano_id));
-            }
-
-            if ($request->escola_id) {
-                $queryAlunos->where('escola_id', $request->escola_id);
-                $queryRespostas->whereHas('aluno', fn($q) => $q->where('escola_id', $request->escola_id));
-            }
-
-            if ($request->deficiencia) {
-                if ($request->deficiencia === 'ND') {
-                    $queryAlunos->whereNull('deficiencia');
-                    $queryRespostas->whereHas('aluno', fn($q) => $q->whereNull('deficiencia'));
-                } else {
-                    $queryAlunos->where('deficiencia', $request->deficiencia);
-                    $queryRespostas->whereHas('aluno', fn($q) => $q->where('deficiencia', $request->deficiencia));
-                }
-            }
-
-            // Dados gerais
-            $totalAlunos = $queryAlunos->count();
-            $alunosAtivos = $queryAlunos->count();
-            $alunosResponderam = $queryRespostas->distinct('user_id')->count('user_id');
-
-            // Cálculo das médias
-            $mediasPeso = [
-                'peso_1' => $this->calcularMediaPorPeso($queryRespostas, 1),
-                'peso_2' => $this->calcularMediaPorPeso($queryRespostas, 2),
-                'peso_3' => $this->calcularMediaPorPeso($queryRespostas, 3),
-                'media_geral' => $this->calcularMediaGeral($queryRespostas)
-            ];
-
-            // Projeção TRI
-            $projecaoTRI = $this->calcularProjecaoTRI($queryRespostas);
-
-            // Projeção por segmento
-            $projecaoSegmento = [
-                '1a5' => $this->calcularProjecaoSegmento($queryRespostas, range(1, 5)),
-                '6a9' => $this->calcularProjecaoSegmento($queryRespostas, range(6, 9))
-            ];
-
-            // Estatísticas por escola
-            $estatisticasPorEscola = $this->prepararEstatisticasPorEscola($queryRespostas, $simuladoId, $request);
-
-            return compact(
-                'simulados', 'anos', 'escolas',
-                'totalAlunos', 'alunosAtivos', 'alunosResponderam',
-                'mediasPeso', 'projecaoTRI', 'projecaoSegmento',
-                'estatisticasPorEscola'
-            );
-        }
-
-        private function prepareExcelData(Request $request)
-        {
-            $data = $this->getReportData($request);
             
-            // Formatar os dados para o Excel
             return [
-                'simuladoSelecionado' => $data['simulados']->firstWhere('id', $request->simulado_id),
-                'totalAlunos' => $data['totalAlunos'],
-                'alunosResponderam' => $data['alunosResponderam'],
-                'taxaFaltantes' => $data['alunosAtivos'] > 0 
-                    ? round((($data['alunosAtivos'] - $data['alunosResponderam'])/$data['alunosAtivos'])*100, 2).'%'
-                    : '0%',
-                
-                'mediasPeso' => [
-                    'peso_1' => $data['mediasPeso']['peso_1'],
-                    'peso_2' => $data['mediasPeso']['peso_2'],
-                    'peso_3' => $data['mediasPeso']['peso_3'],
-                    'geral' => $data['mediasPeso']['media_geral']
-                ],
-                
-                'projecaoTRI' => [
-                    'peso_1' => $data['projecaoTRI']['peso_1'],
-                    'peso_2' => $data['projecaoTRI']['peso_2'],
-                    'peso_3' => $data['projecaoTRI']['peso_3'],
-                    'geral' => $data['projecaoTRI']['media_geral']
-                ],
-                
-                // Dados adicionais para o Excel
-                'alunos' => $this->prepararDadosAlunosExcel($request),
-                'escolas' => $data['estatisticasPorEscola']
+                'nome' => $aluno->name,
+                'acertos' => $acertos,
+                'total' => $total,
+                'porcentagem' => $total > 0 ? round(($acertos / $total) * 100, 2) : 0,
+                'tri' => $triScore
             ];
-        }
+        })
+        ->sortByDesc('porcentagem')
+        ->values()
+        ->toArray();
+}
+private function calcularProjecaoTRI($queryRespostas)
+{
+    $respostas = (clone $queryRespostas)->with('pergunta')->get();
+    
+    if ($respostas->isEmpty()) {
+        return [
+            'peso_1' => 0,
+            'peso_2' => 0,
+            'peso_3' => 0,
+            'media_geral' => 0
+        ];
+    }
 
-        private function prepararEstatisticasPorEscola($queryRespostas, $simuladoId, $request)
-        {
-            return Escola::withCount(['users as alunos_count' => function($q) use ($request) {
-                    $q->where('role', 'aluno');
-                    if ($request->ano_id) $q->where('ano_id', $request->ano_id);
-                    if ($request->deficiencia) {
-                        $request->deficiencia === 'ND' 
-                            ? $q->whereNull('deficiencia')
-                            : $q->where('deficiencia', $request->deficiencia);
-                    }
-                }])
-                ->with(['users as alunos' => function($q) use ($simuladoId, $request) {
-                    $q->where('role', 'aluno');
-                    if ($request->ano_id) $q->where('ano_id', $request->ano_id);
-                    if ($request->deficiencia) {
-                        $request->deficiencia === 'ND' 
-                            ? $q->whereNull('deficiencia')
-                            : $q->where('deficiencia', $request->deficiencia);
-                    }
-                    $q->with(['respostasSimulado' => function($q) use ($simuladoId) {
-                        $q->where('simulado_id', $simuladoId)
-                        ->with('pergunta');
-                    }]);
-                }])
-                ->get()
-                ->map(function ($escola) use ($queryRespostas) {
-                    $alunosComRespostas = $escola->alunos->filter(function ($aluno) {
-                        return $aluno->respostasSimulado->isNotEmpty();
-                    });
-                    
-                    $mediaEscola = 0;
-                    $mediaTRI = 0;
-                    
-                    if ($alunosComRespostas->isNotEmpty()) {
-                        // Cálculo da média tradicional
-                        $totalPontos = 0;
-                        $totalPeso = 0;
-                        
-                        // Cálculo da média TRI
-                        $somaTRI = 0;
-                        $countTRI = 0;
-                        
-                        foreach ($alunosComRespostas as $aluno) {
-                            foreach ($aluno->respostasSimulado as $resposta) {
-                                $totalPontos += $resposta->correta * $resposta->pergunta->peso;
-                                $totalPeso += $resposta->pergunta->peso;
-                                
-                                // Cálculo TRI para cada resposta
-                                $triA = $resposta->pergunta->tri_a;
-                                $triB = $resposta->pergunta->tri_b;
-                                $triC = $resposta->pergunta->tri_c;
-                                $prob = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
-                                $valorTRI = $resposta->correta ? $prob : (1 - $prob);
-                                
-                                $somaTRI += $valorTRI * $resposta->pergunta->peso;
-                                $countTRI += $resposta->pergunta->peso;
-                            }
-                        }
-                        
-                        $mediaEscola = $totalPeso > 0 ? round(($totalPontos / $totalPeso) * 10, 2) : 0;
-                        $mediaTRI = $countTRI > 0 ? round(($somaTRI / $countTRI) * 10, 2) : 0;
-                    }
-                    
-                    return [
-                        'nome' => $escola->nome,
-                        'alunos_ativos' => $escola->alunos_count,
-                        'alunos_responderam' => $alunosComRespostas->count(),
-                        'media_ponderada' => $mediaEscola,
-                        'projecao_tri' => $mediaTRI,
-                        'atingiu_meta' => $mediaEscola >= ($escola->alunos_count > 400 ? 6.0 : 5.0)
-                    ];
-                })
-                ->sortByDesc('media_ponderada')
-                ->values()
-                ->toArray();
-        }
+    // Agrupar por peso
+    $porPeso = [
+        1 => ['soma' => 0, 'count' => 0],
+        2 => ['soma' => 0, 'count' => 0],
+        3 => ['soma' => 0, 'count' => 0]
+    ];
 
-        private function prepararDadosAlunosExcel(Request $request)
-        {
-            $query = User::where('role', 'aluno')
-                ->with(['respostasSimulado' => function($q) use ($request) {
-                    $q->where('simulado_id', $request->simulado_id)
-                    ->with('pergunta');
-                }]);
+    foreach ($respostas as $resposta) {
+        $peso = $resposta->pergunta->peso;
+        $triA = $resposta->pergunta->tri_a;
+        $triB = $resposta->pergunta->tri_b;
+        $triC = $resposta->pergunta->tri_c;
+        
+        // Fórmula TRI para theta=0 (habilidade média)
+        $probabilidade = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
+        
+        // Valor TRI baseado no acerto/erro
+        $valorTRI = $resposta->correta ? $probabilidade : (1 - $probabilidade);
+        
+        $porPeso[$peso]['soma'] += $valorTRI;
+        $porPeso[$peso]['count']++;
+    }
 
-            // Aplicar filtros
-            if ($request->ano_id) $query->where('ano_id', $request->ano_id);
-            if ($request->escola_id) $query->where('escola_id', $request->escola_id);
-            if ($request->deficiencia) {
-                $request->deficiencia === 'ND' 
-                    ? $query->whereNull('deficiencia')
-                    : $query->where('deficiencia', $request->deficiencia);
-            }
+    // Calcular médias por peso
+    $mediaPeso1 = $porPeso[1]['count'] > 0 ? ($porPeso[1]['soma'] / $porPeso[1]['count']) * 10 : 0;
+    $mediaPeso2 = $porPeso[2]['count'] > 0 ? ($porPeso[2]['soma'] / $porPeso[2]['count']) * 10 : 0;
+    $mediaPeso3 = $porPeso[3]['count'] > 0 ? ($porPeso[3]['soma'] / $porPeso[3]['count']) * 10 : 0;
 
-            return $query->get()
-                ->map(function ($aluno) {
-                    $respostas = $aluno->respostasSimulado;
-                    $total = $respostas->count();
-                    $acertos = $respostas->where('correta', true)->count();
-                    
-                    // Cálculo TRI simplificado
-                    $triScore = 0;
-                    if ($total > 0) {
-                        $triScore = $respostas->sum(function ($resposta) {
-                            $triA = $resposta->pergunta->tri_a;
-                            $triB = $resposta->pergunta->tri_b;
-                            $triC = $resposta->pergunta->tri_c;
-                            $prob = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
-                            return $resposta->correta ? $prob : (1 - $prob);
-                        });
-                        $triScore = round(($triScore / $total) * 10, 2);
-                    }
-                    
-                    return [
-                        'nome' => $aluno->name,
-                        'acertos' => $acertos,
-                        'total' => $total,
-                        'porcentagem' => $total > 0 ? round(($acertos / $total) * 100, 2) : 0,
-                        'tri' => $triScore
-                    ];
-                })
-                ->sortByDesc('porcentagem')
-                ->values()
-                ->toArray();
-        }
-        private function calcularProjecaoTRI($queryRespostas)
-        {
-            $respostas = (clone $queryRespostas)->with('pergunta')->get();
-            
-            if ($respostas->isEmpty()) {
-                return [
-                    'peso_1' => 0,
-                    'peso_2' => 0,
-                    'peso_3' => 0,
-                    'media_geral' => 0
-                ];
-            }
+   // Média geral ponderada
+$totalPeso = $porPeso[1]['count'] + $porPeso[2]['count'] + $porPeso[3]['count'];
+$mediaGeral = $totalPeso > 0 
+    ? (($porPeso[1]['soma'] + $porPeso[2]['soma'] + $porPeso[3]['soma']) / $totalPeso) * 10
+    : 0;
 
-            // Agrupar por peso
-            $porPeso = [
-                1 => ['soma' => 0, 'count' => 0],
-                2 => ['soma' => 0, 'count' => 0],
-                3 => ['soma' => 0, 'count' => 0]
-            ];
-
-            foreach ($respostas as $resposta) {
-                $peso = $resposta->pergunta->peso;
-                $triA = $resposta->pergunta->tri_a;
-                $triB = $resposta->pergunta->tri_b;
-                $triC = $resposta->pergunta->tri_c;
-                
-                // Fórmula TRI para theta=0 (habilidade média)
-                $probabilidade = $triC + (1 - $triC) / (1 + exp(-1.7 * $triA * (0 - $triB)));
-                
-                // Valor TRI baseado no acerto/erro
-                $valorTRI = $resposta->correta ? $probabilidade : (1 - $probabilidade);
-                
-                $porPeso[$peso]['soma'] += $valorTRI;
-                $porPeso[$peso]['count']++;
-            }
-
-            // Calcular médias por peso
-            $mediaPeso1 = $porPeso[1]['count'] > 0 ? ($porPeso[1]['soma'] / $porPeso[1]['count']) * 10 : 0;
-            $mediaPeso2 = $porPeso[2]['count'] > 0 ? ($porPeso[2]['soma'] / $porPeso[2]['count']) * 10 : 0;
-            $mediaPeso3 = $porPeso[3]['count'] > 0 ? ($porPeso[3]['soma'] / $porPeso[3]['count']) * 10 : 0;
-
-        // Média geral ponderada
-        $totalPeso = $porPeso[1]['count'] + $porPeso[2]['count'] + $porPeso[3]['count'];
-        $mediaGeral = $totalPeso > 0 
-            ? (($porPeso[1]['soma'] + $porPeso[2]['soma'] + $porPeso[3]['soma']) / $totalPeso) * 10
-            : 0;
-
-            return [
-                'peso_1' => round(max(0, min(10, $mediaPeso1)), 2),
-                'peso_2' => round(max(0, min(10, $mediaPeso2)), 2),
-                'peso_3' => round(max(0, min(10, $mediaPeso3)), 2),
-                'media_geral' => round(max(0, min(10, $mediaGeral)), 2)
-            ];
-        }
+    return [
+        'peso_1' => round(max(0, min(10, $mediaPeso1)), 2),
+        'peso_2' => round(max(0, min(10, $mediaPeso2)), 2),
+        'peso_3' => round(max(0, min(10, $mediaPeso3)), 2),
+        'media_geral' => round(max(0, min(10, $mediaGeral)), 2)
+    ];
+}
 
     public function estatisticasEscola(Request $request)
     {

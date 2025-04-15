@@ -26,7 +26,8 @@
                         </div>
                     </div>
                    
-                  
+                   
+         
                 </div>
 
                 <div class="row mt-2">
@@ -39,26 +40,15 @@
                         </a>
                     </div>
                 </div>
+        
             </form>
+                               <!-- Botões de Exportação -->
+    
         </div>
+        
     </div>
     
     @if(request()->has('simulado_id'))
-    <!-- Botões de Exportação -->
-    <div class="row mb-4">
-        <div class="col-md-12 text-right">
-        <a href="{{ route('relatorios.rede-municipal.pdf', request()->query()) }}" 
-   class="btn btn-danger"
-   target="_blank"
-   onclick="event.preventDefault(); downloadPDF(this);">
-   <i class="fas fa-file-pdf"></i> Exportar PDF
-</a>
-            <a href="{{ route('relatorios.rede-municipal.excel', request()->all()) }}" class="btn btn-success">
-                <i class="fas fa-file-excel"></i> Exportar Excel
-            </a>
-        </div>
-    </div>
-
     <!-- Barra de Progresso -->
     <div class="progress mb-4" style="height: 8px;">
         <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" 
@@ -196,156 +186,142 @@
             <div class="chart-container" style="position: relative; height: 400px;">
                 <canvas id="graficoDispersao"></canvas>
             </div>
-            <div class="mt-3 text-center">
-                <p class="text-muted">
-                    Total de escolas: {{ count($dadosEscolas) }} | 
-                    Média Geral TRI: {{ number_format($mediaGeralTRI, 2) }}
-                </p>
-            </div>
         </div>
     </div>
 
-    <!-- Quadrantes de Desempenho -->
-    <div class="card mb-4 shadow">
-        <div class="card-header bg-primary text-white">
-            <h5 class="card-title mb-0">Análise por Quadrantes</h5>
+  <!-- Quadrantes de Desempenho -->
+<div class="card mb-4 shadow">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">Análise por Quadrantes</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    <strong>Média Geral TRI da Rede:</strong> {{ number_format($mediaGeralTRI, 2) }}
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row mb-4">
-                <div class="col-md-12">
-                    <div class="alert alert-info">
-                        <strong>Média Geral TRI da Rede:</strong> {{ number_format($mediaGeralTRI, 2) }}
+        
+        <div class="row">
+            <!-- Quadrante 1 -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">🟩 Q1 - Alto Desempenho/Grande</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="text-success">{{ $quadrantes['q1']['count'] }}</h3>
+                        <p class="mb-1">Escolas</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar bg-success" style="width: {{ $quadrantes['q1']['count'] > 0 ? 100 : 0 }}%">
+                                Média TRI: {{ number_format($quadrantes['q1']['media_tri'], 2) }}
+                            </div>
+                        </div>
+                        <p class="mt-2 small text-muted">200+ alunos e nota TRI acima da média</p>
+                        @if($quadrantes['q1']['count'] > 0)
+                            <div class="mt-3 text-start">
+                                <h6>Escolas:</h6>
+                                <ul class="list-unstyled">
+                                    @foreach($quadrantes['q1']['escolas'] as $escola)
+                                        <li>{{ $escola }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
             
-            <div class="row">
-                <!-- Quadrante 1 -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100 border-success">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">🟩 Q1 - Alto Desempenho/Grande</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <h3 class="text-success">{{ $quadrantes['q1']['count'] }}</h3>
-                            <p class="mb-1">Escolas</p>
-                            <div class="progress mt-3">
-                                <div class="progress-bar bg-success" style="width: {{ $quadrantes['q1']['count'] > 0 ? 100 : 0 }}%">
-                                    Média TRI: {{ number_format($quadrantes['q1']['media_tri'], 2) }}
-                                </div>
+            <!-- Quadrante 2 -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">🟥 Q2 - Baixo Desempenho/Grande</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="text-danger">{{ $quadrantes['q2']['count'] }}</h3>
+                        <p class="mb-1">Escolas</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar bg-danger" style="width: {{ $quadrantes['q2']['count'] > 0 ? 100 : 0 }}%">
+                                Média TRI: {{ number_format($quadrantes['q2']['media_tri'], 2) }}
                             </div>
-                            <p class="mt-2 small text-muted">200+ alunos e nota TRI acima da média</p>
-                            @if($quadrantes['q1']['count'] > 0)
-                                <div class="mt-3">
-                                    <a href="{{ route('relatorios.escolas-quadrante', [
-                                        'simulado_id' => request('simulado_id'),
-                                        'quadrante' => 'q1',
-                                        'ano_id' => request('ano_id'),
-                                        'deficiencia' => request('deficiencia')
-                                    ]) }}" class="btn btn-sm btn-outline-success">
-                                        Ver Escolas
-                                    </a>
-                                </div>
-                            @endif
                         </div>
+                        <p class="mt-2 small text-muted">200+ alunos e nota TRI abaixo da média</p>
+                        @if($quadrantes['q2']['count'] > 0)
+                            <div class="mt-3 text-start">
+                                <h6>Escolas:</h6>
+                                <ul class="list-unstyled">
+                                    @foreach($quadrantes['q2']['escolas'] as $escola)
+                                        <li>{{ $escola }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
                 </div>
-                
-                <!-- Quadrante 2 -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100 border-danger">
-                        <div class="card-header bg-danger text-white">
-                            <h5 class="mb-0">🟥 Q2 - Baixo Desempenho/Grande</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <h3 class="text-danger">{{ $quadrantes['q2']['count'] }}</h3>
-                            <p class="mb-1">Escolas</p>
-                            <div class="progress mt-3">
-                                <div class="progress-bar bg-danger" style="width: {{ $quadrantes['q2']['count'] > 0 ? 100 : 0 }}%">
-                                    Média TRI: {{ number_format($quadrantes['q2']['media_tri'], 2) }}
-                                </div>
+            </div>
+            
+            <!-- Quadrante 3 -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-warning">
+                    <div class="card-header bg-warning text-white">
+                        <h5 class="mb-0">🟨 Q3 - Baixo Desempenho/Pequena</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="text-warning">{{ $quadrantes['q3']['count'] }}</h3>
+                        <p class="mb-1">Escolas</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar bg-warning" style="width: {{ $quadrantes['q3']['count'] > 0 ? 100 : 0 }}%">
+                                Média TRI: {{ number_format($quadrantes['q3']['media_tri'], 2) }}
                             </div>
-                            <p class="mt-2 small text-muted">200+ alunos e nota TRI abaixo da média</p>
-                            @if($quadrantes['q2']['count'] > 0)
-                                <div class="mt-3">
-                                    <a href="{{ route('relatorios.escolas-quadrante', [
-                                        'simulado_id' => request('simulado_id'),
-                                        'quadrante' => 'q2',
-                                        'ano_id' => request('ano_id'),
-                                        'deficiencia' => request('deficiencia')
-                                    ]) }}" class="btn btn-sm btn-outline-danger">
-                                        Ver Escolas
-                                    </a>
-                                </div>
-                            @endif
                         </div>
+                        <p class="mt-2 small text-muted">Menos de 200 alunos e nota TRI abaixo da média</p>
+                        @if($quadrantes['q3']['count'] > 0)
+                            <div class="mt-3 text-start">
+                                <h6>Escolas:</h6>
+                                <ul class="list-unstyled">
+                                    @foreach($quadrantes['q3']['escolas'] as $escola)
+                                        <li>{{ $escola }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
                 </div>
-                
-                <!-- Quadrante 3 -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100 border-warning">
-                        <div class="card-header bg-warning text-white">
-                            <h5 class="mb-0">🟨 Q3 - Baixo Desempenho/Pequena</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <h3 class="text-warning">{{ $quadrantes['q3']['count'] }}</h3>
-                            <p class="mb-1">Escolas</p>
-                            <div class="progress mt-3">
-                                <div class="progress-bar bg-warning" style="width: {{ $quadrantes['q3']['count'] > 0 ? 100 : 0 }}%">
-                                    Média TRI: {{ number_format($quadrantes['q3']['media_tri'], 2) }}
-                                </div>
-                            </div>
-                            <p class="mt-2 small text-muted">Menos de 200 alunos e nota TRI abaixo da média</p>
-                            @if($quadrantes['q3']['count'] > 0)
-                                <div class="mt-3">
-                                    <a href="{{ route('relatorios.escolas-quadrante', [
-                                        'simulado_id' => request('simulado_id'),
-                                        'quadrante' => 'q3',
-                                        'ano_id' => request('ano_id'),
-                                        'deficiencia' => request('deficiencia')
-                                    ]) }}" class="btn btn-sm btn-outline-warning">
-                                        Ver Escolas
-                                    </a>
-                                </div>
-                            @endif
-                        </div>
+            </div>
+            
+            <!-- Quadrante 4 -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-info">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">🟦 Q4 - Alto Desempenho/Pequena</h5>
                     </div>
-                </div>
-                
-                <!-- Quadrante 4 -->
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100 border-info">
-                        <div class="card-header bg-info text-white">
-                            <h5 class="mb-0">🟦 Q4 - Alto Desempenho/Pequena</h5>
-                        </div>
-                        <div class="card-body text-center">
-                            <h3 class="text-info">{{ $quadrantes['q4']['count'] }}</h3>
-                            <p class="mb-1">Escolas</p>
-                            <div class="progress mt-3">
-                                <div class="progress-bar bg-info" style="width: {{ $quadrantes['q4']['count'] > 0 ? 100 : 0 }}%">
-                                    Média TRI: {{ number_format($quadrantes['q4']['media_tri'], 2) }}
-                                </div>
+                    <div class="card-body text-center">
+                        <h3 class="text-info">{{ $quadrantes['q4']['count'] }}</h3>
+                        <p class="mb-1">Escolas</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar bg-info" style="width: {{ $quadrantes['q4']['count'] > 0 ? 100 : 0 }}%">
+                                Média TRI: {{ number_format($quadrantes['q4']['media_tri'], 2) }}
                             </div>
-                            <p class="mt-2 small text-muted">Menos de 200 alunos e nota TRI acima da média</p>
-                            @if($quadrantes['q4']['count'] > 0)
-                                <div class="mt-3">
-                                    <a href="{{ route('relatorios.escolas-quadrante', [
-                                        'simulado_id' => request('simulado_id'),
-                                        'quadrante' => 'q4',
-                                        'ano_id' => request('ano_id'),
-                                        'deficiencia' => request('deficiencia')
-                                    ]) }}" class="btn btn-sm btn-outline-info">
-                                        Ver Escolas
-                                    </a>
-                                </div>
-                            @endif
                         </div>
+                        <p class="mt-2 small text-muted">Menos de 200 alunos e nota TRI acima da média</p>
+                        @if($quadrantes['q4']['count'] > 0)
+                            <div class="mt-3 text-start">
+                                <h6>Escolas:</h6>
+                                <ul class="list-unstyled">
+                                    @foreach($quadrantes['q4']['escolas'] as $escola)
+                                        <li>{{ $escola }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Comparação Média Tradicional vs TRI -->
     <div class="card mb-4 shadow">
@@ -372,20 +348,11 @@
                             <h6>1º ao 5º Ano</h6>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Média Tradicional</h6>
-                                    <div class="h4">{{ number_format($projecaoSegmento['1a5']['media'], 2) }}</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Média TRI</h6>
-                                    <div class="h4">{{ number_format($projecaoSegmento['1a5']['media_tri'], 2) }}</div>
-                                </div>
-                            </div>
+                            <div class="h2">{{ number_format($projecaoSegmento['1a5']['media'], 2) }}</div>
                             <div class="progress mt-3" style="height: 25px;">
                                 <div class="progress-bar {{ $projecaoSegmento['1a5']['projecao'] >= 6 ? 'bg-success' : 'bg-danger' }}" 
                                      style="width: {{ $projecaoSegmento['1a5']['projecao'] * 10 }}%">
-                                    <strong>Projeção TRI: {{ number_format($projecaoSegmento['1a5']['projecao'], 1) }}</strong>
+                                    <strong>Projeção: {{ number_format($projecaoSegmento['1a5']['projecao'], 1) }}</strong>
                                 </div>
                             </div>
                             <div class="mt-2">
@@ -402,20 +369,11 @@
                             <h6>6º ao 9º Ano</h6>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Média Tradicional</h6>
-                                    <div class="h4">{{ number_format($projecaoSegmento['6a9']['media'], 2) }}</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Média TRI</h6>
-                                    <div class="h4">{{ number_format($projecaoSegmento['6a9']['media_tri'], 2) }}</div>
-                                </div>
-                            </div>
+                            <div class="h2">{{ number_format($projecaoSegmento['6a9']['media'], 2) }}</div>
                             <div class="progress mt-3" style="height: 25px;">
                                 <div class="progress-bar {{ $projecaoSegmento['6a9']['projecao'] >= 5 ? 'bg-success' : 'bg-warning' }}" 
                                      style="width: {{ $projecaoSegmento['6a9']['projecao'] * 10 }}%">
-                                    <strong>Projeção TRI: {{ number_format($projecaoSegmento['6a9']['projecao'], 1) }}</strong>
+                                    <strong>Projeção: {{ number_format($projecaoSegmento['6a9']['projecao'], 1) }}</strong>
                                 </div>
                             </div>
                             <div class="mt-2">
@@ -430,6 +388,7 @@
         </div>
     </div>
 
+  
     @else
     <div class="card mb-4 shadow">
         <div class="card-body text-center py-5">
@@ -448,17 +407,16 @@
 // Gráfico de Dispersão
 const ctxDispersao = document.getElementById('graficoDispersao').getContext('2d');
 const escolasData = @json($dadosEscolas);
-const mediaGeral = {{ $mediaGeralTRI }};
+const mediaGeral = {{ $mediasPeso['media_geral'] }};
 
 // Preparar dados para o gráfico
 const pontos = escolasData.map(escola => ({
     x: escola.total_alunos,
-    y: escola.media_tri,
+    y: escola.media_escola,
     nome: escola.nome,
-    quadrante: escola.total_alunos > 200 
-        ? (escola.media_tri > mediaGeral ? 'q1' : 'q2')
-        : (escola.media_tri > mediaGeral ? 'q4' : 'q3'),
-    media_tradicional: escola.media_simulado
+    quadrante: escola.total_alunos > 400 
+        ? (escola.media_escola > mediaGeral ? 'q1' : 'q2')
+        : (escola.media_escola > mediaGeral ? 'q4' : 'q3')
 }));
 
 new Chart(ctxDispersao, {
@@ -509,18 +467,13 @@ new Chart(ctxDispersao, {
         plugins: {
             title: {
                 display: true,
-                text: 'Desempenho das Escolas por Tamanho e Nota Média TRI',
+                text: 'Desempenho das Escolas por Tamanho e Nota Média',
                 font: { size: 16 }
             },
             tooltip: {
                 callbacks: {
                     label: function(context) {
-                        return [
-                            `${context.raw.nome}`,
-                            `Alunos: ${context.raw.x}`,
-                            `Média TRI: ${context.raw.y.toFixed(2)}`,
-                            `Média Tradicional: ${context.raw.media_tradicional.toFixed(2)}`
-                        ];
+                        return `${context.raw.nome}: ${context.raw.y.toFixed(2)} (${context.raw.x} alunos)`;
                     }
                 }
             },
@@ -535,20 +488,20 @@ new Chart(ctxDispersao, {
                         borderWidth: 2,
                         borderDash: [6, 6],
                         label: {
-                            content: 'Média Geral TRI: ' + mediaGeral.toFixed(2),
+                            content: 'Média Geral: ' + mediaGeral.toFixed(2),
                             enabled: true,
                             position: 'left'
                         }
                     },
                     line2: {
                         type: 'line',
-                        xMin: 200,
-                        xMax: 200,
+                        xMin: 400,
+                        xMax: 400,
                         borderColor: 'rgb(75, 75, 75)',
                         borderWidth: 2,
                         borderDash: [6, 6],
                         label: {
-                            content: 'Limite de tamanho (200 alunos)',
+                            content: 'Limite de tamanho',
                             enabled: true,
                             position: 'top'
                         }
@@ -568,10 +521,77 @@ new Chart(ctxDispersao, {
             y: {
                 title: {
                     display: true,
-                    text: 'Nota Média TRI'
+                    text: 'Nota Média'
                 },
                 min: 0,
                 max: 10
+            }
+        }
+    }
+});
+
+// Gráfico de Quadrantes
+const ctxQuadrant = document.getElementById('quadrantChart').getContext('2d');
+new Chart(ctxQuadrant, {
+    type: 'bar',
+    data: {
+        labels: ['Q1 - Grande/Acima', 'Q2 - Grande/Abaixo', 'Q3 - Pequena/Abaixo', 'Q4 - Pequena/Acima'],
+        datasets: [{
+            label: 'Número de Escolas',
+            data: [
+                {{ $quadrantes['q1']['count'] }},
+                {{ $quadrantes['q2']['count'] }},
+                {{ $quadrantes['q3']['count'] }},
+                {{ $quadrantes['q4']['count'] }}
+            ],
+            backgroundColor: [
+                'rgba(40, 167, 69, 0.7)',
+                'rgba(220, 53, 69, 0.7)',
+                'rgba(255, 193, 7, 0.7)',
+                'rgba(23, 162, 184, 0.7)'
+            ],
+            borderColor: [
+                'rgba(40, 167, 69, 1)',
+                'rgba(220, 53, 69, 1)',
+                'rgba(255, 193, 7, 1)',
+                'rgba(23, 162, 184, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Distribuição de Escolas por Quadrantes',
+                font: { size: 16 }
+            },
+            legend: { display: false },
+            <!-- Atualize o tooltip do gráfico -->
+tooltip: {
+    callbacks: {
+        afterLabel: function(context) {
+            const quadrant = context.label.split(' - ')[0].toLowerCase();
+            const medias = {
+                q1: {{ $quadrantes['q1']['media_tri'] ?? 0 }},
+                q2: {{ $quadrantes['q2']['media_tri'] ?? 0 }},
+                q3: {{ $quadrantes['q3']['media_tri'] ?? 0 }},
+                q4: {{ $quadrantes['q4']['media_tri'] ?? 0 }}
+            };
+            return `Média TRI: ${medias[quadrant]}`;
+        }
+    }
+}
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Número de Escolas'
+                }
             }
         }
     }
@@ -624,6 +644,7 @@ new Chart(ctxComparacao, {
                 callbacks: {
                     afterBody: function(context) {
                         const index = context[0].dataIndex;
+                        // Pré-definimos os valores para cada peso
                         const dificuldades = {
                             0: {{ $analiseTRI['peso_1']['dificuldade'] }},
                             1: {{ $analiseTRI['peso_2']['dificuldade'] }},

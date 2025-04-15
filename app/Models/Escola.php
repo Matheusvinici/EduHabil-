@@ -21,6 +21,11 @@ class Escola extends Model
     {
         return $this->belongsToMany(User::class, 'user_escola');
     }
+       // Remova o relacionamento many-to-many e adicione:
+        public function alunos()
+        {
+            return $this->hasMany(User::class, 'escola_id')->where('role', 'aluno');
+        }
     // Relacionamento com o modelo Turma
     public function turmas(): HasMany
     {
