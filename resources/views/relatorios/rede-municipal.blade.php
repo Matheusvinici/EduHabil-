@@ -47,12 +47,13 @@
     <!-- Botões de Exportação -->
     <div class="row mb-4">
         <div class="col-md-12 text-right">
-        <a href="{{ route('relatorios.rede-municipal.pdf', request()->query()) }}" 
-   class="btn btn-danger"
-   target="_blank"
-   onclick="event.preventDefault(); downloadPDF(this);">
-   <i class="fas fa-file-pdf"></i> Exportar PDF
-</a>
+        <div class="mt-3">
+                    <a href="{{ route('relatorios.rede-municipal.pdf', [
+                        'simulado_id' => request('simulado_id'),
+                    ]) }}" class="btn btn-danger" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Gerar PDF
+                    </a>
+                </div>
             <a href="{{ route('relatorios.rede-municipal.excel', request()->all()) }}" class="btn btn-success">
                 <i class="fas fa-file-excel"></i> Exportar Excel
             </a>
@@ -455,9 +456,9 @@ const pontos = escolasData.map(escola => ({
     x: escola.total_alunos,
     y: escola.media_tri,
     nome: escola.nome,
-    quadrante: escola.total_alunos > 200 
-        ? (escola.media_tri > mediaGeral ? 'q1' : 'q2')
-        : (escola.media_tri > mediaGeral ? 'q4' : 'q3'),
+    quadrante: escola.total_alunos >= 200
+    ? (escola.media_tri >= mediaGeral ? 'q1' : 'q2')
+    : (escola.media_tri >= mediaGeral ? 'q4' : 'q3'),
     media_tradicional: escola.media_simulado
 }));
 

@@ -2629,8 +2629,7 @@ private function calcularThetaAluno($respostas)
                 if (!in_array($user->role, ['admin', 'inclusiva'])) {
                     abort(403, 'Acesso não autorizado.');
                 }
-                
-            
+                            
                 // Obter os mesmos dados que são usados na view normal
                 $data = [
                     'totalSimulados' => Simulado::count(),

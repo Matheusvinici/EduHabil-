@@ -268,7 +268,7 @@
                 <li class="nav-item has-treeview">
                         <a href="#" class="nav-link text-white">
                                 <i class="nav-icon fas fa-chart-bar text-white"></i>
-                                <p>Relatórios<i class="right fas fa-angle-left"></i></p>
+                                <p>Relatórios Simulados<i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
                                 <li class="nav-item">
@@ -313,6 +313,50 @@
                                                 <p>Estatísticas de Alunos com Deficiências</p>
                                         </a>
                                 </li>
+                        </ul>
+                </li>
+        @endif
+        @if(Auth::check() && Auth::user()->role === 'admin')
+                <li class="nav-item has-treeview">
+                        <a href="#" class="nav-link text-white">
+                                <i class="nav-icon fas fa-chart-bar text-white"></i>
+                                <p>Relatórios Tutoria <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                             
+                              
+                                <li class="nav-item">
+                                        <a href="{{ route('relatorios.estatisticas-escola') }}" class="nav-link text-white">
+                                                <i class="far fa-circle nav-icon text-white"></i>
+                                                <p>Estatísticas por Escola</p>
+                                        </a>
+                                </li>
+                               
+                                
+                                
+                              
+                        </ul>
+                </li>
+        @endif
+        @if(Auth::check() && Auth::user()->role === 'admin')
+                <li class="nav-item has-treeview">
+                        <a href="#" class="nav-link text-white">
+                                <i class="nav-icon fas fa-chart-bar text-white"></i>
+                                <p>Tutoria|Simulados <i class="right fas fa-angle-left"></i></p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                             
+                              
+                                <li class="nav-item">
+                                        <a href="{{ route('relatorios.estatisticas-escola') }}" class="nav-link text-white">
+                                                <i class="far fa-circle nav-icon text-white"></i>
+                                                <p>Estatísticas Comparativa</p>
+                                        </a>
+                                </li>
+                               
+                                
+                                
+                              
                         </ul>
                 </li>
         @endif
