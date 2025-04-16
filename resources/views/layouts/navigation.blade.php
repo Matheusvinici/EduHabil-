@@ -260,6 +260,12 @@
                                                 <p>Avaliação</p>
                                         </a>
                                 </li>
+                                <li class="nav-item">
+                                        <a href="{{ route('tutoria.acompanhamento') }}" class="nav-link text-white">
+                                        <i class="far fa-circle nav-icon text-white"></i>
+                                        <p>Acompanhamento</p>
+                                        </a>
+                                </li>
                         </ul>
                 </li>
         @endif

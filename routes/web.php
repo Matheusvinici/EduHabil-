@@ -7,6 +7,7 @@ use App\Http\Middleware\CheckRole; // Importe seu middleware de role
 use App\Http\Controllers\TutoriaAvaliacaoController;
 use App\Http\Controllers\{
     UserController,
+    TutoriaAcompanhamentoController,
     ProfessorTurmaController,
     NotaAvaliacaoController,
     AdminController,
@@ -365,7 +366,17 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     //Tutoria
     Route::resource('tutoria_avaliacoes', TutoriaAvaliacaoController::class);
     Route::resource('tutoria_criterios', TutoriaCriterioController::class);
-
+    Route::prefix('tutoria')->group(function () {
+        Route::get('/acompanhamento', [TutoriaAcompanhamentoController::class, 'index'])->name('tutoria.acompanhamento');
+        Route::get('/avaliacao/{id}/acompanhamento', [TutoriaAcompanhamentoController::class, 'createFromEvaluation'])->name('tutoria.acompanhamento.create');
+        Route::post('/acompanhamento', [TutoriaAcompanhamentoController::class, 'store'])->name('tutoria.acompanhamento.store');
+        Route::get('/acompanhamento/{id}/edit', [TutoriaAcompanhamentoController::class, 'edit'])->name('tutoria.acompanhamento.edit');
+        Route::put('/acompanhamento/{id}', [TutoriaAcompanhamentoController::class, 'update'])->name('tutoria.acompanhamento.update');
+        Route::get('/acompanhamento/create/{avaliacaoId}', [TutoriaAcompanhamentoController::class, 'create'])
+    ->name('tutoria.acompanhamento.create');
+Route::post('/acompanhamento', [TutoriaAcompanhamentoController::class, 'store'])
+    ->name('tutoria.acompanhamento.store');
+    });
     Route::resource('disciplinas', DisciplinaController::class);
     Route::resource('habilidades', HabilidadeController::class);
     Route::resource('questoes', QuestaoController::class)->parameters([
