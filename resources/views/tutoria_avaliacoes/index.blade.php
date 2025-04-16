@@ -9,6 +9,8 @@
         </a>
     </div>
 
+    
+
     <form method="GET" action="{{ route('tutoria_avaliacoes.index') }}" class="mb-3">
         <div class="input-group">
             <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Buscar por tutor, escola ou data">
