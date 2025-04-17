@@ -79,10 +79,17 @@
                                        class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-list-check"></i> Alunos
                                     </a>
-                                    <a href="{{ route('respostas_simulados.aplicador.create', $simulado) }}" 
-                                       class="btn btn-primary btn-sm">
-                                        <i class="fas fa-play"></i> Aplicar
-                                    </a>
+                                    <div class="btn-group">
+                                        <a href="{{ route('respostas_simulados.aplicador.create', $simulado) }}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-pencil-alt"></i> Manual
+                                        </a>
+                                       <!-- Substitua o link da câmera por: -->
+                                       <a href="{{ route('respostas_simulados.aplicador.camera', $simulado) }}" 
+                                        class="btn btn-success btn-sm">
+                                            <i class="fas fa-camera"></i> Ler Gabarito
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

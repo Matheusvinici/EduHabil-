@@ -2,12 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TutoriaCriterioController;
+use App\Services\GabaritoProcessor;
+
 use App\Http\Middleware\CheckEscolaSelecionada;
 use App\Http\Middleware\CheckRole; // Importe seu middleware de role
 use App\Http\Controllers\TutoriaAvaliacaoController;
 use App\Http\Controllers\{
     UserController,
     TutoriaAcompanhamentoController,
+    GabaritoController,
     ProfessorTurmaController,
     NotaAvaliacaoController,
     AdminController,
@@ -47,7 +50,13 @@ Route::get('/', function () {
 });
 
 Auth::routes();
-
+Route::get('/teste-ocr', function () {
+    $imagePath = storage_path('app/public/teste.png'); // Coloque uma imagem com texto aqui
+    $processor = new GabaritoProcessor();
+    $texto = $processor->processar($imagePath);
+    
+    return response()->json(['texto_extraido' => $texto]);
+});
 // Rota para a página inicial autenticada
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
@@ -238,7 +247,28 @@ Route::get('/respostas_simulados/aplicador/{simulado}/alunos-pendentes', [Respos
 
 Route::get('/respostas_simulados/aplicador/create/{simulado}/{aluno_id}', [RespostaSimuladoController::class, 'createForAluno'])
     ->name('respostas_simulados.aplicador.create_aluno');
+            Route::get('/{simulado}/camera', [GabaritoController::class, 'showCameraForm'])
+            ->name('respostas_simulados.aplicador.camera');
 
+        // Processar seleção do aluno (POST)
+        Route::post('/{simulado}/selecionar-aluno', [GabaritoController::class, 'selecionarAluno'])
+        ->name('respostas_simulados.aplicador.selecionar-aluno')
+        ->whereNumber('simulado');
+        // Processar imagem do gabarito (POST)
+        Route::post('/{simulado}/processar-gabarito', [GabaritoController::class, 'processImage'])
+            ->name('respostas_simulados.aplicador.processar-gabarito');
+
+        // Exibir confirmação (GET)
+        Route::get('/{simulado}/confirmacao', [GabaritoController::class, 'showConfirmacao'])
+            ->name('respostas_simulados.aplicador.confirmacao');
+
+        // Salvar respostas (POST)
+        Route::post('/{simulado}/salvar-gabarito', [GabaritoController::class, 'salvarRespostas'])
+            ->name('respostas_simulados.aplicador.salvar-gabarito');
+
+        // Nova rota para exibir correção (GET)
+        Route::get('/{simulado}/correcao', [GabaritoController::class, 'showCorrecao'])
+            ->name('respostas_simulados.aplicador.correcao');
    // Rota para finalizar o simulado (POST)
    Route::post('/simulados/{simulado}/finalizar', [RespostaSimuladoController::class, 'finalizarSimulado'])
         ->name('respostas_simulados.aplicador.finalizar');

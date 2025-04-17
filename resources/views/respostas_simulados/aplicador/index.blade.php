@@ -4,9 +4,11 @@
 <div class="container">
     <div class="card shadow-lg">
         <div class="card-header text-white d-flex justify-content-between align-items-center" style="background-color: #4a90e2;">
-            <a href="{{ route('respostas_simulados.aplicador.select') }}" class="btn btn-light btn-sm fw-bold text-primary">
-                <i class="fas fa-plus-circle me-1"></i> Aplicar Novo Simulado
-            </a>
+        <a href="{{ route('respostas_simulados.aplicador.select') }}" class="btn btn-light btn-sm fw-bold text-primary me-2">
+                    <i class="fas fa-plus-circle me-1"></i> Aplicar Novo Simulado
+                </a>
+                <!-- Botão para acessar a câmera (outro controller) -->
+              
             <h5 class="mb-0">
                 <i class="fas fa-chart-bar"></i> Desempenho dos Alunos
             </h5>
