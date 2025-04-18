@@ -147,16 +147,10 @@
                                                 <i class="fas fa-dice mr-1"></i> Chance de Acerto Casual
                                             </label>
                                             <select name="tri_c" class="form-control" required>
-                                                <option value="" selected disabled>Selecione a opção</option>
                                                 <option value="0.25" {{ old('tri_c', 0.25) == 0.25 ? 'selected' : '' }}>
                                                     25% (4 alternativas)
                                                 </option>
-                                                <option value="0.33" {{ old('tri_c') == 0.33 ? 'selected' : '' }}>
-                                                    33% (3 alternativas)
-                                                </option>
-                                                <option value="0.50" {{ old('tri_c') == 0.50 ? 'selected' : '' }}>
-                                                    50% (2 alternativas)
-                                                </option>
+                                                
                                             </select>
                                             <small class="text-muted">Probabilidade de acerto por chute</small>
                                         </div>

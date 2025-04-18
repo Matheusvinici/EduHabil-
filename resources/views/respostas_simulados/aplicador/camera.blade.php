@@ -292,9 +292,10 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmModal.hide();
     });
 
-    // Carregar alunos ao selecionar turma
+    // Carregar alunos ao selecionar turma - ATUALIZADO
     $('#turma_id').change(function() {
         const turmaId = $(this).val();
+        const simuladoId = {{ $simulado->id }};
         
         if (!turmaId) {
             $('#aluno-container').hide();
@@ -307,24 +308,33 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#aluno_id').html('<option value="">Carregando...</option>').prop('disabled', true);
 
         $.ajax({
-            url: "{{ route('respostas_simulados.aplicador.alunos', '') }}/" + turmaId,
+            url: "{{ route('respostas_simulados.aplicador.alunos') }}",
             type: 'GET',
+            data: {
+                turma_id: turmaId,
+                simulado_id: simuladoId
+            },
             success: function(response) {
                 let options = '<option value="">Selecione o aluno</option>';
                 
-                if (response.length > 0 && response[0].id !== 0) {
+                if (response.length > 0) {
                     response.forEach(aluno => {
                         options += `<option value="${aluno.id}">${aluno.name}</option>`;
                     });
                     $('#aluno_id').html(options).prop('disabled', false);
                 } else {
-                    $('#aluno_id').html('<option value="">Nenhum aluno nesta turma</option>').prop('disabled', true);
+                    options += '<option value="0">Nenhum aluno disponível</option>';
+                    $('#aluno_id').html(options).prop('disabled', false);
                 }
                 
                 verificarCampos();
             },
-            error: function() {
-                $('#aluno_id').html('<option value="">Erro ao carregar alunos</option>');
+            error: function(xhr) {
+                let errorMsg = 'Erro ao carregar alunos';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg += ': ' + xhr.responseJSON.message;
+                }
+                $('#aluno_id').html(`<option value="">${errorMsg}</option>`);
             }
         });
     });
@@ -491,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         stopCamera();
     });
 });
+
 // No formulário de envio da imagem
 document.getElementById('form-respostas').addEventListener('submit', function(e) {
     e.preventDefault();

@@ -236,7 +236,8 @@ Route::prefix('aplicador')->group(function() {
    // Rota para processar a seleção (POST)
    Route::post('/simulados/{simulado}/aplicar', [RespostaSimuladoController::class, 'storeForAplicador'])
         ->name('respostas_simulados.aplicador.store');
-
+        Route::post('/respostas-simulados/aplicador/{simulado}/clear-session', [RespostaSimuladoController::class, 'clearSession'])
+        ->name('respostas_simulados.aplicador.clear_session');
         Route::post('/verificar-resposta', [RespostaSimuladoController::class, 'verificarResposta'])
      ->name('respostas_simulados.verificar');
      Route::post('/respostas_simulados/aplicador/select-escola', [RespostaSimuladoController::class, 'selectEscola'])
@@ -249,11 +250,15 @@ Route::get('/respostas_simulados/aplicador/create/{simulado}/{aluno_id}', [Respo
     ->name('respostas_simulados.aplicador.create_aluno');
             Route::get('/{simulado}/camera', [GabaritoController::class, 'showCameraForm'])
             ->name('respostas_simulados.aplicador.camera');
+            
+            Route::get('/aplicador/simulados/{simulado}/alunos', [GabaritoController::class, 'getAlunosPorTurma'])
+    ->name('respostas_simulados.aplicador.alunos');
 
         // Processar seleção do aluno (POST)
         Route::post('/{simulado}/selecionar-aluno', [GabaritoController::class, 'selecionarAluno'])
         ->name('respostas_simulados.aplicador.selecionar-aluno')
         ->whereNumber('simulado');
+        
         // Processar imagem do gabarito (POST)
         Route::post('/{simulado}/processar-gabarito', [GabaritoController::class, 'processImage'])
             ->name('respostas_simulados.aplicador.processar-gabarito');
@@ -266,6 +271,10 @@ Route::get('/respostas_simulados/aplicador/create/{simulado}/{aluno_id}', [Respo
         Route::post('/{simulado}/salvar-gabarito', [GabaritoController::class, 'salvarRespostas'])
             ->name('respostas_simulados.aplicador.salvar-gabarito');
 
+             // Retorna alunos por turma (AJAX)
+    Route::get('/alunos-por-turma', [GabaritoController::class, 'getAlunosPorTurma'])
+    ->name('gabarito.alunos-por-turma');
+
         // Nova rota para exibir correção (GET)
         Route::get('/{simulado}/correcao', [GabaritoController::class, 'showCorrecao'])
             ->name('respostas_simulados.aplicador.correcao');
@@ -275,10 +284,19 @@ Route::get('/respostas_simulados/aplicador/create/{simulado}/{aluno_id}', [Respo
 
         Route::get('/aplicador/index', [TurmaController::class, 'indexAplicador'])
         ->name('turmas.aplicador.index');
-        Route::get('/get-alunos/{turma}', [RespostaSimuladoController::class, 'getAlunosPorTurma'])
+        Route::get('/respostas-simulados/aplicador/alunos', [RespostaSimuladoController::class, 'getAlunosPorTurma'])
         ->name('respostas_simulados.aplicador.alunos');
-
-
+        Route::get('{simulado}/{aluno}', [RespostaSimuladoController::class, 'showForAplicador'])
+        ->name('respostas_simulados.aplicador.show');
+        
+   Route::get('{simulado}/{aluno}/edit', [RespostaSimuladoController::class, 'editForAplicador'])
+        ->name('respostas_simulados.aplicador.edit');
+        
+   Route::put('{simulado}/{aluno}', [RespostaSimuladoController::class, 'updateForAplicador'])
+        ->name('respostas_simulados.aplicador.update');
+        
+   Route::delete('{simulado}/{aluno}', [RespostaSimuladoController::class, 'destroyForAplicador'])
+        ->name('respostas_simulados.aplicador.destroy');    
 });
 
 // Rotas para professores do AEE
