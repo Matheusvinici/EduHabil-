@@ -2,12 +2,51 @@
 
 @section('content')
 <div class="container">
+    <!-- Mensagens de feedback -->
+    @if(session('success'))
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success alert-dismissible fade show shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle me-3 fs-3"></i>
+                    <div>
+                        <h5 class="mb-1">{{ session('success') }}</h5>
+                        @if(session('nota_aluno'))
+                        <p class="mb-0">Nota do aluno <strong>{{ session('aluno_nome') }}</strong>: 
+                            <span class="badge bg-primary fs-6 px-2 py-1">{{ session('nota_aluno') }}/10</span>
+                        </p>
+                        @endif
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-circle me-3 fs-3"></i>
+                    <div>
+                        <h5 class="mb-0">{{ session('error') }}</h5>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Modal de Confirmação -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="confirmModalLabel">Confirmar Aplicação</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p>Você está prestes a aplicar o simulado <strong>{{ $simulado->nome }}</strong> para:</p>
@@ -50,7 +89,10 @@
                 <h4 class="mb-0">
                     <i class="fas fa-chalkboard-teacher"></i> Aplicar Simulado: {{ $simulado->nome }}
                 </h4>
-        </div>
+                @if($simulado->descricao)
+                <p class="mb-0 small">{{ $simulado->descricao }}</p>
+                @endif
+            </div>
             <div id="timer-container" class="d-none">
                 <span class="badge bg-danger fs-5">
                     <i class="fas fa-clock"></i> 
@@ -60,10 +102,10 @@
         </div>
     </div>
 
-    <div class="card shadow-lg">
+    @if(!session('aluno_selecionado'))
+    <!-- Formulário de seleção do aluno -->
+    <div class="card shadow-lg mb-4">
         <div class="card-body">
-            @if(!session('aluno_selecionado'))
-            <!-- Formulário de seleção do aluno -->
             <form method="POST" action="{{ route('respostas_simulados.aplicador.selecionar', $simulado) }}" id="form-selecao">
                 @csrf
                 
@@ -111,8 +153,32 @@
                     </button>
                 </div>
             </form>
-            @else
-            <!-- Formulário de respostas -->
+        </div>
+    </div>
+    @else
+    <!-- Formulário de respostas em formato de gabarito -->
+    <div class="card shadow-lg">
+        <div class="card-body">
+            <div class="alert alert-primary mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1"><i class="fas fa-user-graduate me-2"></i> {{ session('aluno_nome') }}</h5>
+                        <div class="mt-2">
+                            <span class="badge bg-secondary me-2"><i class="fas fa-school me-1"></i> {{ session('aluno_turma') }}</span>
+                            <span class="badge bg-dark me-2"><i class="fas fa-palette me-1"></i> {{ session('raca') }}</span>
+                            @if($simulado->tempo_limite)
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-clock me-1"></i> {{ $simulado->tempo_limite }} minutos
+                            </span>
+                            @endif
+                        </div>
+                    </div>
+                    <a href="{{ route('respostas_simulados.aplicador.create', $simulado) }}?reset=1" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-sync-alt me-1"></i> Trocar Aluno
+                    </a>
+                </div>
+            </div>
+
             <form method="POST" action="{{ route('respostas_simulados.aplicador.store', $simulado) }}" id="form-respostas">
                 @csrf
                 <input type="hidden" name="aluno_id" value="{{ session('aluno_id') }}">
@@ -120,95 +186,50 @@
                 <input type="hidden" name="raca" value="{{ session('raca') }}">
                 <input type="hidden" name="tempo_resposta" id="tempo-resposta" value="0">
                 
-                <!-- Informações do aluno -->
-                <div class="alert alert-info mb-4">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="badge bg-primary me-2">
-                                <i class="fas fa-user-graduate"></i> {{ session('aluno_nome') }}
-                            </span>
-                            <span class="badge bg-secondary me-2">
-                                <i class="fas fa-school"></i> {{ session('aluno_turma') }}
-                            </span>
-                            <span class="badge bg-dark">
-                                <i class="fas fa-palette"></i> {{ session('raca') }}
-                            </span>
-                        </div>
-                        <a href="{{ route('respostas_simulados.aplicador.create', $simulado) }}?reset=1" class="btn btn-sm btn-warning">
-                            <i class="fas fa-sync-alt me-1"></i> Trocar Aluno
-                        </a>
-                    </div>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-hover mb-0">
+                        <thead class="table-primary">
+                            <tr>
+                                <th width="10%" class="text-center align-middle">Questão</th>
+                                @foreach($alternativas as $letra)
+                                <th class="text-center align-middle">{{ $letra }}</th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($simulado->perguntas as $pergunta)
+                            <tr>
+                                <td class="text-center fw-bold align-middle">{{ $loop->iteration }}</td>
+                                @foreach($alternativas as $letra)
+                                <td class="text-center align-middle hover-highlight" onclick="selectOption(this)">
+                                    <div class="form-check d-flex justify-content-center m-0">
+                                        <input class="form-check-input" type="radio" 
+                                               name="respostas[{{ $pergunta->id }}]" 
+                                               value="{{ $letra }}" 
+                                               id="q{{ $pergunta->id }}{{ $letra }}"
+                                               required>
+                                    </div>
+                                </td>
+                                @endforeach
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- Perguntas - Uma por página -->
-                <div id="questions-container">
-                    @foreach($simulado->perguntas as $index => $pergunta)
-                    <div class="card mb-4 question-card" id="question-{{ $index + 1 }}" @if($index > 0) style="display: none;" @endif>
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Questão {{ $index + 1 }} de {{ $simulado->perguntas->count() }}</h5>
-                            <span class="badge bg-primary">
-                                <i class="fas fa-clock me-1"></i> 
-                                <span id="question-timer-{{ $index + 1 }}">00:00</span>
-                            </span>
-                        </div>
-                        <div class="card-body">
-                            <div class="question-text mb-4">
-                                {{ $pergunta->enunciado }}
-                            </div>
-                            
-                            @if($pergunta->imagem)
-                                <div class="text-center mb-4">
-                                    <img src="{{ asset('storage/'.$pergunta->imagem) }}" 
-                                         class="img-fluid rounded border" 
-                                         style="max-height: 250px;">
-                                </div>
-                            @endif
-                            
-                            <div class="list-group">
-                                @foreach(['A', 'B', 'C', 'D'] as $letra)
-                                <label class="list-group-item d-flex align-items-center hover-highlight">
-                                    <input type="radio" name="respostas[{{ $pergunta->id }}]" 
-                                           value="{{ $letra }}" class="form-check-input flex-shrink-0 me-3" required
-                                           data-question="{{ $index + 1 }}">
-                                    <div>
-                                        <span class="fw-bold">{{ $letra }}.</span> 
-                                        <span class="ms-2">{{ $pergunta->{'alternativa_'.strtolower($letra)} }}</span>
-                                    </div>
-                                </label>
-                                @endforeach
-                            </div>
-                        </div>
-                        <div class="card-footer bg-light">
-                            <div class="d-flex justify-content-between">
-                                @if($index > 0)
-                                <button type="button" class="btn btn-secondary prev-question" 
-                                        data-target="question-{{ $index }}">
-                                    <i class="fas fa-arrow-left me-2"></i> Anterior
-                                </button>
-                                @else
-                                <div></div>
-                                @endif
-                                
-                                @if($index < $simulado->perguntas->count() - 1)
-                                <button type="button" class="btn btn-primary next-question" 
-                                        data-target="question-{{ $index + 2 }}"
-                                        disabled>
-                                    Próxima <i class="fas fa-arrow-right ms-2"></i>
-                                </button>
-                                @else
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-check-circle me-2"></i> Finalizar
-                                </button>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg py-3">
+                        <i class="fas fa-check-circle me-2"></i> Finalizar Respostas
+                    </button>
+                    <a href="{{ route('respostas_simulados.aplicador.create', $simulado) }}?reset=1" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-undo me-2"></i> Cancelar e Selecionar Outro Aluno
+                    </a>
                 </div>
             </form>
-            @endif
         </div>
     </div>
+    @endif
 </div>
 
 <!-- Rodapé -->
@@ -220,6 +241,51 @@
         </div>
     </div>
 </div>
+
+<style>
+    .table-primary {
+        background-color: #e7f5ff;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        margin-top: 0;
+    }
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    .hover-highlight:hover {
+        background-color: #f1f8ff;
+        cursor: pointer;
+    }
+    .nota-badge {
+        font-size: 1.1rem;
+        padding: 0.35rem 0.75rem;
+    }
+    .alert-success {
+        border-left: 4px solid #2e7d32;
+    }
+    .alert-danger {
+        border-left: 4px solid #c62828;
+    }
+    @media (max-width: 768px) {
+        .table-responsive {
+            font-size: 0.85rem;
+        }
+        .form-check-input {
+            width: 1em;
+            height: 1em;
+        }
+        .btn-lg {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+    }
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -236,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const timerContainer = document.getElementById('timer-container');
     let tempoDecorrido = 0;
     let timer;
-    let questionTimers = {};
     const tempoLimite = {{ $simulado->tempo_limite ? $simulado->tempo_limite * 60 : 0 }};
     let tempoRestante = tempoLimite;
 
@@ -249,23 +314,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Função para iniciar o timer regressivo
     function startTimer() {
-        // Inicia timers individuais para cada questão
-        document.querySelectorAll('.question-card').forEach(card => {
-            const questionNum = card.id.split('-')[1];
-            questionTimers[questionNum] = 0;
-            
-            const questionTimerDisplay = document.getElementById(`question-timer-${questionNum}`);
-            if (questionTimerDisplay) {
-                setInterval(() => {
-                    questionTimers[questionNum]++;
-                    const minutes = Math.floor(questionTimers[questionNum] / 60).toString().padStart(2, '0');
-                    const seconds = (questionTimers[questionNum] % 60).toString().padStart(2, '0');
-                    questionTimerDisplay.textContent = `${minutes}:${seconds}`;
-                }, 1000);
-            }
-        });
-
-        // Timer principal (regressivo se houver tempo limite)
         timer = setInterval(() => {
             tempoDecorrido++;
             tempoInput.value = tempoDecorrido;
@@ -277,7 +325,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (tempoRestante <= 0) {
                     clearInterval(timer);
-                    // Altera cor para vermelho quando tempo acaba
                     timerDisplay.parentElement.classList.remove('bg-danger');
                     timerDisplay.parentElement.classList.add('bg-dark');
                     alert('O tempo acabou! As respostas serão enviadas automaticamente.');
@@ -286,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Altera cor para amarelo quando faltam 5 minutos
-                if (tempoRestante <= 300) { // 5 minutos = 300 segundos
+                if (tempoRestante <= 300) {
                     timerDisplay.parentElement.classList.remove('bg-danger');
                     timerDisplay.parentElement.classList.add('bg-warning', 'text-dark');
                 }
@@ -305,42 +352,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
 
-    // Carregar alunos ao selecionar turma
-    $('#turma_id').change(function() {
-        const turmaId = $(this).val();
-        
-        if (!turmaId) {
-            $('#aluno-container').hide();
-            $('#aluno_id').prop('disabled', true).val('');
-            $('#btn-selecionar').prop('disabled', true);
-            return;
+    // Selecionar alternativa ao clicar na célula
+    window.selectOption = function(cell) {
+        const radio = cell.querySelector('input[type="radio"]');
+        if (radio) {
+            radio.checked = true;
+            // Desmarca outras opções da mesma questão (segurança)
+            const row = cell.parentNode;
+            row.querySelectorAll('input[type="radio"]').forEach(r => {
+                if (r !== radio) r.checked = false;
+            });
         }
-
-        $('#aluno-container').show();
-        $('#aluno_id').html('<option value="">Carregando...</option>').prop('disabled', true);
-
-        $.ajax({
-            url: "{{ route('respostas_simulados.aplicador.alunos', '') }}/" + turmaId,
-            type: 'GET',
-            success: function(response) {
-                let options = '<option value="">Selecione o aluno</option>';
-                
-                if (response.length > 0 && response[0].id !== 0) {
-                    response.forEach(aluno => {
-                        options += `<option value="${aluno.id}">${aluno.name}</option>`;
-                    });
-                    $('#aluno_id').html(options).prop('disabled', false);
-                } else {
-                    $('#aluno_id').html('<option value="">Nenhum aluno nesta turma</option>').prop('disabled', true);
-                }
-                
-                verificarCampos();
-            },
-            error: function() {
-                $('#aluno_id').html('<option value="">Erro ao carregar alunos</option>');
-            }
-        });
-    });
+    };
 
     // Verificar campos obrigatórios
     function verificarCampos() {
@@ -348,121 +371,93 @@ document.addEventListener('DOMContentLoaded', function() {
         const alunoVal = $('#aluno_id').val();
         const racaVal = $('#raca').val();
         
-        $('#btn-selecionar').prop('disabled', !(turmaVal && alunoVal && racaVal && alunoVal !== '0'));
+        // Desabilita se: turma não selecionada, ou aluno não selecionado/igual a 0, ou raça não selecionada
+        $('#btn-selecionar').prop('disabled', !(turmaVal && alunoVal && alunoVal !== '0' && racaVal));
     }
 
     // Monitorar mudanças nos campos
     $('#aluno_id, #raca').change(verificarCampos);
 
-    // Navegação entre questões
-    document.querySelectorAll('.next-question').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target');
-            document.querySelectorAll('.question-card').forEach(card => {
-                card.style.display = 'none';
+    // Verifica se há mensagem de sucesso e reseta o formulário
+    @if(session('success'))
+    document.addEventListener('DOMContentLoaded', function() {
+        // Rola para o topo para mostrar a mensagem
+        window.scrollTo(0, 0);
+        
+        // Limpa a sessão do aluno selecionado após 5 segundos
+        setTimeout(() => {
+            fetch('{{ route("respostas_simulados.aplicador.clear_session", $simulado) }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json'
+                }
             });
-            document.getElementById(targetId).style.display = 'block';
-            
-            // Rola para o topo da questão
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
+        }, 5000);
     });
-    
-    document.querySelectorAll('.prev-question').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target');
-            document.querySelectorAll('.question-card').forEach(card => {
-                card.style.display = 'none';
-            });
-            document.getElementById(targetId).style.display = 'block';
-            
-            // Rola para o topo da questão
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-    });
-    
-    // Habilita/desabilita botão de próxima questão
-    document.querySelectorAll('input[type="radio"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const questionNum = parseInt(this.getAttribute('data-question'));
-            const nextButton = document.querySelector(`.next-question[data-target="question-${questionNum + 1}"]`);
-            
-            if (nextButton) {
-                nextButton.disabled = false;
+    @endif
+
+    // Validação antes de enviar
+    formRespostas?.addEventListener('submit', function(e) {
+        const totalQuestions = {{ $simulado->perguntas->count() }};
+        const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+        
+        if (answered < totalQuestions) {
+            e.preventDefault();
+            alert(`Por favor, responda todas as questões. Faltam ${totalQuestions - answered}.`);
+        } else {
+            // Confirmação antes de enviar
+            if (!confirm('Tem certeza que deseja finalizar e enviar as respostas?')) {
+                e.preventDefault();
             }
-        });
+        }
     });
+});
+
+// Carregar alunos ao selecionar turma
+$('#turma_id').change(function() {
+    const turmaId = $(this).val();
+    const simuladoId = {{ $simulado->id }};
     
-    // Submeter o formulário
-    formRespostas?.addEventListener('submit', function() {
-        clearInterval(timer);
+    if (!turmaId) {
+        $('#aluno-container').hide();
+        $('#aluno_id').prop('disabled', true).val('');
+        $('#btn-selecionar').prop('disabled', true);
+        return;
+    }
+
+    $('#aluno-container').show();
+    $('#aluno_id').html('<option value="">Carregando...</option>').prop('disabled', true);
+
+    $.ajax({
+        url: "{{ route('respostas_simulados.aplicador.alunos') }}",
+        type: 'GET',
+        data: {
+            turma_id: turmaId,
+            simulado_id: simuladoId
+        },
+        success: function(response) {
+            let options = '<option value="">Selecione o aluno</option>';
+            
+            if (response.length > 0 && response[0].id !== 0) {
+                response.forEach(aluno => {
+                    options += `<option value="${aluno.id}">${aluno.name}</option>`;
+                });
+                $('#aluno_id').html(options).prop('disabled', false);
+            } else {
+                $('#aluno_id').html('<option value="0">Todos os alunos já responderam</option>').prop('disabled', true);
+            }
+            
+            verificarCampos();
+        },
+        error: function(xhr) {
+            let errorMsg = 'Erro ao carregar alunos';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg += ': ' + xhr.responseJSON.message;
+            }
+            $('#aluno_id').html(`<option value="0">${errorMsg}</option>`);
+        }
     });
 });
 </script>
-
-<style>
-    /* Estilos personalizados */
-    .hover-highlight:hover {
-        background-color: #f8f9fa;
-        cursor: pointer;
-        transform: translateX(5px);
-        transition: all 0.2s ease;
-    }
-    
-    .question-card {
-        transition: all 0.3s ease;
-    }
-    
-    .list-group-item {
-        transition: all 0.2s;
-        border-left: 3px solid transparent;
-    }
-    
-    .list-group-item:hover {
-        border-left-color: #0d6efd;
-    }
-    
-    .form-check-input {
-        transform: scale(1.2);
-        margin-top: 0.1rem;
-    }
-    
-    #timer-container {
-        font-family: 'Courier New', monospace;
-    }
-    
-    .card-header {
-        font-weight: 600;
-    }
-    
-    .alert-info {
-        background-color: #e7f5ff;
-        border-color: #a5d8ff;
-    }
-    
-    .btn-lg {
-        padding: 0.75rem 1.5rem;
-        font-size: 1.1rem;
-    }
-    
-    .question-text {
-        font-size: 1.1rem;
-        line-height: 1.6;
-    }
-    
-    /* Responsividade */
-    @media (max-width: 768px) {
-        .card-header h4 {
-            font-size: 1.2rem;
-        }
-        
-        .btn-lg {
-            width: 100%;
-        }
-        
-        .badge.fs-5 {
-            font-size: 1rem !important;
-        }
-    }
-</style>
 @endsection

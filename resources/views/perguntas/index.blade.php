@@ -5,7 +5,7 @@
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h3 class="card-title">Lista de Perguntas</h3>
-            <a href="{{ route('perguntas.create') }}" class="btn btn-light float-right">Nova Pergunta</a>
+            <a href="{{ route('perguntas.create') }}" class="btn btn-info float-right">Nova Pergunta</a>
         </div>
         <div class="card-body">
             @if (session('success'))

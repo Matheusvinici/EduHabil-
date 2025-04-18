@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Support\Str;
-
+use App\Services\SAEBTRICalculator;
 use App\Exports\EstatisticasExport;  
 use App\Exports\EstatisticasProfessorExport;  
 use App\Exports\EstatisticasCoordenadorExport;  
@@ -732,7 +732,7 @@ class RespostaSimuladoController extends Controller
                     return redirect()->route('respostas_simulados.aplicador.select')
                         ->with('error', 'Selecione uma escola primeiro');
                 }
-
+            
                 // Limpa a sessão se for um novo acesso ou se foi solicitado reset
                 if (!request()->has('keep_session') || request()->has('reset')) {
                     session()->forget([
@@ -744,29 +744,49 @@ class RespostaSimuladoController extends Controller
                         'raca'
                     ]);
                 }
-
+            
                 // Verifica se o simulado tem perguntas
                 if ($simulado->perguntas->isEmpty()) {
                     return redirect()->route('respostas_simulados.aplicador.select')
                         ->with('error', 'Este simulado não possui perguntas cadastradas.');
                 }
-
+            
                 // Obtém apenas turmas da escola selecionada
                 $turmas = Turma::where('escola_id', $escolaId)
                             ->where('aplicador_id', $user->id)
                             ->orderBy('nome_turma')
                             ->get();
-
+            
                 // Obtém alunos que já responderam
                 $alunosRespondidos = RespostaSimulado::where('simulado_id', $simulado->id)
                     ->where('aplicador_id', $user->id)
                     ->pluck('user_id')
                     ->toArray();
-
+            
+                // Define as alternativas possíveis (A, B, C, D) ou mais se necessário
+                $alternativas = ['A', 'B', 'C', 'D'];
+                
+                // Se alguma pergunta tiver mais alternativas, ajustamos
+                $maxAlternativas = $simulado->perguntas->max(function($pergunta) {
+                    return count(array_filter([
+                        $pergunta->alternativa_a,
+                        $pergunta->alternativa_b,
+                        $pergunta->alternativa_c,
+                        $pergunta->alternativa_d,
+                        $pergunta->alternativa_e ?? null
+                    ]));
+                });
+            
+                if ($maxAlternativas > 4) {
+                    $alternativas = range('A', 'E');
+                }
+            
                 return view('respostas_simulados.aplicador.create', [
                     'simulado' => $simulado,
                     'turmas' => $turmas,
-                    'alunosRespondidos' => $alunosRespondidos
+                    'alunosRespondidos' => $alunosRespondidos,
+                    'alternativas' => $alternativas,
+                    'maxAlternativas' => $maxAlternativas
                 ]);
             }
 
@@ -845,28 +865,36 @@ class RespostaSimuladoController extends Controller
                 ]);
             }
 
-            public function getAlunosPorTurma($turmaId)
+            public function getAlunosPorTurma(Request $request)
             {
+                $request->validate([
+                    'turma_id' => 'required|exists:turmas,id',
+                    'simulado_id' => 'required|exists:simulados,id'
+                ]);
+            
                 try {
-                    \Log::info("Requisição para turma ID: $turmaId");
-                    
-                    $alunos = User::where('turma_id', $turmaId)
+                    $alunos = User::where('turma_id', $request->turma_id)
                                 ->where('role', 'aluno')
+                                ->whereNotIn('id', function($query) use ($request) {
+                                    $query->select('user_id')
+                                          ->from('respostas_simulados')
+                                          ->where('simulado_id', $request->simulado_id)
+                                          ->where('aplicador_id', Auth::id());
+                                })
                                 ->select('id', 'name')
+                                ->orderBy('name')
                                 ->get();
             
                     if($alunos->isEmpty()) {
                         return response()->json([
-                            ['id' => 0, 'name' => 'Nenhum aluno nesta turma']
+                            ['id' => 0, 'name' => 'Todos os alunos desta turma já responderam']
                         ]);
                     }
             
                     return response()->json($alunos);
-            
                 } catch (\Exception $e) {
-                    \Log::error("Erro ao buscar alunos: " . $e->getMessage());
                     return response()->json([
-                        ['id' => 0, 'name' => 'Erro ao carregar alunos']
+                        ['id' => 0, 'name' => 'Erro ao carregar alunos: ' . $e->getMessage()]
                     ]);
                 }
             }
@@ -896,6 +924,10 @@ class RespostaSimuladoController extends Controller
                     return back()->withErrors('O aluno selecionado não pertence à turma escolhida.');
                 }
 
+                if ($request->aluno_id == 0) {
+                    return back()->withErrors('Não há alunos disponíveis nesta turma que ainda não responderam o simulado.');
+                }
+
                 // Verifica se o aluno já respondeu este simulado
                 $respostaExistente = RespostaSimulado::where([
                     'simulado_id' => $simulado->id,
@@ -922,54 +954,272 @@ class RespostaSimuladoController extends Controller
                     'keep_session' => true
                 ]);
             }
-            
-        
-            
+                       
             public function indexForAplicador()
             {
                 $aplicador = Auth::user();
-            
-                // Respostas com perguntas e simulado carregados
-                $respostas = RespostaSimulado::where('aplicador_id', $aplicador->id)
-                    ->with(['simulado.perguntas', 'pergunta', 'user'])
-                    ->get();
-            
-                $agrupadas = $respostas->groupBy(['simulado_id', 'user_id']);
-                $estatisticas = collect();
-            
-                foreach ($agrupadas as $simuladoId => $alunos) {
-                    foreach ($alunos as $alunoId => $respostasAluno) {
-                        $primeiraResposta = $respostasAluno->first();
-                        $simulado = $primeiraResposta->simulado;
-                        $aluno = $primeiraResposta->user;
-            
-                        $pesoTotal = $respostasAluno->sum(fn($resposta) => $resposta->pergunta->peso ?? 1);
-                        $pesoAcertos = $respostasAluno->filter(fn($resposta) => $resposta->correta)->sum(fn($resposta) => $resposta->pergunta->peso ?? 1);
-            
-                        $porcentagem = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 100 : 0;
-                        $media = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 10 : 0;
-            
-                        $estatisticas->push([
-                            'aluno' => $aluno->name,
-                            'simulado' => $simulado->nome,
-                            'total_questoes' => $respostasAluno->count(),
-                            'peso_total' => $pesoTotal,
-                            'peso_acertos' => $pesoAcertos,
-                            'porcentagem' => $porcentagem,
-                            'media' => $media,
-                            'data' => $primeiraResposta->created_at,
-                            'desempenho_class' => $porcentagem >= 70 ? 'success' :
-                                                  ($porcentagem >= 50 ? 'warning' : 'danger')
-                        ]);
-                    }
+                
+                // Query principal para obter os dados agrupados
+                $query = RespostaSimulado::where('aplicador_id', $aplicador->id)
+                    ->select([
+                        'simulado_id',
+                        'user_id',
+                        'escola_id',
+                        DB::raw('COUNT(*) as total_questoes'),
+                        DB::raw('MIN(created_at) as data_aplicacao')
+                    ])
+                    ->groupBy('simulado_id', 'user_id', 'escola_id')
+                    ->with(['simulado', 'user', 'escola']);
+                
+                // Aplicar filtros de pesquisa
+                if(request()->has('search_aluno')) {
+                    $query->whereHas('user', function($q) {
+                        $q->where('name', 'like', '%'.request('search_aluno').'%');
+                    });
                 }
-            
+                
+                if(request()->has('search_simulado')) {
+                    $query->whereHas('simulado', function($q) {
+                        $q->where('nome', 'like', '%'.request('search_simulado').'%');
+                    });
+                }
+                
+                // Paginação
+                $respostasAgrupadas = $query->paginate(15);
+                
+                // Processamento dos dados
+                $estatisticas = $respostasAgrupadas->map(function($grupo) {
+                    // Obter todas as respostas deste grupo com as perguntas relacionadas
+                    $respostas = RespostaSimulado::where('simulado_id', $grupo->simulado_id)
+                        ->where('user_id', $grupo->user_id)
+                        ->with('pergunta')
+                        ->get();
+                    
+                    // Cálculo tradicional (por peso)
+                    $pesoTotal = $respostas->sum(function($resposta) {
+                        return $resposta->pergunta->peso;
+                    });
+                    
+                    $pesoAcertos = $respostas->sum(function($resposta) {
+                        return $resposta->correta ? $resposta->pergunta->peso : 0;
+                    });
+                    
+                    $porcentagem = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 100 : 0;
+                    $media = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 10 : 0;
+                    
+                    // Cálculo TRI (SAEB)
+                    $triScore = $this->calculateSAEBScore($respostas);
+                    
+                    return [
+                        'aluno' => $grupo->user->name,
+                        'simulado' => $grupo->simulado->nome,
+                        'escola' => $grupo->escola->nome,
+                        'total_questoes' => $grupo->total_questoes,
+                        'peso_total' => $pesoTotal,
+                        'peso_acertos' => $pesoAcertos,
+                        'porcentagem' => $porcentagem,
+                        'media' => $media,
+                        'tri_score' => $triScore,
+                        'data' => $grupo->data_aplicacao,
+                        'simulado_id' => $grupo->simulado_id,
+                        'user_id' => $grupo->user_id,
+                        'desempenho_class' => $porcentagem >= 70 ? 'success' :
+                                            ($porcentagem >= 50 ? 'warning' : 'danger')
+                    ];
+                });
+                
                 return view('respostas_simulados.aplicador.index', [
-                    'estatisticas' => $estatisticas->sortByDesc('data')
+                    'estatisticas' => $estatisticas,
+                    'pagination' => $respostasAgrupadas,
+                    'total_aplicacoes' => $respostasAgrupadas->total()
                 ]);
             }
-            
 
+            protected function calculateSAEBScore($respostas)
+            {
+                if ($respostas->isEmpty()) return 0;
+                
+                // Verifica se acertou tudo
+                if ($respostas->every(fn($r) => $r->correta)) {
+                    return 10.0;
+                }
+                
+                $theta = 0.0; // Habilidade inicial estimada
+                
+                // Estimação por máxima verossimilhança (MLE)
+                for ($i = 0; $i < 20; $i++) {
+                    $sumNumerator = 0;
+                    $sumDenominator = 0;
+                    
+                    foreach ($respostas as $resposta) {
+                        $a = $resposta->pergunta->tri_a;
+                        $b = $resposta->pergunta->tri_b;
+                        $c = $resposta->pergunta->tri_c;
+                        
+                        $p = $this->itemProbability($a, $b, $c, $theta);
+                        $sumNumerator += $a * ($resposta->correta - $p);
+                        $sumDenominator += $a * $a * $p * (1 - $p);
+                    }
+                    
+                    if (abs($sumNumerator) < 0.001) break; // Convergência
+                    
+                    if ($sumDenominator != 0) {
+                        $theta += $sumNumerator / $sumDenominator;
+                    }
+                }
+                
+                // Calcular escore final
+                $totalScore = 0;
+                $maxScore = 0;
+                
+                foreach ($respostas as $resposta) {
+                    $a = $resposta->pergunta->tri_a;
+                    $b = $resposta->pergunta->tri_b;
+                    $c = $resposta->pergunta->tri_c;
+                    
+                    $totalScore += $this->itemProbability($a, $b, $c, $theta);
+                    $maxScore += 1;
+                }
+                
+                // Normalizar para escala 0-10
+                return $maxScore > 0 ? ($totalScore / $maxScore) * 10 : 0;
+            }
+
+            protected function itemProbability($a, $b, $c, $theta)
+            {
+                // Modelo logístico de 3 parâmetros (3PL)
+                return $c + (1 - $c) / (1 + exp(-1.7 * $a * ($theta - $b)));
+            }
+            protected function calculateTriScoresBatch($respostasAgrupadas)
+            {
+                // Prepara os filtros para buscar todas as respostas de uma vez
+                $simuladosIds = [];
+                $alunosIds = [];
+                
+                foreach($respostasAgrupadas as $grupo) {
+                    $simuladosIds[] = $grupo->simulado_id;
+                    $alunosIds[] = $grupo->user_id;
+                }
+                
+                // Busca todas as respostas necessárias em uma única consulta
+                $respostas = RespostaSimulado::whereIn('simulado_id', array_unique($simuladosIds))
+                    ->whereIn('user_id', array_unique($alunosIds))
+                    ->with('pergunta')
+                    ->get()
+                    ->groupBy(['simulado_id', 'user_id']);
+                
+                // Calcula os scores TRI em lote
+                $triScores = [];
+                
+                foreach($respostas as $simuladoId => $alunos) {
+                    foreach($alunos as $alunoId => $respostasAluno) {
+                        $triScores["{$simuladoId}_{$alunoId}"] = TRICalculator::calculateTotalScore($respostasAluno);
+                    }
+                }
+                
+                return $triScores;
+            }
+            public function showForAplicador($simuladoId, $alunoId)
+            {
+                $aplicador = Auth::user();
+                
+                $respostas = RespostaSimulado::where('aplicador_id', $aplicador->id)
+                    ->where('simulado_id', $simuladoId)
+                    ->where('user_id', $alunoId)
+                    ->with(['pergunta', 'simulado', 'user', 'escola'])
+                    ->get();
+                
+                if ($respostas->isEmpty()) {
+                    abort(404, 'Respostas não encontradas');
+                }
+                
+                // Cálculos de desempenho
+                $pesoTotal = $respostas->sum(function($r) { return $r->pergunta->peso; });
+                $pesoAcertos = $respostas->sum(function($r) { return $r->correta ? $r->pergunta->peso : 0; });
+                
+                $porcentagem = $pesoTotal > 0 ? round(($pesoAcertos / $pesoTotal) * 100, 1) : 0;
+                $media = $pesoTotal > 0 ? round(($pesoAcertos / $pesoTotal) * 10, 1) : 0;
+                
+                // Cálculo TRI
+                $triScore = TRICalculator::calculateTotalScore($respostas);
+                
+                return view('respostas_simulados.aplicador.show', [
+                    'respostas' => $respostas,
+                    'simulado' => $respostas->first()->simulado,
+                    'aluno' => $respostas->first()->user,
+                    'escola' => $respostas->first()->escola,
+                    'pesoTotal' => $pesoTotal,
+                    'pesoAcertos' => $pesoAcertos,
+                    'porcentagem' => $porcentagem,
+                    'media' => $media,
+                    'triScore' => round($triScore, 1),
+                    'data' => $respostas->first()->created_at
+                ]);
+            }
+            public function editForAplicador($simuladoId, $alunoId)
+            {
+                $aplicador = Auth::user();
+                
+                $respostas = RespostaSimulado::where('aplicador_id', $aplicador->id)
+                    ->where('simulado_id', $simuladoId)
+                    ->where('user_id', $alunoId)
+                    ->with(['pergunta', 'simulado', 'user'])
+                    ->get();
+                
+                if ($respostas->isEmpty()) {
+                    abort(404, 'Respostas não encontradas');
+                }
+                
+                return view('respostas_simulados.aplicador.edit', [
+                    'respostas' => $respostas,
+                    'simulado' => $respostas->first()->simulado,
+                    'aluno' => $respostas->first()->user,
+                    'alternativas' => ['A', 'B', 'C', 'D']
+                ]);
+            }
+
+            public function updateForAplicador(Request $request, $simuladoId, $alunoId)
+            {
+                $aplicador = Auth::user();
+                
+                $validated = $request->validate([
+                    'respostas.*' => 'required|in:A,B,C,D'
+                ]);
+                
+                DB::transaction(function() use ($simuladoId, $alunoId, $aplicador, $validated) {
+                    foreach ($validated['respostas'] as $perguntaId => $resposta) {
+                        RespostaSimulado::where('aplicador_id', $aplicador->id)
+                            ->where('simulado_id', $simuladoId)
+                            ->where('user_id', $alunoId)
+                            ->where('pergunta_id', $perguntaId)
+                            ->update([
+                                'resposta' => $resposta,
+                                'correta' => DB::raw("(SELECT resposta_correta FROM perguntas WHERE id = $perguntaId) = '$resposta'")
+                            ]);
+                    }
+                });
+                
+                return redirect()->route('respostas_simulados.aplicador.show', [$simuladoId, $alunoId])
+                    ->with('success', 'Respostas atualizadas com sucesso!');
+            }
+
+                // Excluir respostas de um aluno
+                public function destroyForAplicador($simuladoId, $alunoId)
+                {
+                    $aplicador = Auth::user();
+                    
+                    $respostas = RespostaSimulado::where('aplicador_id', $aplicador->id)
+                        ->where('simulado_id', $simuladoId)
+                        ->where('user_id', $alunoId)
+                        ->delete();
+                    
+                    if (!$respostas) {
+                        return back()->with('error', 'Nenhuma resposta encontrada para excluir');
+                    }
+                    
+                    return redirect()->route('respostas_simulados.aplicador.index')
+                        ->with('success', 'Respostas do aluno excluídas com sucesso!');
+                }
 
                 public function storeForAplicador(Request $request, Simulado $simulado)
                 {
@@ -984,52 +1234,94 @@ class RespostaSimuladoController extends Controller
                     $aluno = User::findOrFail($request->aluno_id);
                     $turma = Turma::findOrFail($request->turma_id);
                 
-                    // Verifica se o aluno pertence à turma
-                    if ($aluno->turma_id != $turma->id) {
-                        return back()->with('error', 'Aluno não pertence à turma selecionada');
-                    }
+                    // Verifica se o aluno já respondeu este simulado
+                    $respostaExistente = RespostaSimulado::where([
+                        'simulado_id' => $simulado->id,
+                        'user_id' => $aluno->id,
+                        'aplicador_id' => $aplicador->id
+                    ])->exists();
                 
-                    // Verifica se o aplicador tem vínculo com a turma
-                    if ($turma->aplicador_id != $aplicador->id) {
-                        return back()->with('error', 'Você não tem permissão para aplicar nesta turma');
-                    }
-                    
-                
-                    // Carrega todas as perguntas com as respostas corretas
-                    $perguntas = $simulado->perguntas()->pluck('resposta_correta', 'perguntas.id');
-                
-                    // Verifica se todas as perguntas foram respondidas
-                    $perguntasNaoRespondidas = $perguntas->keys()->diff(array_keys($request->respostas));
-                    if ($perguntasNaoRespondidas->isNotEmpty()) {
-                        return back()->with('error', 'Todas as questões devem ser respondidas');
+                    if ($respostaExistente) {
+                        return redirect()
+                            ->route('respostas_simulados.aplicador.create', $simulado)
+                            ->with('error', 'Este aluno já respondeu este simulado.');
                     }
                 
                     DB::beginTransaction();
                     try {
+                        $acertos = 0;
+                        $totalQuestoes = $simulado->perguntas->count();
+                        $pesoTotal = 0;
+                        $pesoAcertos = 0;
+                        $responses = [];
+                
                         foreach ($request->respostas as $perguntaId => $respostaAluno) {
-                            RespostaSimulado::create([
+                            $pergunta = Pergunta::findOrFail($perguntaId);
+                            
+                            $correta = strtoupper($respostaAluno) === strtoupper($pergunta->resposta_correta);
+                            
+                            if ($correta) {
+                                $acertos++;
+                                $pesoAcertos += $pergunta->peso;
+                            }
+                            $pesoTotal += $pergunta->peso;
+                
+                            $response = RespostaSimulado::create([
                                 'simulado_id' => $simulado->id,
                                 'pergunta_id' => $perguntaId,
                                 'user_id' => $aluno->id,
                                 'aplicador_id' => $aplicador->id,
                                 'escola_id' => $turma->escola_id,
-                                'resposta' => $respostaAluno,
-                                'correta' => $perguntas[$perguntaId] === $respostaAluno,
-                                'raca' => $request->raca
+                                'alternativa_marcada' => $respostaAluno,
+                                'correta' => $correta,
+                                'raca' => $request->raca,
+                                'tempo_resposta' => $request->tempo_resposta ?? 0,
+                                'peso' => $pergunta->peso,
+                                'tri_a' => $pergunta->tri_a,
+                                'tri_b' => $pergunta->tri_b,
+                                'tri_c' => $pergunta->tri_c
                             ]);
+                            
+                            $responses[] = $response;
                         }
+                
+                        // Cálculo das notas
+                        $notaTradicional = $pesoTotal > 0 ? ($pesoAcertos / $pesoTotal) * 10 : 0;
+                        $notaTRI = SAEBTRICalculator::calculateProficiency(collect($responses));
                 
                         DB::commit();
                 
                         return redirect()
-                            ->route('respostas_simulados.aplicador.index', ['escola_id' => $turma->escola_id])
-                            ->with('success', 'Simulado aplicado com sucesso!');
+                            ->route('respostas_simulados.aplicador.create', $simulado)
+                            ->with([
+                                'success' => "Respostas do aluno {$aluno->name} registradas com sucesso!",
+                                'nota_aluno' => number_format($notaTRI, 1),
+                                'nota_tradicional' => number_format($notaTradicional, 1),
+                                'aluno_nome' => $aluno->name,
+                                'aluno_turma' => $turma->nome_turma,
+                                'raca' => $request->raca
+                            ]);
                 
                     } catch (\Exception $e) {
                         DB::rollBack();
-                        return back()->with('error', 'Erro ao salvar respostas: ' . $e->getMessage());
+                        return redirect()
+                            ->route('respostas_simulados.aplicador.create', $simulado)
+                            ->with('error', 'Erro ao salvar respostas: ' . $e->getMessage());
                     }
                 }
+            public function clearSession(Simulado $simulado)
+            {
+                session()->forget([
+                    'aluno_selecionado',
+                    'aluno_id',
+                    'aluno_nome',
+                    'aluno_turma',
+                    'turma_id',
+                    'raca'
+                ]);
+                
+                return response()->json(['success' => true]);
+            }
                 
 
                 /**

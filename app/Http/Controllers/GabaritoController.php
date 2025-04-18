@@ -125,7 +125,35 @@ class GabaritoController extends Controller
         ]);
     }
    
-  
+    public function getAlunosPorTurma(Request $request)
+{
+    $request->validate([
+        'turma_id' => 'required|exists:turmas,id',
+        'simulado_id' => 'required|exists:simulados,id'
+    ]);
+
+    try {
+        $turmaId = $request->turma_id;
+        $simuladoId = $request->simulado_id;
+
+        // Busca alunos da turma que ainda não responderam o simulado
+        $alunos = User::where('turma_id', $turmaId)
+                    ->where('role', 'aluno')
+                    ->whereDoesntHave('respostasSimulados', function($query) use ($simuladoId) {
+                        $query->where('simulado_id', $simuladoId);
+                    })
+                    ->select('id', 'name')
+                    ->orderBy('name')
+                    ->get();
+
+        return response()->json($alunos);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Erro ao carregar alunos: ' . $e->getMessage()
+        ], 500);
+    }
+}
     public function processImage(Request $request, Simulado $simulado)
     {
         $validated = $request->validate([
