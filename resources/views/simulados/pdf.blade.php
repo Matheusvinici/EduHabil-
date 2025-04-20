@@ -265,7 +265,7 @@
     <div class="gabarito-section">
         <h2 class="gabarito-title">GABARITO PARA RESPOSTAS</h2>
         
-        <img src="{{ public_path('images/gabarito_padrao.png') }}" class="gabarito-image" alt="Gabarito Padrão">
+        <img src="{{ public_path('images/gabarito-padrao.png') }}" class="gabarito-image" alt="Gabarito Padrão">
         
         <div class="gabarito-instructions">
             <h4>INSTRUÇÕES:</h4>

@@ -154,49 +154,64 @@ class GabaritoController extends Controller
         ], 500);
     }
 }
-    public function processImage(Request $request, Simulado $simulado)
-    {
-        $validated = $request->validate([
-            'processed_image' => 'required|string',
-            'aluno_id' => 'required|exists:users,id',
-            'turma_id' => 'required|exists:turmas,id',
-            'raca' => 'required|string'
-        ]);
-    
-        try {
-            // Obter o número real de questões do simulado
-            $totalQuestoes = $simulado->perguntas()->count();
-            
-            // Processar apenas as questões existentes
-            $respostas = [];
-            for ($i = 1; $i <= $totalQuestoes; $i++) {
-                $respostas[$i] = [
-                    'resposta' => '', // Inicia vazio
-                    'confianca' => 0, // Confiança zero inicial
-                    'imagem' => null
-                ];
-            }
-            
-            // Salvar imagem temporária
-            $imagePath = $this->salvarImagemTemporaria($validated['processed_image']);
-            
-            // Armazenar dados na sessão
-            session([
-                'correcao_data' => [
-                    'simulado' => $simulado,
-                    'aluno' => User::find($validated['aluno_id']),
-                    'dados' => $validated,
-                    'respostas' => $respostas, // Agora só as questões existentes
-                    'imagePath' => $imagePath
-                ]
-            ]);
-    
-            return redirect()->route('respostas_simulados.aplicador.correcao', $simulado);
-    
-        } catch (\Exception $e) {
-            return back()->with('error', 'Erro: '.$e->getMessage());
+public function processImage(Request $request, Simulado $simulado)
+{
+    $validated = $request->validate([
+        'processed_image' => 'required|string',
+        'aluno_id' => 'required|exists:users,id',
+        'turma_id' => 'required|exists:turmas,id',
+        'raca' => 'required|string'
+    ]);
+
+    try {
+        // Salvar imagem temporária
+        $imagePath = $this->salvarImagemTemporaria($validated['processed_image']);
+        
+        // Obter número REAL de questões desta prova
+        $totalQuestoes = $simulado->perguntas()->count();
+        
+        // Processar o gabarito (o Python ainda analisará 60, mas filtramos depois)
+        $respostasBrutas = $this->processarGabarito($validated['processed_image'], $simulado);
+        
+        // Filtrar só as questões que existem nesta prova
+        $respostas = [];
+        for ($i = 1; $i <= $totalQuestoes; $i++) {
+            $respostas[$i] = $respostasBrutas[$i] ?? [
+                'resposta' => '',
+                'confianca' => 0,
+                'imagem' => null
+            ];
         }
+
+        // Restante do método permanece igual...
+        $respostasCorretas = $simulado->perguntas()
+            ->select('perguntas.id', 'perguntas.resposta_correta')
+            ->get()
+            ->pluck('resposta_correta', 'id')
+            ->toArray();
+
+        foreach ($respostas as $questaoId => &$resposta) {
+            if (isset($respostasCorretas[$questaoId])) {
+                $resposta['correta'] = ($resposta['resposta'] === $respostasCorretas[$questaoId]);
+            }
+        }
+
+        session([
+            'correcao_data' => [
+                'simulado' => $simulado,
+                'aluno' => User::find($validated['aluno_id']),
+                'dados' => $validated,
+                'respostas' => $respostas,
+                'imagePath' => $imagePath
+            ]
+        ]);
+
+        return redirect()->route('respostas_simulados.aplicador.correcao', $simulado);
+
+    } catch (\Exception $e) {
+        return back()->with('error', 'Erro ao processar gabarito: '.$e->getMessage());
     }
+}
 
 public function showCorrecao(Simulado $simulado)
 {
@@ -243,35 +258,91 @@ public function showCorrecao(Simulado $simulado)
 }
 private function processarGabarito($imageData, Simulado $simulado)
 {
-    $totalQuestoes = $simulado->perguntas()->count();
-    $respostas = [];
-    
-    // Aqui você implementaria seu processamento real da imagem
-    // Por enquanto, vamos retornar um array vazio para forçar a seleção manual
-    for ($i = 1; $i <= $totalQuestoes; $i++) {
-        $respostas[$i] = [
-            'resposta' => '', // Deixe vazio para forçar seleção manual
-            'confianca' => 0, // Confiança zero
-            'imagem' => null
-        ];
+    try {
+        // Salvar a imagem temporariamente
+        $imagePath = $this->salvarImagemTemporaria($imageData);
+        $absoluteImagePath = storage_path('app/public/' . $imagePath);
+        
+        // Caminho para o script Python (ajuste conforme sua estrutura de pastas)
+        $pythonScript = base_path('scripts/gabarito_processor.py');
+        
+        // Comando para executar o script Python
+        $command = escapeshellcmd("python3 {$pythonScript} {$absoluteImagePath}");
+        
+        // Executar o comando
+        $output = shell_exec($command);
+        
+        // Decodificar o JSON retornado
+        $result = json_decode($output, true);
+        
+        if (!$result || !isset($result['success'])) {
+            throw new \Exception("Falha ao processar gabarito: " . ($result['error'] ?? 'Erro desconhecido'));
+        }
+        
+        // Processar as respostas do Python para o formato esperado
+        $respostasProcessadas = [];
+        $totalQuestoes = $simulado->perguntas()->count();
+        
+        // Mapear as respostas detectadas pelo Python
+        foreach ($result['respostas'] as $questaoId => $dados) {
+            if ($questaoId <= $totalQuestoes) {
+                $respostasProcessadas[$questaoId] = [
+                    'resposta' => $dados['resposta'],
+                    'confianca' => $dados['confianca'] ?? 0.9, // Valor padrão de confiança
+                    'imagem' => $dados['imagem'] ?? null
+                ];
+            }
+        }
+        
+        // Preencher questões não detectadas
+        for ($i = 1; $i <= $totalQuestoes; $i++) {
+            if (!isset($respostasProcessadas[$i])) {
+                $respostasProcessadas[$i] = [
+                    'resposta' => '',
+                    'confianca' => 0,
+                    'imagem' => null
+                ];
+            }
+        }
+        
+        return $respostasProcessadas;
+        
+    } catch (\Exception $e) {
+        // Fallback: retornar array vazio em caso de erro
+        $totalQuestoes = $simulado->perguntas()->count();
+        $respostas = [];
+        
+        for ($i = 1; $i <= $totalQuestoes; $i++) {
+            $respostas[$i] = [
+                'resposta' => '',
+                'confianca' => 0,
+                'imagem' => null
+            ];
+        }
+        
+        logger()->error('Erro no processarGabarito: ' . $e->getMessage());
+        return $respostas;
     }
-    
-    return $respostas;
 }
     
-    private function salvarImagemTemporaria($imageData)
-    {
-        // Remove o cabeçalho da string base64
-        $imageData = str_replace('data:image/jpeg;base64,', '', $imageData);
-        $imageData = str_replace(' ', '+', $imageData);
-        $imageName = 'gabarito_' . time() . '.jpg';
-        $path = 'temp/' . $imageName;
-        
-        // Salva no storage
-        Storage::disk('public')->put($path, base64_decode($imageData));
-        
-        return $path;
+private function salvarImagemTemporaria($imageData)
+{
+    // Remove o cabeçalho da string base64
+    $imageData = str_replace('data:image/jpeg;base64,', '', $imageData);
+    $imageData = str_replace(' ', '+', $imageData);
+    $imageName = 'gabarito_' . time() . '.jpg';
+    $path = 'temp/' . $imageName;
+    
+    // Garantir que a pasta temp existe
+    if (!Storage::disk('public')->exists('temp')) {
+        Storage::disk('public')->makeDirectory('temp');
     }
+    
+    // Salva no storage
+    Storage::disk('public')->put($path, base64_decode($imageData));
+    
+    return $path;
+}
 
 
     private function saveTempImage($image): string
@@ -337,78 +408,91 @@ private function processarGabarito($imageData, Simulado $simulado)
     }
 
     public function salvarRespostas(Request $request, Simulado $simulado)
-{
-    DB::beginTransaction();
+    {
+        DB::beginTransaction();
+        
+        try {
+            $validated = $request->validate([
+                'aluno_id' => 'required|exists:users,id',
+                'turma_id' => 'required|exists:turmas,id',
+                'raca' => 'required|string',
+                'imagePath' => 'nullable|string',
+                'respostas' => 'required|array|min:1',
+                'total_questoes' => 'required|integer|min:1'
+            ]);
     
-    try {
-        $validated = $request->validate([
-            'aluno_id' => 'required|exists:users,id',
-            'turma_id' => 'required|exists:turmas,id',
-            'raca' => 'required|string',
-            'imagePath' => 'nullable|string',
-            'respostas' => 'required|array|min:1',
-            'total_questoes' => 'required|integer|min:1'
-        ]);
-
-        // SOLUÇÃO 1: Usando Eloquent (recomendado)
-        $respostasCorretas = $simulado->perguntas()
-            ->select('perguntas.id', 'perguntas.resposta_correta')
-            ->get()
-            ->pluck('resposta_correta', 'id')
-            ->toArray();
-
-        // SOLUÇÃO 2: Alternativa usando Query Builder
-        // $respostasCorretas = DB::table('perguntas_simulados')
-        //     ->join('perguntas', 'perguntas_simulados.pergunta_id', '=', 'perguntas.id')
-        //     ->where('perguntas_simulados.simulado_id', $simulado->id)
-        //     ->select('perguntas.id', 'perguntas.resposta_correta')
-        //     ->pluck('resposta_correta', 'id')
-        //     ->toArray();
-
-        $escolaId = Turma::findOrFail($validated['turma_id'])->escola_id;
-        
-        foreach ($validated['respostas'] as $perguntaId => $respostaAluno) {
-            if (!array_key_exists($perguntaId, $respostasCorretas)) {
-                continue;
+            $respostasCorretas = $simulado->perguntas()
+                ->select('perguntas.id', 'perguntas.resposta_correta')
+                ->get()
+                ->pluck('resposta_correta', 'id')
+                ->toArray();
+    
+            $escolaId = Turma::findOrFail($validated['turma_id'])->escola_id;
+            
+            // Contadores para calcular a nota
+            $totalCorretas = 0;
+            $totalQuestoes = count($respostasCorretas);
+            
+            foreach ($validated['respostas'] as $perguntaId => $respostaAluno) {
+                if (!array_key_exists($perguntaId, $respostasCorretas)) {
+                    continue;
+                }
+    
+                $correta = ($respostaAluno === $respostasCorretas[$perguntaId]);
+                if ($correta) {
+                    $totalCorretas++;
+                }
+    
+                RespostaSimulado::updateOrCreate(
+                    [
+                        'simulado_id' => $simulado->id,
+                        'pergunta_id' => $perguntaId,
+                        'user_id' => $validated['aluno_id']
+                    ],
+                    [
+                        'aplicador_id' => auth()->id(),
+                        'escola_id' => $escolaId,
+                        'resposta' => $respostaAluno,
+                        'correta' => $correta,
+                        'raca' => $validated['raca'],
+                        'metodo_aplicacao' => 'gabarito',
+                        'imagem_gabarito' => $validated['imagePath']
+                    ]
+                );
             }
-
-            RespostaSimulado::updateOrCreate(
-                [
-                    'simulado_id' => $simulado->id,
-                    'pergunta_id' => $perguntaId,
-                    'user_id' => $validated['aluno_id']
-                ],
-                [
-                    'aplicador_id' => auth()->id(),
-                    'escola_id' => $escolaId,
-                    'resposta' => $respostaAluno,
-                    'correta' => ($respostaAluno === $respostasCorretas[$perguntaId]),
-                    'raca' => $validated['raca'],
-                    'metodo_aplicacao' => 'gabarito',
-                    'imagem_gabarito' => $validated['imagePath']
-                ]
-            );
+    
+            DB::commit();
+            
+            // Calcular nota (0-100)
+            $nota = ($totalCorretas / $totalQuestoes) * 100;
+            
+            // Obter dados do aluno
+            $aluno = User::find($validated['aluno_id']);
+            
+            // Limpar sessão
+            session()->forget(['correcao_data', 'aluno_selecionado', 'aluno_id', 'aluno_nome', 'aluno_turma', 'turma_id', 'raca']);
+            
+            // Redirecionar para a view de seleção com mensagem
+            return redirect()
+                ->route('respostas_simulados.aplicador.camera', $simulado)
+                ->with('success', [
+                    'message' => "Respostas do aluno {$aluno->name} salvas com sucesso!",
+                    'nota' => number_format($nota, 1),
+                    'aluno_nome' => $aluno->name
+                ]);
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            logger()->error('Erro ao salvar respostas', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+    
+            return redirect()->back()
+                ->with('error', 'Erro ao salvar respostas: ' . $e->getMessage())
+                ->withInput();
         }
-
-        DB::commit();
-        
-        session()->forget(['correcao_data', 'aluno_selecionado', 'aluno_id', 'aluno_nome', 'aluno_turma', 'turma_id', 'raca']);
-        
-        return redirect()->route('respostas_simulados.aplicador.index')
-            ->with('success', 'Respostas salvas com sucesso!');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        
-        logger()->error('Erro ao salvar respostas', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'request' => $request->all()
-        ]);
-
-        return redirect()->back()
-            ->with('error', 'Erro ao salvar respostas: ' . $e->getMessage())
-            ->withInput();
     }
-}
 }

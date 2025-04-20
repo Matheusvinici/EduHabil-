@@ -1,6 +1,21 @@
+
 @extends('layouts.app')
 
 @section('content')
+<div class="container-fluid px-0 px-md-3 py-3">
+    <!-- Mensagem de sucesso -->
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-check-circle me-3 fs-4"></i>
+            <div>
+                <h5 class="mb-1">{{ session('success')['message'] }}</h5>
+                <p class="mb-0">Nota: <strong>{{ session('success')['nota'] }}%</strong></p>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
 <div class="container">
     <!-- Modal de Confirmação -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true" data-bs-backdrop="static">
