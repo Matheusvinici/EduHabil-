@@ -4,105 +4,197 @@
 
 @section('styles')
 <style>
+    /* Cores azuis */
+    .bg-blue-50 { background-color: #eff6ff; }
+    .bg-blue-100 { background-color: #dbeafe; }
+    .border-blue-200 { border-color: #bfdbfe; }
+    .text-blue-700 { color: #1d4ed8; }
+    .text-blue-800 { color: #1e40af; }
+    
+    /* Estilos específicos */
     .resposta-correta {
-        background-color: #d4edda !important;
+        background-color: #d1fae5 !important;
+        border-left: 4px solid #10b981;
     }
     .resposta-incorreta {
-        background-color: #f8d7da !important;
+        background-color: #fee2e2 !important;
+        border-left: 4px solid #ef4444;
     }
+    .resposta-nao-detectada {
+        color: #6b7280;
+        font-style: italic;
+    }
+    
     .questao-img {
-        max-width: 100px;
+        max-width: 80px;
         cursor: pointer;
-        transition: transform 0.3s;
+        transition: all 0.3s ease;
+        border: 2px solid #bfdbfe;
+        border-radius: 4px;
     }
     .questao-img:hover {
-        transform: scale(1.5);
+        transform: scale(1.8);
+        z-index: 100;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
+    
     .table-responsive {
-        max-height: 500px;
+        max-height: 60vh;
         overflow-y: auto;
     }
+    
     .sticky-header {
         position: sticky;
         top: 0;
         background: white;
         z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
-    .resposta-nao-detectada {
-        color: #6c757d;
-        font-style: italic;
+    
+    .progress {
+        height: 1.5rem;
+        background-color: #e5e7eb;
+    }
+    .progress-bar {
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .table td, .table th {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .form-check-label {
+            font-size: 0.8rem;
+        }
+        
+        .questao-img {
+            max-width: 60px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .d-flex-vertical {
+            flex-direction: column !important;
+            gap: 1rem !important;
+        }
+        
+        .table-responsive {
+            max-height: 50vh;
+        }
+        
+        .card-header h4 {
+            font-size: 1.2rem;
+        }
     }
 </style>
 @endsection
 
 @section('content')
-<div class="container py-4">
-    <div class="card shadow-lg mb-4">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">
-                <i class="fas fa-check-circle me-2"></i>Correção do Gabarito: {{ $simulado->nome }}
-            </h4>
-            <div class="badge bg-light text-dark fs-6">
+
+<div class="container-fluid px-0 px-md-3 py-3">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary-gradient text-white d-flex flex-column flex-md-row justify-content-between align-items-center py-3">
+            <div class="d-flex align-items-center mb-2 mb-md-0">
+                <i class="fas fa-check-circle me-3 fs-3"></i>
+                <h4 class="mb-0 fw-semibold">Correção do Gabarito: {{ $simulado->nome }}</h4>
+            </div>
+            <div class="badge bg-white text-blue-800 fs-6 py-2 px-3">
                 <i class="fas fa-calendar-alt me-1"></i>
                 {{ now()->format('d/m/Y H:i') }}
             </div>
         </div>
 
         <div class="card-body">
-            <!-- Dados do Aluno -->
-            <div class="row mb-4">
+            <!-- Dados do Aluno e Simulado -->
+            <div class="row g-3 mb-4">
                 <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header bg-info text-white">
-                            <h5 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Dados do Aluno</h5>
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-blue-50 border-blue-200 d-flex align-items-center py-3">
+                            <i class="fas fa-user-graduate text-blue-700 me-2 fs-4"></i>
+                            <h5 class="mb-0 text-blue-800">Dados do Aluno</h5>
                         </div>
                         <div class="card-body">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item">
-                                    <strong>Nome:</strong> {{ $aluno->name }}
-                                </li>
-                                <li class="list-group-item">
-                                    <strong>Turma:</strong> {{ session('aluno_turma') }}
-                                </li>
-                                <li class="list-group-item">
-                                    <strong>Raça/Cor:</strong> {{ $dados['raca'] }}
-                                </li>
-                            </ul>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex align-items-center py-2 border-blue-100">
+                                    <i class="fas fa-user text-blue-600 me-2 fs-5"></i>
+                                    <div>
+                                        <small class="text-blue-700">Nome</small>
+                                        <div class="fw-semibold">{{ $aluno->name }}</div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex align-items-center py-2 border-blue-100">
+                                    <i class="fas fa-school text-blue-600 me-2 fs-5"></i>
+                                    <div>
+                                        <small class="text-blue-700">Turma</small>
+                                        <div class="fw-semibold">{{ session('aluno_turma') }}</div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex align-items-center py-2 border-blue-100">
+                                    <i class="fas fa-palette text-blue-600 me-2 fs-5"></i>
+                                    <div>
+                                        <small class="text-blue-700">Raça/Cor</small>
+                                        <div class="fw-semibold">{{ $dados['raca'] }}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header bg-info text-white">
-                            <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Dados do Simulado</h5>
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-blue-50 border-blue-200 d-flex align-items-center py-3">
+                            <i class="fas fa-file-alt text-blue-700 me-2 fs-4"></i>
+                            <h5 class="mb-0 text-blue-800">Dados do Simulado</h5>
                         </div>
                         <div class="card-body">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item">
-                                    <strong>Nome:</strong> {{ $simulado->nome }}
-                                </li>
-                                <li class="list-group-item">
-                                    <strong>Descrição:</strong> {{ $simulado->descricao ?? 'N/A' }}
-                                </li>
-                                <li class="list-group-item">
-                                    <strong>Total de Questões:</strong> {{ $totalQuestoes }}
-                                </li>
-                            </ul>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item d-flex align-items-center py-2 border-blue-100">
+                                    <i class="fas fa-heading text-blue-600 me-2 fs-5"></i>
+                                    <div>
+                                        <small class="text-blue-700">Nome</small>
+                                        <div class="fw-semibold">{{ $simulado->nome }}</div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex align-items-center py-2 border-blue-100">
+                                    <i class="fas fa-align-left text-blue-600 me-2 fs-5"></i>
+                                    <div>
+                                        <small class="text-blue-700">Descrição</small>
+                                        <div class="fw-semibold">{{ $simulado->descricao ?? 'N/A' }}</div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item d-flex align-items-center py-2 border-blue-100">
+                                    <i class="fas fa-list-ol text-blue-600 me-2 fs-5"></i>
+                                    <div>
+                                        <small class="text-blue-700">Total de Questões</small>
+                                        <div class="fw-semibold">{{ $totalQuestoes }}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Visualização do Gabarito -->
-            <div class="card mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0"><i class="fas fa-image me-2"></i>Gabarito Digitalizado</h5>
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-blue-50 border-blue-200 d-flex align-items-center py-3">
+                    <i class="fas fa-image text-blue-700 me-2 fs-4"></i>
+                    <h5 class="mb-0 text-blue-800">Gabarito Digitalizado</h5>
+                    <span class="badge bg-white text-blue-800 ms-auto">
+                        {{ count(array_filter($respostas)) }}/{{ $totalQuestoes }} detectadas
+                    </span>
                 </div>
                 <div class="card-body text-center">
-                    <img src="{{ asset('storage/'.$imagePath) }}" class="img-fluid rounded shadow" style="max-height: 400px;" alt="Gabarito digitalizado">
+                    <img src="{{ asset('storage/'.$imagePath) }}" class="img-fluid rounded-3 shadow border border-blue-200" style="max-height: 400px;" alt="Gabarito digitalizado">
                     <div class="mt-3">
-                        <a href="{{ asset('storage/'.$imagePath) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <a href="{{ asset('storage/'.$imagePath) }}" target="_blank" class="btn btn-outline-blue btn-sm">
                             <i class="fas fa-expand me-1"></i> Visualizar em Tela Cheia
                         </a>
                     </div>
@@ -110,40 +202,40 @@
             </div>
 
             <!-- Tabela de Respostas -->
-            <div class="card mb-4">
-                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Correção das Respostas</h5>
-                    <div class="badge bg-light text-dark fs-6">
-                        {{ count(array_filter($respostas)) }}/{{ $totalQuestoes }} questões detectadas
-                    </div>
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-blue-50 border-blue-200 d-flex align-items-center py-3">
+                    <i class="fas fa-list-check text-blue-700 me-2 fs-4"></i>
+                    <h5 class="mb-0 text-blue-800">Correção das Respostas</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover mb-0">
-                            <thead class="table-dark sticky-header">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light sticky-header">
                                 <tr>
-                                    <th width="10%">Questão</th>
-                                    <th width="20%">Resposta Detectada</th>
-                                    <th width="15%">Confiança</th>
-                                    <th width="45%">Correção Manual</th>
-                                    <th width="10%">Visualização</th>
+                                    <th width="10%" class="bg-blue-50 text-blue-800">Questão</th>
+                                    <th width="20%" class="bg-blue-50 text-blue-800">Resposta</th>
+                                    <th width="15%" class="bg-blue-50 text-blue-800">Confiança</th>
+                                    <th width="45%" class="bg-blue-50 text-blue-800">Correção Manual</th>
+                                    <th width="10%" class="bg-blue-50 text-blue-800">Visualizar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @for($i = 1; $i <= $totalQuestoes; $i++)
-                                <tr>
-                                    <td class="fw-bold">{{ $i }}</td>
-                                    <td class="text-center fw-bold fs-5 {{ isset($respostas[$i]['correta']) && $respostas[$i]['correta'] ? 'text-success' : (isset($respostas[$i]) ? 'text-danger' : 'resposta-nao-detectada') }}">
-                                        {{ isset($respostas[$i]) ? $respostas[$i]['resposta'] : 'N/D' }}
-                                        @if(isset($respostas[$i]['correta']))
-                                            @if($respostas[$i]['correta'])
-                                                <i class="fas fa-check ms-1"></i>
-                                            @else
-                                                <i class="fas fa-times ms-1"></i>
+                                <tr class="{{ isset($respostas[$i]['correta']) && $respostas[$i]['correta'] ? 'resposta-correta' : (isset($respostas[$i]) ? 'resposta-incorreta' : '') }}">
+                                    <td class="fw-bold align-middle">{{ $i }}</td>
+                                    <td class="text-center align-middle">
+                                        <span class="fw-bold fs-5 d-block {{ isset($respostas[$i]['correta']) && $respostas[$i]['correta'] ? 'text-success' : (isset($respostas[$i]) ? 'text-danger' : 'resposta-nao-detectada') }}">
+                                            {{ isset($respostas[$i]) ? $respostas[$i]['resposta'] : 'N/D' }}
+                                            @if(isset($respostas[$i]['correta']))
+                                                @if($respostas[$i]['correta'])
+                                                    <i class="fas fa-check ms-1"></i>
+                                                @else
+                                                    <i class="fas fa-times ms-1"></i>
+                                                @endif
                                             @endif
-                                        @endif
+                                        </span>
                                     </td>
-                                    <td>
+                                    <td class="align-middle">
                                         @if(isset($respostas[$i]))
                                         <div class="progress">
                                             <div class="progress-bar {{ $respostas[$i]['confianca'] > 0.7 ? 'bg-success' : ($respostas[$i]['confianca'] > 0.4 ? 'bg-warning' : 'bg-danger') }}" 
@@ -156,11 +248,11 @@
                                             </div>
                                         </div>
                                         @else
-                                        <span class="text-muted">Não detectado</span>
+                                        <span class="text-muted">-</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        <div class="d-flex justify-content-around">
+                                    <td class="align-middle">
+                                        <div class="d-flex flex-wrap justify-content-evenly gap-1">
                                             @foreach($alternativas as $letra)
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" 
@@ -175,13 +267,13 @@
                                             @endforeach
                                         </div>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center align-middle">
                                         @if(isset($respostas[$i]['imagem']) && $respostas[$i]['imagem'])
                                             <img src="{{ $respostas[$i]['imagem'] }}" class="questao-img img-thumbnail" 
                                                  data-bs-toggle="modal" data-bs-target="#imagemModal"
                                                  onclick="document.getElementById('modalImagem').src = this.src">
                                         @else
-                                            <span class="text-muted">N/A</span>
+                                            <span class="text-muted">-</span>
                                         @endif
                                     </td>
                                 </tr>
@@ -193,9 +285,10 @@
             </div>
 
             <!-- Formulário de Confirmação -->
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-save me-2"></i>Confirmar Correção</h5>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-blue-50 border-blue-200 d-flex align-items-center py-3">
+                    <i class="fas fa-save text-blue-700 me-2 fs-4"></i>
+                    <h5 class="mb-0 text-blue-800">Confirmar Correção</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('respostas_simulados.aplicador.salvar-gabarito', $simulado) }}" id="formCorrecao">
@@ -212,13 +305,13 @@
                                    id="resposta_{{ $i }}">
                         @endfor
                         
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ route('respostas_simulados.aplicador.camera', $simulado) }}" class="btn btn-lg btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i> Voltar para Correção
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                            <a href="{{ route('respostas_simulados.aplicador.camera', $simulado) }}" class="btn btn-outline-blue btn-lg flex-grow-1 py-3">
+                                <i class="fas fa-arrow-left me-2"></i> Voltar
                             </a>
                             
-                            <button type="submit" class="btn btn-lg btn-success" id="btnConfirmar">
-                                <i class="fas fa-save me-2"></i> Confirmar e Salvar
+                            <button type="submit" class="btn btn-success btn-lg flex-grow-1 py-3" id="btnConfirmar">
+                                <i class="fas fa-save me-2"></i> Salvar Correção
                             </button>
                         </div>
                     </form>
@@ -230,17 +323,19 @@
 
 <!-- Modal para visualização de imagens -->
 <div class="modal fade" id="imagemModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Visualização da Questão</h5>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-blue-50 border-blue-200">
+                <h5 class="modal-title text-blue-800">Visualização da Questão</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center">
-                <img id="modalImagem" src="" class="img-fluid" alt="Visualização da questão">
+            <div class="modal-body text-center p-0">
+                <img id="modalImagem" src="" class="img-fluid w-100" alt="Visualização da questão" style="max-height: 70vh;">
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <div class="modal-footer bg-blue-50 border-blue-200">
+                <button type="button" class="btn btn-blue" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i> Fechar
+                </button>
             </div>
         </div>
     </div>
@@ -262,59 +357,48 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('formCorrecao').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Valida se todas as questões foram respondidas
         const totalQuestoes = parseInt(document.querySelector('input[name="total_questoes"]').value);
-        let todasRespondidas = true;
-        let mensagemErro = '';
+        let respostasVazias = [];
         
         for(let i = 1; i <= totalQuestoes; i++) {
-            const radioSelecionado = document.querySelector(`input[name="respostas[${i}]"]:checked`);
             const valorHidden = document.getElementById(`resposta_${i}`).value;
-            
-            if(!radioSelecionado && valorHidden === '') {
-                todasRespondidas = false;
-                mensagemErro = `A questão ${i} não foi respondida.`;
-                break;
+            if(valorHidden === '') {
+                respostasVazias.push(i);
             }
         }
         
-        if(!todasRespondidas) {
+        if(respostasVazias.length > 0) {
             Swal.fire({
                 title: 'Atenção!',
-                text: mensagemErro || 'Você precisa marcar todas as questões antes de salvar.',
+                html: `<p>${respostasVazias.length} questões não foram respondidas:</p>
+                       <p class="text-muted">${respostasVazias.join(', ')}</p>
+                       <p>Deseja realmente salvar assim?</p>`,
                 icon: 'warning',
-                confirmButtonText: 'Entendi'
+                showCancelButton: true,
+                confirmButtonColor: '#3b82f6',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sim, salvar',
+                cancelButtonText: 'Voltar para corrigir'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitForm();
+                }
             });
-            return;
+        } else {
+            submitForm();
         }
         
-        Swal.fire({
-            title: 'Confirmar envio?',
-            text: 'Deseja realmente salvar estas respostas? Esta ação não pode ser desfeita.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sim, salvar!',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Mostra loading no botão
-                const btn = document.getElementById('btnConfirmar');
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Salvando...';
-                btn.disabled = true;
-                
-                // Envia o formulário
-                e.target.submit();
-            }
-        });
+        function submitForm() {
+            const btn = document.getElementById('btnConfirmar');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Salvando...';
+            btn.disabled = true;
+            e.target.submit();
+        }
     });
     
-    // Ativa tooltips
+    // Tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 });
 </script>
 @endsection
