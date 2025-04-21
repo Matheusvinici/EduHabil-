@@ -119,7 +119,7 @@
                                         <li class="nav-item">
                                                 <a href="{{ route('atividades.index') }}" class="nav-link text-white">
                                                         <i class="far fa-circle nav-icon text-white"></i>
-                                                        <p>Cadastrar Atividades Educativas</p>
+                                                        <p>Cadastrar Sequência Didática</p>
                                                 </a>
                                         </li>
                                 @endif

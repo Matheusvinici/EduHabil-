@@ -2,8 +2,23 @@
 
 @section('content')
 <div class="container py-4">
+    <!-- Mensagem de Sucesso -->
+    @if(session('success'))
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                    <span class="fw-medium">{{ session('success') }}</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+<div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0"><i class="bi bi-joystick"></i> Atividades Lúdicas</h1>
+        <h1 class="mb-0"><i class="bi bi-joystick"></i> Sequências Didáticas</h1>
         <a href="{{ route('atividades.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle me-1"></i> Criar Nova Atividade
         </a>

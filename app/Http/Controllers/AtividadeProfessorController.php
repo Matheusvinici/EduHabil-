@@ -82,17 +82,30 @@ class AtividadeProfessorController extends Controller
                ->with('success', 'Atividade removida da sua lista!');
     }
     public function downloadPdf($id)
-{
-    // Busca a atividade do professor
-    $atividadeProfessor = AtividadeProfessor::findOrFail($id);
-
-    // Gera o PDF
-    $pdf = Pdf::loadView('atividades_professores.pdf', compact('atividadeProfessor'));
-
-    // Define o nome do arquivo PDF
-    $filename = 'atividade_' . $atividadeProfessor->id . '.pdf';
-
-    // Faz o download do PDF
-    return $pdf->download($filename);
-}
+    {
+        // Busca a atividade do professor com todos os relacionamentos necessários
+        $atividadeProfessor = AtividadeProfessor::with([
+            'atividade',
+            'atividade.disciplina',
+            'atividade.ano',
+            'atividade.habilidade',
+            'professor'
+        ])->findOrFail($id);
+    
+        // Dados adicionais que podem ser úteis no PDF
+        $data = [
+            'atividade' => $atividadeProfessor,
+            'data_emissao' => now()->format('d/m/Y H:i'),
+            'titulo' => 'Atividade Pedagógica'
+        ];
+    
+        // Gera o PDF
+        $pdf = Pdf::loadView('atividades_professores.pdf', $data);
+    
+        // Define o nome do arquivo PDF
+        $filename = 'atividade_' . $atividadeProfessor->id . '_' . now()->format('Ymd') . '.pdf';
+    
+        // Faz o download do PDF
+        return $pdf->download($filename);
+    }
 }
