@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Relatório de Usuários - Prefeitura de Juazeiro-BA</title>
+    <title>Sequência Didática - Prefeitura de Juazeiro-BA</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -48,72 +48,46 @@
         
         h1 {
             color: #0066cc;
-            font-size: 22px;
+            font-size: 24px;
             margin-top: 25px;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
             text-align: center;
         }
         
-        .filters {
+        h2 {
+            color: #0066cc;
+            font-size: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #0066cc;
+            padding-left: 10px;
+        }
+        
+        .activity-info {
             background-color: #f5f5f5;
             padding: 15px;
             border-radius: 5px;
             margin: 20px 0;
         }
         
-        .filters p {
-            margin: 5px 0;
+        .info-item {
+            margin-bottom: 8px;
         }
         
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        th {
-            background-color: #0066cc;
-            color: white;
-            text-align: left;
-            padding: 10px;
-        }
-        
-        td {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
+        .info-label {
             font-weight: bold;
+            color: #0066cc;
+            display: inline-block;
+            width: 120px;
         }
         
-        .badge-admin {
-            background-color: #dc3545;
-            color: white;
+        .activity-content {
+            margin-top: 30px;
         }
         
-        .badge-coordenador {
-            background-color: #ffc107;
-            color: #212529;
-        }
-        
-        .badge-professor {
-            background-color: #17a2b8;
-            color: white;
-        }
-        
-        .badge-default {
-            background-color: #6c757d;
-            color: white;
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
         }
         
         .footer {
@@ -123,10 +97,6 @@
             color: #777;
             border-top: 1px solid #eee;
             padding-top: 10px;
-        }
-        
-        .page-break {
-            page-break-after: always;
         }
     </style>
 </head>
@@ -146,54 +116,51 @@
         </div>
     </div>
     
-    <!-- Título do Relatório -->
-    <h1>Relatório de Usuários Cadastrados</h1>
+    <!-- Título Principal -->
+    <h1>SEQUÊNCIA DIDÁTICA</h1>
     
-    <!-- Filtros Aplicados -->
-    @if($escola || $role)
-    <div class="filters">
-        <h3>Filtros Aplicados:</h3>
-        @if($escola)
-            <p><strong>Escola:</strong> {{ $escola->nome }}</p>
-        @endif
-        @if($role)
-            <p><strong>Papel:</strong> {{ $role }}</p>
-        @endif
+    <!-- Informações da Atividade -->
+    <div class="activity-info">
+        <div class="info-item">
+            <span class="info-label">Professor:</span> {{ $atividade->professor->name ?? 'N/A' }}
+        </div>
+        <div class="info-item">
+            <span class="info-label">Disciplina:</span> {{ $atividade->atividade->disciplina->nome ?? 'N/A' }}
+        </div>
+        <div class="info-item">
+            <span class="info-label">Ano/Série:</span> {{ $atividade->atividade->ano->nome ?? 'N/A' }}
+        </div>
+        <div class="info-item">
+            <span class="info-label">Habilidade:</span> 
+            {{ $atividade->atividade->habilidade->codigo ?? 'N/A' }} - 
+            {{ $atividade->atividade->habilidade->descricao ?? 'N/A' }}
+        </div>
+        <div class="info-item">
+            <span class="info-label">Data:</span> {{ $atividade->created_at->format('d/m/Y') ?? 'N/A' }}
+        </div>
     </div>
-    @endif
     
-    <!-- Tabela de Usuários -->
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Email</th>
-                <th>Papel</th>
-                <th>Escola</th>
-                <th>CPF</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($users as $user)
-            <tr>
-                <td>{{ $user->name }}</td>
-                <td>{{ $user->email }}</td>
-                <td>
-                    <span class="badge badge-{{ $user->role == 'admin' ? 'admin' : ($user->role == 'coordenador' ? 'coordenador' : ($user->role == 'professor' ? 'professor' : 'default')) }}">
-                        {{ ucfirst($user->role) }}
-                    </span>
-                </td>
-                <td>{{ $user->escola->nome ?? 'N/A' }}</td>
-                <td>{{ $user->cpf ?? 'N/A' }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    
-    <!-- Resumo -->
-    <div style="margin-top: 20px; text-align: right;">
-        <p><strong>Total de usuários:</strong> {{ $users->count() }}</p>
-        <p><strong>Gerado em:</strong> {{ now()->format('d/m/Y H:i') }}</p>
+    <!-- Conteúdo da Sequência Didática -->
+    <div class="activity-content">
+        <div class="section">
+            <h2>OBJETIVOS DE APRENDIZAGEM</h2>
+            {!! $atividade->atividade->objetivos ?? '<p>Não especificado</p>' !!}
+        </div>
+        
+        <div class="section">
+            <h2>DESENVOLVIMENTO</h2>
+            {!! $atividade->atividade->desenvolvimento ?? '<p>Não especificado</p>' !!}
+        </div>
+        
+        <div class="section">
+            <h2>RECURSOS DIDÁTICOS</h2>
+            {!! $atividade->atividade->recursos ?? '<p>Não especificado</p>' !!}
+        </div>
+        
+        <div class="section">
+            <h2>AVALIAÇÃO</h2>
+            {!! $atividade->atividade->avaliacao ?? '<p>Não especificado</p>' !!}
+        </div>
     </div>
     
     <!-- Rodapé -->
