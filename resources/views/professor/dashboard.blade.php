@@ -17,7 +17,7 @@
                                 Nenhuma escola selecionada
                             </span>
                         @endif
-                        <a href="{{ route('selecionar.escola') }}"
+                        <a href="{{ route('professor.selecionar.escola') }}"
                            class="btn btn-sm btn-outline-secondary">
                             <i class="fas fa-exchange-alt"></i> Mudar Escola
                         </a>

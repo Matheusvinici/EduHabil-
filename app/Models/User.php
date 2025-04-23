@@ -36,7 +36,12 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Relacionamento many-to-many com escolas usando a tabela pivot personalizada
      */
-    public function escolas()
+    public function escola()
+    {
+        return $this->belongsTo(Escola::class, 'escola_id');
+    }
+
+     public function escolas()
     {
         return $this->belongsToMany(Escola::class, 'user_escola')
                    ->using(UserEscola::class)

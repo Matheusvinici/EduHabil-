@@ -39,7 +39,7 @@
                         <input type="date" name="data_visita" class="form-control" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Observações:</label>
+                        <label class="form-label">Observações Gerais:</label>
                         <textarea name="observacoes" class="form-control" rows="1"></textarea>
                     </div>
                 </div>
@@ -49,27 +49,31 @@
                 <h5 class="mb-3">Avaliação por Critério</h5>
 
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered align-middle text-center">
+                    <table class="table table-sm table-bordered align-middle">
                         <thead class="table-light">
                             <tr>
                                 <th class="text-start" style="width: 45%">Categoria / Descrição</th>
-                                @for($i = 0; $i <= 5; $i++)
-                                    <th style="width: 9%">{{ $i }}</th>
-                                @endfor
+                                <th class="text-center" style="width: 18%">Ruim (0-3)</th>
+                                <th class="text-center" style="width: 18%">Mediano (4-6)</th>
+                                <th class="text-center" style="width: 18%">Bom (7-10)</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($criterios as $criterios)
+                            @foreach($criterios as $criterio)
                                 <tr>
                                     <td class="text-start">
-                                        <strong>{{ $criterios->categoria ?? 'Critério' }}</strong><br>
-                                        <small class="text-muted">{{ $criterios->descricao }}</small>
+                                        <strong>{{ $criterio->categoria ?? 'Critério' }}</strong><br>
+                                        <small class="text-muted">{{ $criterio->descricao }}</small>
                                     </td>
-                                    @for($i = 0; $i <= 5; $i++)
-                                        <td>
-                                            <input type="radio" name="avaliacoes[{{ $criterios->id }}]" value="{{ $i }}" class="form-check-input nota" required>
-                                        </td>
-                                    @endfor
+                                    <td class="text-center">
+                                        <input type="radio" name="avaliacoes[{{ $criterio->id }}]" value="{{ rand(0,3) }}" class="form-check-input nota" required>
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="radio" name="avaliacoes[{{ $criterio->id }}]" value="{{ rand(4,6) }}" class="form-check-input nota">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="radio" name="avaliacoes[{{ $criterio->id }}]" value="{{ rand(7,10) }}" class="form-check-input nota">
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -79,6 +83,7 @@
                 <div class="mt-3 text-end">
                     <h6 class="text-muted">Média Calculada:</h6>
                     <h4 class="fw-bold text-primary" id="mediaSpan">-</h4>
+                    <input type="hidden" name="media_geral" id="mediaInput" value="">
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -106,6 +111,7 @@
 
         const media = count > 0 ? (total / count).toFixed(2) : '-';
         document.getElementById('mediaSpan').textContent = media;
+        document.getElementById('mediaInput').value = media;
     }
 
     document.querySelectorAll('.nota').forEach(el => {

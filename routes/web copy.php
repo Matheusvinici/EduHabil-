@@ -11,7 +11,6 @@ use App\Http\Controllers\{
     UserController,
     TutoriaAcompanhamentoController,
     GabaritoController,
-    GestorController,
     ProfessorTurmaController,
     NotaAvaliacaoController,
     AdminController,
@@ -93,43 +92,6 @@ Route::prefix('auth')->group(function () {
 
 });
 
-Route::middleware(['auth', 'role:coordenador'])->group(function () {
-    // Rotas de seleção (sem verificação de escola)
-    Route::get('/coordenador/selecionar-escola', [CoordenadorController::class, 'selecionarEscola'])
-         ->name('selecionar.escola');
-         
-    Route::post('/coordenador/definir-escola', [CoordenadorController::class, 'definirEscola'])
-         ->name('definir.escola');
-         
-    // Demais rotas (com verificação de escola)
-    Route::middleware('escola.selecionada')->group(function () {
-        Route::get('/coordenador/dashboard', [CoordenadorController::class, 'dashboard'])
-             ->name('coordenador.dashboard');
-        
-    });
-});
-Route::middleware(['auth', 'role:gestor'])->group(function () {
-    // Rotas de seleção de escola (sem verificação de escola selecionada)
-    Route::get('/gestor/selecionar-escola', [GestorController::class, 'selecionarEscola'])
-    ->name('gestor.selecionar.escola');
-        
-    Route::post('/gestor/definir-escola', [GestorController::class, 'definirEscola'])
-         ->name('gestor.definir-escola');
-         
-    // Rotas protegidas (requer escola selecionada)
-    Route::middleware('escola.selecionada')->group(function () {
-        Route::get('/gestor/dashboard', [GestorController::class, 'dashboard'])
-             ->name('gestor.dashboard');
-        
-        // Adicione aqui outras rotas específicas do gestor
-        Route::get('/gestor/relatorios', [GestorController::class, 'relatorios'])
-             ->name('gestor.relatorios');
-             
-        Route::get('/gestor/estatisticas', [GestorController::class, 'estatisticas'])
-             ->name('gestor.estatisticas');
-    });
-});
-
 
 // Rotas para alunos
 Route::middleware('auth')->group(function () {
@@ -145,68 +107,23 @@ Route::middleware('auth')->group(function () {
 
 
 });
-// Rotas para professores
-Route::middleware(['auth', 'role:professor'])->group(function () {
-    // Seleção de escola
-    Route::get('/professor/index', [ProvaController::class, 'index'])->name('provas.professor.index');
 
-    Route::get('/professor/selecionar-escola', [ProfessorController::class, 'selecionarEscola'])
-         ->name('professor.selecionar.escola');
-         
-    Route::post('/professor/definir-escola', [ProfessorController::class, 'definirEscola'])
-         ->name('professor.definir.escola');
-    
-    // Trocar escola
-    Route::get('/professor/trocar-escola', [ProfessorController::class, 'trocarEscola'])
-         ->name('professor.trocar.escola');
-         
-    // Rotas que requerem escola selecionada
-    Route::middleware('escola.selecionada')->group(function () {
-        Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])
-             ->name('professor.dashboard');
-             
-        Route::get('/professor/provas', [ProfessorController::class, 'indexProvas'])
-             ->name('professor.provas.index');
-        
-        // Adicione outras rotas protegidas aqui
-    });
-});
-// Rotas para coordenadores
-Route::middleware(['auth', 'role:coordenador'])->group(function () {
-    // Seleção de escola
-    Route::get('/coordenador/selecionar-escola', [CoordenadorController::class, 'selecionarEscola'])
-         ->name('coordenador.selecionar.escola');
-         
-    Route::post('/coordenador/definir-escola', [CoordenadorController::class, 'definirEscola'])
-         ->name('coordenador.definir.escola');
-         Route::get('/provas/professor/index', [ProvaController::class, 'indexProfessor'])
-         ->name('provas.professor.index');
-
-    
-    // Trocar escola
-    Route::get('/coordenador/trocar-escola', [CoordenadorController::class, 'trocarEscola'])
-         ->name('coordenador.trocar.escola');
-         
-    // Rotas que requerem escola selecionada
-    Route::middleware('escola.selecionada')->group(function () {
-        Route::get('/coordenador/dashboard', [CoordenadorController::class, 'dashboard'])
-             ->name('coordenador.dashboard');
-             
-        Route::get('/coordenador/estatisticas', [CoordenadorController::class, 'estatisticas'])
-             ->name('coordenador.estatisticas');
-             
-        Route::get('/coordenador/professores', [CoordenadorController::class, 'listarProfessores'])
-             ->name('coordenador.professores');
-        
-        // Adicione outras rotas específicas do coordenador aqui
-    });
-});
-Route::middleware(['auth', 'role:coordenador,gestor,aee'])->group(function() {
-    Route::get('/coordenador/estatisticas-escola/{escola}', [ProvaController::class, 'estatisticasEscola'])
-         ->name('provas.coordenador.estatisticas-escola');
-});
-
-// Remova a outra definição duplicada das rotas de professor    // Rotas de respostas
+              Route::middleware(['auth', 'role:professor'])->group(function () {
+                // Rotas de seleção (sem verificação de escola)
+                Route::get('/professor/selecionar-escola', [ProfessorController::class, 'selecionarEscola'])
+                     ->name('selecionar.escola');
+                     
+                Route::post('/professor/definir-escola', [ProfessorController::class, 'definirEscola'])
+                     ->name('definir.escola');
+                     
+                // Demais rotas (com verificação de escola)
+                Route::middleware('escola.selecionada')->group(function () {
+                    Route::get('/professor/dashboard', [ProfessorController::class, 'dashboard'])
+                         ->name('professor.dashboard');
+                    
+                });
+            });
+    // Rotas de respostas
     Route::prefix('respostas')->group(function () {
         Route::get('/professor/estatisticas', [RespostaController::class, 'professorEstatisticas'])
             ->name('respostas.professor.estatisticas');
@@ -248,7 +165,6 @@ Route::middleware(['auth', 'role:coordenador,gestor,aee'])->group(function() {
         ->name('direcionar.avaliacao');
         Route::get('/avaliacao/estatisticas/rede', [ProvaController::class, 'estatisticasRede'])
         ->name('provas.estatisticas-rede');
-       
         Route::resource('/', ProvaController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
         Route::get('/professor/index', [ProvaController::class, 'indexProfessor'])
             ->name('provas.professor.index');
@@ -256,17 +172,13 @@ Route::middleware(['auth', 'role:coordenador,gestor,aee'])->group(function() {
             ->name('provas.gerarPDF');
     });
 
-// Rotas de atividades
-Route::resource('atividades_professores', AtividadeProfessorController::class);
 
-Route::get('/atividades_professores/estatisticas-escola/{escola}', [AtividadeProfessorController::class, 'estatisticasEscola'])
-    ->name('atividades_professores.estatisticas-escola');
 
-Route::get('/atividades/estatisticas-rede', [AtividadeProfessorController::class, 'estatisticasRede'])
-    ->name('atividades_professores.estatisticas-rede');
+    // Rotas de atividades
+    Route::resource('atividades_professores', AtividadeProfessorController::class);
+    Route::get('atividades_professores/{id}/download', [AtividadeProfessorController::class, 'downloadPdf'])
+        ->name('atividades_professores.download');
 
-Route::get('atividades_professores/{id}/download', [AtividadeProfessorController::class, 'downloadPdf'])
-    ->name('atividades_professores.download');
     // Rotas de turmas (ATUALIZADO)
     Route::prefix('turmas')->group(function () {
         // Rotas específicas primeiro
@@ -457,12 +369,6 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
 
     Route::get('/user/create', [UserController::class, 'create'])->name('admin.user.create');
     Route::get('/provas', [ProvaController::class, 'index'])->name('provas.index');
-    Route::get('/provas/estatisticas-rede', [ProvaController::class, 'estatisticasRede'])
-->name('provas.admin.estatisticas-rede');
-
-    Route::get('/estatisticas/escola/{id}', [ProvaController::class, 'estatisticasEscola'])
-    ->name('provas.estatisticas-escola');
-
     Route::get('/provas/admin/index', [ProvaController::class, 'indexAdmin'])->name('provas.admin.index');
     Route::get('/turmas/admin/index', [TurmaController::class, 'indexAdmin'])->name('turmas.admin.index');
     Route::get('/provas/admin/pdf/escolas/sem/provas', [ProvaController::class, 'pdfEscolasSemProvas'])->name('provas.admin.pdf.escolas.sem.provas');
@@ -512,129 +418,19 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     Route::resource('escolas', EscolaController::class);
 
     //Tutoria
-    // Rotas de Tutoria - Grupo Principal
-Route::prefix('tutoria')->group(function () {
-    
-    // Dashboard e Quadrantes
-    Route::get('/dashboard', [TutoriaAvaliacaoController::class, 'dashboard'])
-        ->name('tutoria.dashboard');
-    Route::get('/quadrante/{quadrante}', [TutoriaAvaliacaoController::class, 'quadrante'])
-        ->name('tutoria.quadrante');
-
-    // Rotas de Avaliações
-    Route::prefix('avaliacoes')->group(function () {
-        Route::get('/', [TutoriaAvaliacaoController::class, 'index'])
-            ->name('tutoria.avaliacoes.index');
-        Route::get('/create', [TutoriaAvaliacaoController::class, 'create'])
-            ->name('tutoria.avaliacoes.create');
-        Route::post('/', [TutoriaAvaliacaoController::class, 'store'])
-            ->name('tutoria.avaliacoes.store');
-        Route::get('/{tutoria_avaliacao}/edit', [TutoriaAvaliacaoController::class, 'edit'])
-            ->name('tutoria.avaliacoes.edit');
-        Route::put('/{tutoria_avaliacao}', [TutoriaAvaliacaoController::class, 'update'])
-            ->name('tutoria.avaliacoes.update');
-        Route::delete('/{tutoria_avaliacao}', [TutoriaAvaliacaoController::class, 'destroy'])
-            ->name('tutoria.avaliacoes.destroy');
+    Route::resource('tutoria_avaliacoes', TutoriaAvaliacaoController::class);
+    Route::resource('tutoria_criterios', TutoriaCriterioController::class);
+    Route::prefix('tutoria')->group(function () {
+        Route::get('/acompanhamento', [TutoriaAcompanhamentoController::class, 'index'])->name('tutoria.acompanhamento');
+        Route::get('/avaliacao/{id}/acompanhamento', [TutoriaAcompanhamentoController::class, 'createFromEvaluation'])->name('tutoria.acompanhamento.create');
+        Route::post('/acompanhamento', [TutoriaAcompanhamentoController::class, 'store'])->name('tutoria.acompanhamento.store');
+        Route::get('/acompanhamento/{id}/edit', [TutoriaAcompanhamentoController::class, 'edit'])->name('tutoria.acompanhamento.edit');
+        Route::put('/acompanhamento/{id}', [TutoriaAcompanhamentoController::class, 'update'])->name('tutoria.acompanhamento.update');
+        Route::get('/acompanhamento/create/{avaliacaoId}', [TutoriaAcompanhamentoController::class, 'create'])
+    ->name('tutoria.acompanhamento.create');
+Route::post('/acompanhamento', [TutoriaAcompanhamentoController::class, 'store'])
+    ->name('tutoria.acompanhamento.store');
     });
-
-    // Rotas de Acompanhamento
-   // Rotas de Tutoria - Grupo Principal
-Route::prefix('tutoria')->group(function () {
-    
-    // Dashboard e Quadrantes
-    Route::get('/dashboard', [TutoriaAvaliacaoController::class, 'dashboard'])
-        ->name('tutoria.dashboard');
-        
-    Route::get('/quadrante/{quadrante}', [TutoriaAvaliacaoController::class, 'quadrante'])
-        ->name('tutoria.quadrante');
-
-    // Rotas de Avaliações
-    Route::prefix('avaliacoes')->group(function () {
-        Route::get('/', [TutoriaAvaliacaoController::class, 'index'])
-            ->name('tutoria.avaliacoes.index');
-            Route::get('/tutoria_avaliacoes/create', [TutoriaAvaliacaoController::class, 'create'])
-    ->name('tutoria_avaliacoes.create');
-    Route::get('/tutoria_avaliacoes/{tutoria_avaliacao}/edit', [TutoriaAvaliacaoController::class, 'edit'])
-    ->name('tutoria_avaliacoes.edit');
-    Route::delete('/tutoria_avaliacoes/{tutoria_avaliacao}', [TutoriaAvaliacaoController::class, 'destroy'])
-    ->name('tutoria_avaliacoes.destroy');
-Route::post('/tutoria_avaliacoes', [TutoriaAvaliacaoController::class, 'store'])
-->name('tutoria_avaliacoes.store');
-        Route::get('/create', [TutoriaAvaliacaoController::class, 'create'])
-            ->name('tutoria.avaliacoes.create');
-            Route::get('/tutoria_avaliacoes', [TutoriaAvaliacaoController::class, 'index'])
-    ->name('tutoria_avaliacoes.index');
-
-        Route::post('/', [TutoriaAvaliacaoController::class, 'store'])
-            ->name('tutoria.avaliacoes.store');
-        Route::get('/{tutoria_avaliacao}/edit', [TutoriaAvaliacaoController::class, 'edit'])
-            ->name('tutoria.avaliacoes.edit');
-            
-        Route::put('/{tutoria_avaliacao}', [TutoriaAvaliacaoController::class, 'update'])
-            ->name('tutoria.avaliacoes.update');
-        Route::delete('/{tutoria_avaliacao}', [TutoriaAvaliacaoController::class, 'destroy'])
-            ->name('tutoria.avaliacoes.destroy');
-    });
-
-    // Rotas de Acompanhamento
-    Route::prefix('acompanhamento')->group(function () {
-        Route::get('/', [TutoriaAcompanhamentoController::class, 'index'])
-            ->name('tutoria.acompanhamento.index');
-        Route::get('/escola/{escola}', [TutoriaAcompanhamentoController::class, 'escola'])
-            ->name('tutoria.acompanhamento.escola');
-        Route::get('/create/{avaliacao}', [TutoriaAcompanhamentoController::class, 'createFromEvaluation'])
-            ->name('tutoria.acompanhamento.createFromEvaluation');
-        Route::post('/', [TutoriaAcompanhamentoController::class, 'store'])
-            ->name('tutoria.acompanhamento.store');
-        Route::get('/{acompanhamento}/edit', [TutoriaAcompanhamentoController::class, 'edit'])
-            ->name('tutoria.acompanhamento.edit');
-        Route::put('/{acompanhamento}', [TutoriaAcompanhamentoController::class, 'update'])
-            ->name('tutoria.acompanhamento.update');
-        Route::delete('/{acompanhamento}', [TutoriaAcompanhamentoController::class, 'destroy'])
-            ->name('tutoria.acompanhamento.destroy');
-    });
-
-    // Rotas de Critérios (Atualizadas)
-    Route::prefix('criterios')->group(function () {
-        Route::get('/', [TutoriaCriterioController::class, 'index'])
-            ->name('tutoria.criterios.index');  // Nome correto da rota
-            Route::get('/', [TutoriaAcompanhamentoController::class, 'index'])
-    ->name('tutoria.acompanhamento');
-  
-        Route::get('/create', [TutoriaCriterioController::class, 'create'])
-            ->name('tutoria.criterios.create');
-            Route::get('/tutoria_criterios/create', [TutoriaCriterioController::class, 'create'])
-    ->name('tutoria_criterios.create');
-    Route::get('/tutoria_criterios/{tutoria_criterio}/edit', [TutoriaCriterioController::class, 'edit'])
-    ->name('tutoria_criterios.edit');
-        Route::post('/', [TutoriaCriterioController::class, 'store'])
-            ->name('tutoria.criterios.store');
-        Route::put('/{tutoria_criterio}', [TutoriaCriterioController::class, 'update'])
-            ->name('tutoria.criterios.update');
-            Route::delete('/tutoria_criterios/{tutoria_criterio}', [TutoriaCriterioController::class, 'destroy'])
-            ->name('tutoria_criterios.destroy');
-    });
-});
-    // Rotas de Critérios (se necessário)
-    Route::prefix('criterios')->group(function () {
-        Route::get('/', [TutoriaCriterioController::class, 'index'])
-            ->name('tutoria.criterios.index');
-            Route::get('/tutoria_criterios', [TutoriaCriterioController::class, 'index'])
-    ->name('tutoria_criterios.index');
-
-        Route::get('/create', [TutoriaCriterioController::class, 'create'])
-            ->name('tutoria.criterios.create');
-        Route::post('/', [TutoriaCriterioController::class, 'store'])
-            ->name('tutoria.criterios.store');
-        Route::get('/{tutoria_criterio}/edit', [TutoriaCriterioController::class, 'edit'])
-            ->name('tutoria.criterios.edit');
-        Route::put('/{tutoria_criterio}', [TutoriaCriterioController::class, 'update'])
-            ->name('tutoria.criterios.update');
-        Route::delete('/{tutoria_criterio}', [TutoriaCriterioController::class, 'destroy'])
-            ->name('tutoria.criterios.destroy');
-    });
-});
-
     Route::resource('disciplinas', DisciplinaController::class);
     Route::resource('habilidades', HabilidadeController::class);
     Route::resource('questoes', QuestaoController::class)->parameters([

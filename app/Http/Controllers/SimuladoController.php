@@ -16,6 +16,7 @@ class SimuladoController extends Controller
         return view('simulados.index', compact('simulados'));
     }
 
+
     // Exibir formulário de criação
     public function create()
     {

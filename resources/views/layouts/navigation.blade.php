@@ -45,8 +45,8 @@
 
         @php
                 $showAvaliacoes = false;
-                $showGerarProvas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'inclusiva', 'aee', 'aplicador']);
-                $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aee', 'aluno', 'aplicador']);
+                $showGerarProvas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'gestor', 'aee']);
+                $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aee', 'aplicador']);
                 $showBancoQuestoes = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
                 $showAvaliacoes = $showGerarProvas || $showAvaliacao || $showBancoQuestoes;
         @endphp
@@ -66,12 +66,12 @@
                                         </li>
                                 @endif
                                 @if($showAvaliacao)
-                                        <li class="nav-item">
-                                                <a href="{{ route('respostas.index') }}" class="nav-link text-white">
-                                                        <i class="far fa-circle nav-icon text-white"></i>
-                                                        <p>Avaliação</p>
-                                                </a>
-                                        </li>
+                                <li class="nav-item">
+                                        <a href="{{ route('direcionar.avaliacao') }}" class="nav-link text-white">
+                                        <i class="far fa-circle nav-icon text-white"></i>
+                                        <p>Avaliação</p>
+                                        </a>
+                                </li>
                                 @endif
                                 @if($showBancoQuestoes)
                                         <li class="nav-item">
@@ -87,7 +87,7 @@
 
         @php
                 $showPlanejamento = false;
-                $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'admin', 'aplicador']);
+                $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'gestor', 'admin', 'aplicador']);
                 $showMinhasTurmas = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
                 $showCadastrarAtividades = Auth::check() && in_array(Auth::user()->role, ['admin','aplicador']);
                 $showPlanejamento = $showAtividadesEducativas || $showMinhasTurmas || $showCadastrarAtividades;
@@ -158,7 +158,7 @@
 
         @php
                 $showInclusao = false;
-                $showAtividadesAdaptadas = Auth::check() && in_array(Auth::user()->role, ['aee', 'coordenador', 'professor', 'inclusiva', 'admin', 'aplicador']);
+                $showAtividadesAdaptadas = Auth::check() && in_array(Auth::user()->role, ['aee', 'coordenador', 'gestor', 'inclusiva', 'admin', 'aplicador']);
                 $showPerfisAprendizagem = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin', 'aplicador']);
                 $showTiposDeficiencias = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin', 'aplicador']);
                 $showCadastrarRecursos = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin','aplicador']);
@@ -242,32 +242,94 @@
         @endif
 
           @if(Auth::check() && Auth::user()->role === 'admin')
-                <li class="nav-item has-treeview">
-                        <a href="#" class="nav-link text-white">
-                                <i class="nav-icon fas fa-chalkboard-teacher text-white"></i>
-                                <p>Tutoria<i class="right fas fa-angle-left"></i></p>
-                        </a>
-                        <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                        <a href="{{ route('tutoria_criterios.index') }}" class="nav-link text-white">
-                                                <i class="far fa-circle nav-icon text-white"></i>
-                                                <p>Critérios de Avaliação</p>
-                                        </a>
-                                </li>
-                                <li class="nav-item">
-                                        <a href="{{ route('tutoria_avaliacoes.index') }}" class="nav-link text-white">
-                                                <i class="far fa-circle nav-icon text-white"></i>
-                                                <p>Avaliação</p>
-                                        </a>
-                                </li>
-                                <li class="nav-item">
-                                        <a href="{{ route('tutoria.acompanhamento') }}" class="nav-link text-white">
-                                        <i class="far fa-circle nav-icon text-white"></i>
-                                        <p>Acompanhamento</p>
-                                        </a>
-                                </li>
-                        </ul>
+          <li class="nav-item has-treeview menu-open">
+    <a href="#" class="nav-link bg-primary-light">
+        <i class="nav-icon fas fa-chalkboard-teacher text-white"></i>
+        <p class="text-white font-weight-bold">
+            Tutoria
+            <i class="right fas fa-angle-down"></i>
+        </p>
+    </a>
+    <ul class="nav nav-treeview" style="background-color: rgba(30, 136, 229, 0.1);">
+        <!-- Dashboard -->
+        <li class="nav-item">
+            <a href="{{ route('tutoria.dashboard') }}" class="nav-link">
+                <i class="nav-icon fas fa-tachometer-alt text-primary"></i>
+                <p class="text-dark">
+                    Dashboard
+                    <span class="right badge badge-primary">Novo</span>
+                </p>
+            </a>
+        </li>
+        
+        <!-- Critérios -->
+        <li class="nav-item">
+            <a href="{{ route('tutoria_criterios.index') }}" class="nav-link">
+                <i class="nav-icon fas fa-list-check text-info"></i>
+                <p class="text-dark">Critérios de Avaliação</p>
+            </a>
+        </li>
+        
+        <!-- Avaliação -->
+        <li class="nav-item">
+            <a href="{{ route('tutoria_avaliacoes.index') }}" class="nav-link">
+                <i class="nav-icon fas fa-clipboard-list text-success"></i>
+                <p class="text-dark">
+                    Avaliações
+                    <span class="right badge badge-success">+</span>
+                </p>
+            </a>
+        </li>
+        
+        <!-- Acompanhamento -->
+        <li class="nav-item">
+            <a href="{{ route('tutoria.acompanhamento.index') }}" class="nav-link">
+                <i class="nav-icon fas fa-hands-helping text-warning"></i>
+                <p class="text-dark">
+                    Acompanhamento
+                    <span class="right badge badge-danger">!</span>
+                </p>
+            </a>
+        </li>
+        
+        <!-- Quadrantes -->
+        <li class="nav-item">
+            <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-chart-pie text-secondary"></i>
+                <p class="text-dark">
+                    Quadrantes
+                    <i class="right fas fa-angle-left"></i>
+                </p>
+            </a>
+            <ul class="nav nav-treeview" style="margin-left: 15px;">
+                <li class="nav-item">
+                    <a href="{{ route('tutoria.quadrante', ['quadrante' => 'vermelho']) }}" class="nav-link">
+                        <i class="fas fa-square text-danger nav-icon"></i>
+                        <p>Prioridade Máxima</p>
+                    </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('tutoria.quadrante', ['quadrante' => 'amarelo']) }}" class="nav-link">
+                        <i class="fas fa-square text-warning nav-icon"></i>
+                        <p>Prioridade Média</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('tutoria.quadrante', ['quadrante' => 'verde']) }}" class="nav-link">
+                        <i class="fas fa-square text-success nav-icon"></i>
+                        <p>Bom Desempenho</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('tutoria.quadrante', ['quadrante' => 'azul']) }}" class="nav-link">
+                        <i class="fas fa-square text-primary nav-icon"></i>
+                        <p>Excelência</p>
+                    </a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</li>
         @endif
 
           @if(Auth::check() && Auth::user()->role === 'admin')

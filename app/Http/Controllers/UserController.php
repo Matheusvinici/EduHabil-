@@ -76,48 +76,57 @@ class UserController extends Controller
             return view('users.create-lote', compact('escolas', 'rolesPermitidas'));
         }
 
-       // No controller
         public function store(Request $request)
         {
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
-                'role' => 'required|in:admin,tutor,professor,aluno,aee,inclusiva,coordenador,aplicador',
+                'role' => 'required|in:admin,tutor,professor,gestor,aluno,aee,inclusiva,coordenador,aplicador',
                 'escolas' => 'required_if:role,professor,aee,coordenador,gestor|array',
                 'escolas.*' => 'exists:escolas,id',
                 'password' => 'required|string|min:8|confirmed',
             ]);
-
+        
             // Verificar se usuário já existe
             $user = User::where('email', $request->email)->first();
-
+        
             if ($user) {
-                // Usuário existe, apenas vincular às escolas
                 $escolasParaVincular = array_diff($request->escolas, $user->escolas->pluck('id')->toArray());
-                
+        
                 if (!empty($escolasParaVincular)) {
                     $user->escolas()->attach($escolasParaVincular);
+                    // Atualizar escola_id se o usuário for gestor, coordenador ou aee e tiver apenas uma escola selecionada
+                    if (in_array($request->role, ['gestor', 'coordenador', 'aee']) && count($request->escolas) === 1) {
+                        $user->update(['escola_id' => $request->escolas[0]]);
+                    }
                     return redirect()->route('users.index')
                         ->with('success', 'Usuário já existente foi vinculado às novas escolas!');
                 }
-                
+        
                 return redirect()->route('users.edit', $user->id)
                     ->with('info', 'Usuário já existe e já está vinculado a todas as escolas selecionadas.');
             }
-
+        
             // Criar novo usuário
-            $user = User::create([
+            $userData = [
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role' => $request->role,
-            ]);
-
-            // Vincular às escolas se necessário
-            if (in_array($request->role, ['professor', 'aee', 'coordenador', 'gestor'])) {
+            ];
+        
+            // Definir escola_id diretamente para gestor, coordenador e aee se apenas uma escola for selecionada
+            if (in_array($request->role, ['gestor', 'coordenador', 'aee']) && isset($request->escolas) && count($request->escolas) === 1) {
+                $userData['escola_id'] = $request->escolas[0];
+            }
+        
+            $user = User::create($userData);
+        
+            // Vincular às escolas se necessário (para a relação muitos-para-muitos)
+            if (in_array($request->role, ['professor', 'aee', 'coordenador', 'gestor']) && isset($request->escolas)) {
                 $user->escolas()->attach($request->escolas);
             }
-
+        
             return redirect()->route('users.index')
                 ->with('success', 'Usuário criado com sucesso!');
         }
@@ -153,18 +162,22 @@ class UserController extends Controller
                         if (!$user->escolas()->where('escola_id', $escolaId)->exists()) {
                             $user->escolas()->attach($escolaId);
                             $resultado['vinculados']++;
+                            // Atualizar escola_id para usuários existentes
+                            if (in_array($role, ['gestor', 'coordenador', 'aee']) && !$user->escola_id) {
+                                $user->update(['escola_id' => $escolaId]);
+                            }
                         } else {
                             $resultado['ignorados']++;
                         }
                     } else {
                         $email = $usuario['email'] ?? $this->gerarEmailAutomatico($usuario['name'], $escolaId);
-                        
+        
                         $newUser = User::create([
                             'name' => $usuario['name'],
                             'email' => $email,
                             'password' => Hash::make($email),
                             'role' => $role,
-                            'escola_id' => $escolaId,
+                            'escola_id' => in_array($role, ['gestor', 'coordenador', 'aee']) ? $escolaId : null,
                         ]);
                         $newUser->escolas()->attach($escolaId);
                         $resultado['novos']++;

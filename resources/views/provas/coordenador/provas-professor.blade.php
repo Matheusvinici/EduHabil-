@@ -1,19 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Provas - AEE')
+@section('title', 'Provas do Professor')
 
 @section('content')
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-md-12">
-            <h2>Provas - AEE - {{ auth()->user()->escolas->first()->nome }}</h2>
+            <h2>Provas do Professor: {{ $professor->name }}</h2>
+            <a href="{{ route('provas.estatisticas-escola', $escola->id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar para estatísticas
+            </a>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h4 class="mb-0">Todas as Provas da Escola</h4>
-        </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -22,21 +22,16 @@
                             <th>Nome</th>
                             <th>Ano</th>
                             <th>Disciplina</th>
-                            <th>Professor</th>
                             <th>Data</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach(App\Models\Prova::with(['ano', 'disciplina', 'professor'])
-                            ->where('escola_id', auth()->user()->escolas->first()->id)
-                            ->orderBy('created_at', 'desc')
-                            ->paginate(10) as $prova)
+                        @foreach($provas as $prova)
                         <tr>
                             <td>{{ $prova->nome }}</td>
                             <td>{{ $prova->ano->nome }}</td>
                             <td>{{ $prova->disciplina->nome }}</td>
-                            <td>{{ $prova->professor->name }}</td>
                             <td>{{ $prova->created_at->format('d/m/Y') }}</td>
                             <td>
                                 <a href="{{ route('provas.show', $prova->id) }}" class="btn btn-sm btn-info">
@@ -50,8 +45,8 @@
                         @endforeach
                     </tbody>
                 </table>
-                {{ App\Models\Prova::where('escola_id', auth()->user()->escolas->first()->id)->paginate(10)->links() }}
             </div>
+            {{ $provas->links() }}
         </div>
     </div>
 </div>

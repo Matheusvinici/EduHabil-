@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -106,26 +106,16 @@
     </nav>
     <!-- /.navbar -->
 
-    <!-- Sidebar -->
-    @auth
-        @if(auth()->user()->role === 'professor')
-            @if(session('escola_selecionada'))
-                <aside class="main-sidebar elevation-4 sidebar-custom">
-                    <!-- Brand Logo Area -->
-                    <div class="brand-area">
-                        <a href="/" class="brand-link text-center">
-                            <img src="{{ asset('images/logoprefeitura.png') }}" alt="Logo Prefeitura" class="brand-logo">
-                            <span class="brand-text">EduHabil+</span>
-                        </a>
-                    </div>
+   <!-- Sidebar -->
+@auth
+    @php
+        // Definir $escolaAtual de forma segura
+        $escolaAtual = session('escola_selecionada') ? App\Models\Escola::find(session('escola_selecionada')) : null;
+        $usuarioPodeSelecionarEscola = in_array(auth()->user()->role, ['professor', 'coordenador', 'gestor']);
+    @endphp
 
-                    <!-- Sidebar Menu -->
-                    <div class="sidebar">
-                        @include('layouts.navigation')
-                    </div>
-                </aside>
-            @endif
-        @else
+    @if($usuarioPodeSelecionarEscola)
+        @if($escolaAtual)
             <aside class="main-sidebar elevation-4 sidebar-custom">
                 <!-- Brand Logo Area -->
                 <div class="brand-area">
@@ -133,6 +123,11 @@
                         <img src="{{ asset('images/logoprefeitura.png') }}" alt="Logo Prefeitura" class="brand-logo">
                         <span class="brand-text">EduHabil+</span>
                     </a>
+                    <div style="padding: 10px" class="school-info">
+                        <small class="text-muted">Escola selecionada:</small>
+                        <h6>{{ $escolaAtual->nome }}</h6>
+                       
+                    </div>
                 </div>
 
                 <!-- Sidebar Menu -->
@@ -141,9 +136,21 @@
                 </div>
             </aside>
         @endif
-    @endauth
-    <!-- /.sidebar -->
-
+    @else
+        <!-- Outros perfis (admin, aluno, etc) -->
+        <aside class="main-sidebar elevation-4 sidebar-custom">
+            <div class="brand-area">
+                <a href="/" class="brand-link text-center">
+                    <img src="{{ asset('images/logoprefeitura.png') }}" alt="Logo Prefeitura" class="brand-logo">
+                    <span class="brand-text">EduHabil+</span>
+                </a>
+            </div>
+            <div class="sidebar">
+                @include('layouts.navigation')
+            </div>
+        </aside>
+    @endif
+@endauth
     <!-- Content Wrapper -->
     <div class="content-wrapper">
         @yield('content')

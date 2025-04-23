@@ -32,7 +32,7 @@
                 
                 <div class="row mb-4">
                     <!-- Ano -->
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4 mb-3 mb-md-0">
                         <div class="form-group">
                             <label for="ano_id" class="font-weight-bold">Ano</label>
                             <select name="ano_id" id="ano_id" class="form-control form-control-lg" required>
@@ -47,7 +47,7 @@
                     </div>
 
                     <!-- Disciplina -->
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4 mb-3 mb-md-0">
                         <div class="form-group">
                             <label for="disciplina_id" class="font-weight-bold">Disciplina</label>
                             <select name="disciplina_id" id="disciplina_id" class="form-control form-control-lg" required>
@@ -61,25 +61,28 @@
                         </div>
                     </div>
 
-                    <!-- Habilidade -->
-                    <div class="col-md-4">
+                    <!-- Habilidade - Modificado para mostrar código ao invés da descrição completa -->
+                    <div class="col-12 col-md-4">
                         <div class="form-group">
                             <label for="habilidade_id" class="font-weight-bold">Habilidade</label>
                             <select name="habilidade_id" id="habilidade_id" class="form-control form-control-lg" required>
                                 <option value="">Selecione a Habilidade</option>
                                 @foreach($habilidades as $habilidade)
-                                    <option value="{{ $habilidade->id }}" {{ old('habilidade_id') == $habilidade->id ? 'selected' : '' }}>
-                                        {{ $habilidade->descricao }}
+                                    <option value="{{ $habilidade->id }}" {{ old('habilidade_id') == $habilidade->id ? 'selected' : '' }}
+                                        data-descricao="{{ $habilidade->descricao }}"
+                                        title="{{ $habilidade->descricao }}">
+                                        {{ $habilidade->codigo }} - {{ Str::limit($habilidade->descricao, 20) }}
                                     </option>
                                 @endforeach
                             </select>
+                            <small id="habilidadeDescricao" class="form-text text-muted d-none"></small>
                         </div>
                     </div>
                 </div>
 
                 <div class="row mb-4">
                     <!-- Nome da Prova -->
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6 mb-3 mb-md-0">
                         <div class="form-group">
                             <label for="nome" class="font-weight-bold">Nome da Prova</label>
                             <input type="text" name="nome" id="nome" class="form-control form-control-lg" 
@@ -88,7 +91,7 @@
                     </div>
 
                     <!-- Data -->
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <div class="form-group">
                             <label for="data" class="font-weight-bold">Data</label>
                             <input type="date" name="data" id="data" class="form-control form-control-lg" 
@@ -113,4 +116,21 @@
         </div>
     </div>
 </div>
+
+@section('scripts')
+<script>
+    // Mostra a descrição completa da habilidade quando selecionada
+    document.getElementById('habilidade_id').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const descricaoElement = document.getElementById('habilidadeDescricao');
+        
+        if (selectedOption.value && selectedOption.dataset.descricao) {
+            descricaoElement.textContent = selectedOption.dataset.descricao;
+            descricaoElement.classList.remove('d-none');
+        } else {
+            descricaoElement.classList.add('d-none');
+        }
+    });
+</script>
+@endsection
 @endsection
