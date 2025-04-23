@@ -2,148 +2,132 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Prova;
+use App\Models\Questao;
 use App\Models\Ano;
 use App\Models\Disciplina;
 use App\Models\Habilidade;
-use App\Models\Questao;
 use App\Models\Escola;
-use Barryvdh\DomPDF\Facade\Pdf; // Importação correta do facade
+use App\Models\User;
+
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProvaController extends Controller
 {
-    /**
-     * Redireciona para o método correto com base no perfil do usuário.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function index(Request $request)
+    public function __construct()
     {
-        $user = Auth::user();
-    
-        // Redireciona para o método correto com base no perfil do usuário
-        switch ($user->role) {
-            case 'admin':
-                return redirect()->route('provas.admin.index');
-            case 'professor':
-                return redirect()->route('provas.professor.index');
-            case 'coordenador':
-                return redirect()->route('provas.coordenador.index');
-            case 'aee':
-                return redirect()->route('provas.aee.index');
-            case 'inclusiva':
-                return redirect()->route('provas.inclusiva.index');
-            default:
-                abort(403, 'Acesso não autorizado.');
-        }
+        $this->middleware('auth');
+        $this->middleware('escola.selecionada')->only(['create', 'store']);
     }
 
-    /**
-     * Exibe o formulário de criação de provas.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    public function index()
+    {
+        $user = Auth::user();
+        
+        switch ($user->role) {
+            case 'admin':
+            case 'aplicador':
+            case 'tutor':
+                return redirect()->route('provas.admin.estatisticas-rede');
+                
+            case 'coordenador':
+            case 'gestor':
+            case 'aee':
+                // Obter a escola selecionada ou primeira escola vinculada
+                $escolaId = $this->getEscolaId();
+                
+                if (!$escolaId) {
+                    // Redireciona para seleção de escola se não houver escola definida
+                    return redirect()->route('coordenador.selecionar.escola')
+                           ->with('warning', 'Por favor, selecione uma escola.');
+                }
+                
+                // Redireciona para as estatísticas da escola específica
+                return redirect()->route('provas.coordenador.estatisticas-escola', ['escola' => $escolaId]);
+                
+            case 'professor':
+                $escolaId = $this->getEscolaId();
+                $provas = Prova::with(['ano', 'disciplina', 'habilidade', 'professor', 'escola'])
+                    ->where('user_id', $user->id)
+                    ->when($escolaId, function($query) use ($escolaId) {
+                        $query->where('escola_id', $escolaId);
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->paginate(10);
+                
+                return view('provas.professor.index', compact('provas'));
+                
+            default:
+                abort(403, 'Acesso não autorizado para este perfil.');
+        }
+    } 
+    public function indexProfessor(Request $request)
+    {
+        $user = Auth::user();
+        $professorId = $request->professor_id;
+    
+        // Se for um coordenador/gestor visualizando provas de outro professor
+        if ($professorId && in_array($user->role, ['coordenador', 'gestor', 'aee'])) {
+            $professor = User::where('role', 'professor')
+                           ->findOrFail($professorId);
+            
+            // Verifica se o professor pertence à mesma escola
+            $escolaId = $this->getEscolaId();
+            if (!$professor->escolas->contains($escolaId)) {
+                abort(403, 'Este professor não pertence à sua escola.');
+            }
+    
+            $provas = Prova::where('user_id', $professorId)
+                         ->with(['ano', 'disciplina', 'habilidade', 'escola'])
+                         ->orderBy('created_at', 'desc')
+                         ->paginate(10);
+    
+            return view('provas.professor.index', [
+                'provas' => $provas,
+                'professor' => $professor,
+                'isCoordenadorView' => true
+            ]);
+        }
+    
+        // Se for o professor visualizando suas próprias provas
+        if ($user->role === 'professor') {
+            $escolaId = $this->getEscolaId();
+            $provas = Prova::where('user_id', $user->id)
+                         ->when($escolaId, function($query) use ($escolaId) {
+                             $query->where('escola_id', $escolaId);
+                         })
+                         ->with(['ano', 'disciplina', 'habilidade', 'escola'])
+                         ->orderBy('created_at', 'desc')
+                         ->paginate(10);
+    
+            return view('provas.professor.index', [
+                'provas' => $provas,
+                'professor' => $user,
+                'isCoordenadorView' => false
+            ]);
+        }
+    
+        abort(403, 'Acesso não autorizado.');
+    }
     public function create()
     {
         $user = Auth::user();
-
-        // Verifica se o usuário está autenticado
-        if (!$user) {
-            abort(403, 'Usuário não autenticado.');
+        
+        // Verifica se tem escola vinculada
+        if (!$user->escolas()->exists()) {
+            return redirect()->route('profile.edit')
+                   ->with('error', 'Você precisa estar vinculado a uma escola para criar provas.');
         }
 
-        // Verifica o papel do usuário
-        if ($user->role === 'admin') {
-            // Admin pode selecionar qualquer escola
-            $anos = Ano::all();
-            $disciplinas = Disciplina::all();
-            $habilidades = Habilidade::all();
-        } elseif ($user->role === 'professor') {
-            // Professor só pode criar provas para a escola à qual está vinculado
-            if (is_null($user->escola_id)) {
-                abort(403, 'Você não está vinculado a uma escola. Contate o administrador.');
-            }
+        $disciplinas = Disciplina::all();
+        $anos = Ano::all();
+        $habilidades = Habilidade::all();
 
-            // Busca todos os anos (não filtra por escola, pois os anos são globais)
-            $anos = Ano::all();
-
-            // Busca todas as disciplinas (não filtra por escola, pois as disciplinas são globais)
-            $disciplinas = Disciplina::all();
-
-            // Busca todas as habilidades (não filtra por escola, pois as habilidades são globais)
-            $habilidades = Habilidade::all();
-        } else {
-            // Outros papéis (se houver) não têm permissão
-            abort(403, 'Acesso não autorizado.');
-        }
-
-        return view('provas.create', [
-            'anos' => $anos,
-            'disciplinas' => $disciplinas,
-            'habilidades' => $habilidades,
-        ]);
+        return view('provas.create', compact('disciplinas', 'anos', 'habilidades'));
     }
-
-    /**
-     * Armazena uma nova prova no banco de dados.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-
-     public function edit(Prova $prova)
-     {
-         if ($prova->user_id != Auth::id()) {
-             abort(403, 'Acesso não autorizado');
-         }
-     
-         return view('provas.edit', [
-             'prova' => $prova,
-             'anos' => Ano::all(),
-             'disciplinas' => Disciplina::all(),
-             'habilidades' => Habilidade::all()
-         ]);
-     }
-     
-     public function show(Prova $prova)
-     {
-         // Verifica se o usuário tem permissão
-         if ($prova->user_id != auth()->id()) {
-             abort(403, 'Acesso não autorizado');
-         }
-     
-         // Carrega todos os relacionamentos necessários
-         $prova->load(['escola', 'ano', 'disciplina', 'habilidade', 'questoes']);
-     
-         // Retorna a view correta com o caminho completo
-         return view('provas.show', compact('prova'));
-     }
-     
-     public function update(Request $request, Prova $prova)
-     {
-         if ($prova->user_id != Auth::id()) {
-             abort(403, 'Acesso não autorizado');
-         }
-     
-         $validated = $request->validate([
-             'nome' => 'required|string|max:255',
-             'ano_id' => 'required|exists:anos,id',
-             'disciplina_id' => 'required|exists:disciplinas,id',
-             'habilidade_id' => 'required|exists:habilidades,id',
-             'data' => 'required|date',
-             'observacoes' => 'nullable|string'
-         ]);
-     
-         $prova->update($validated);
-     
-         return redirect()->route('provas.index')
-                         ->with('success', 'Prova atualizada com sucesso!');
-     }
-     
-     // Mostrar formulário de edição
 
     public function store(Request $request)
     {
@@ -156,18 +140,20 @@ class ProvaController extends Controller
             'observacoes' => 'nullable|string',
         ]);
 
-        // Obtém o usuário logado
         $user = Auth::user();
-
-        // Verifica se o professor está vinculado a uma escola
-        if (is_null($user->escola_id)) {
-            return redirect()->back()->with('error', 'Você não está vinculado a uma escola. Contate o administrador.');
+        
+        // Obtém a escola ID (da sessão ou única vinculada)
+        $escolaId = $this->getEscolaId();
+        
+        if (!$escolaId) {
+            return redirect()->route('selecionar.escola')
+                   ->with('error', 'Selecione uma escola para criar a prova.');
         }
 
         // Cria a prova
         $prova = Prova::create([
-            'user_id' => $user->id, // ID do professor que criou a prova
-            'escola_id' => $user->escola_id, // Escola do professor
+            'user_id' => $user->id,
+            'escola_id' => $escolaId,
             'ano_id' => $request->ano_id,
             'disciplina_id' => $request->disciplina_id,
             'habilidade_id' => $request->habilidade_id,
@@ -176,255 +162,420 @@ class ProvaController extends Controller
             'observacoes' => $request->observacoes,
         ]);
 
-        // Seleciona 10 questões aleatórias com base nos critérios
+        // Seleciona questões aleatórias
         $questoes = Questao::where('ano_id', $request->ano_id)
             ->where('disciplina_id', $request->disciplina_id)
             ->where('habilidade_id', $request->habilidade_id)
-            ->inRandomOrder() // Ordena as questões aleatoriamente
-            ->limit(10) // Limita a 10 questões
+            ->inRandomOrder()
+            ->limit(10)
             ->get();
 
-        // Verifica se há questões suficientes
         if ($questoes->count() < 10) {
-            return redirect()->back()->with('error', 'Não há questões suficientes para criar a prova.');
+            $prova->delete();
+            return back()->withInput()
+                   ->with('error', 'Não há questões suficientes para criar a prova (mínimo 10).');
         }
 
         // Vincula as questões à prova
         $prova->questoes()->attach($questoes->pluck('id'));
 
-        return redirect()->route('provas.index')->with('success', 'Prova criada com sucesso!');
+        return redirect()->route('provas.index')
+               ->with('success', 'Prova criada com sucesso!');
     }
 
-    /**
-     * Exibe a listagem de provas para o perfil do admin.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function indexAdmin(Request $request)
-{
-    // Filtro por escola
-    $escolaId = $request->query('escola_id');
-
-    // Verifica se a escola existe
-    if ($escolaId && !Escola::find($escolaId)) {
-        abort(404, 'Escola não encontrada.');
+    public function show($id)
+    {
+        $user = Auth::user();
+        $prova = Prova::with(['questoes', 'ano', 'disciplina', 'habilidade', 'professor', 'escola'])
+                     ->findOrFail($id);
+        
+        // Verificação de permissão
+        if ($user->role === 'professor' && $prova->user_id !== $user->id) {
+            abort(403, 'Acesso não autorizado');
+        }
+        
+        if (in_array($user->role, ['coordenador', 'gestor', 'aee'])) {
+            if (!$user->escolas->contains($prova->escola_id)) {
+                abort(403, 'Acesso não autorizado');
+            }
+        }
+        
+        return view('provas.show', compact('prova'));
     }
 
-    // Total de provas (com filtro)
-    $totalProvas = Prova::when($escolaId, function ($query, $escolaId) {
-        return $query->where('escola_id', $escolaId);
-    })->count();
-
-    // Total de professores que geraram provas (com filtro)
-    $totalProfessores = Prova::when($escolaId, function ($query, $escolaId) {
-        return $query->where('escola_id', $escolaId);
-    })->distinct('user_id')->count('user_id');
-
-    // Total de escolas
-    $totalEscolas = Escola::count();
-
-    // Escolas que já geraram provas
-    $escolasComProvas = Escola::whereHas('provas')->get();
-
-    // Escolas que ainda não geraram provas
-    $escolasSemProvas = Escola::whereDoesntHave('provas')->get();
-    $totalEscolasSemProvas = $escolasSemProvas->count();
-
-    // Lista de provas (com filtro e ordenação pelas mais recentes)
-    $provas = Prova::when($escolaId, function ($query, $escolaId) {
-        return $query->where('escola_id', $escolaId);
-    })
-    ->orderBy('created_at', 'desc') // Ordena pelas mais recentes
-    ->with(['escola', 'ano', 'disciplina', 'professor'])
-    ->paginate(5);
-
-    // Lista de escolas para o filtro
-    $escolas = Escola::all();
-
-    return view('provas.admin.index', compact(
-        'provas',
-        'escolas',
-        'escolasComProvas', 
-        'totalProvas',
-        'totalProfessores',
-        'totalEscolas',
-        'totalEscolasSemProvas',
-        'escolaId'
-    ));
-}   
-
-
-            /**
- * Remove the specified resource from storage.
- */
-public function destroy(Prova $prova)
-{
-    // Verificação básica de permissão
-    if ($prova->user_id != auth()->id()) {
-        return back()->with('error', 'Você não tem permissão para excluir esta prova');
-    }
-
-    try {
-        // Remove apenas a prova (as questões permanecem no banco)
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        $prova = Prova::findOrFail($id);
+        
+        // Verificação de permissão
+        if ($user->role === 'professor' && $prova->user_id !== $user->id) {
+            abort(403, 'Acesso não autorizado');
+        }
+        
+        if (in_array($user->role, ['coordenador', 'gestor', 'aee'])) {
+            if (!$user->escolas->contains($prova->escola_id)) {
+                abort(403, 'Acesso não autorizado');
+            }
+        }
+                  
         $prova->delete();
         
-        return redirect()->route('provas.indexProfessor')
-                       ->with('success', 'Prova excluída com sucesso');
-    } catch (\Exception $e) {
-        return back()->with('error', 'Falha ao excluir prova: ' . $e->getMessage());
+        return redirect()->route('provas.index')
+               ->with('success', 'Prova removida com sucesso!');
     }
-}
-    /**
-     * Gera o PDF das escolas que não geraram provas.
-     */
-    public function pdfEscolasSemProvas()
+
+    public function downloadPdf($id)
     {
-        // Escolas que ainda não geraram provas
-        $escolasComProvas = Prova::distinct('escola_id')->pluck('escola_id');
-        $escolasSemProvas = Escola::whereNotIn('id', $escolasComProvas)->get();
-
-        // Gera o PDF
-        $pdf = Pdf::loadView('provas.admin.pdf.escolas_sem_provas', compact('escolasSemProvas'));
-        return $pdf->download('escolas_sem_provas.pdf');
-    }
-
-    /**
-     * Gera o PDF das escolas que já geraram provas.
-     */
-    public function pdfEscolasComProvas()
-    {
-        // Escolas que já geraram provas
-        $escolasComProvas = Prova::distinct('escola_id')->pluck('escola_id');
-        $escolasComProvas = Escola::whereIn('id', $escolasComProvas)->get();
-
-        // Gera o PDF
-        $pdf = Pdf::loadView('provas.admin.pdf.escolas_com_provas', compact('escolasComProvas'));
-        return $pdf->download('escolas_com_provas.pdf');
-    }
-
-    /**
-     * Exibe a listagem de provas para o perfil do professor.
-     *
-     * @return \Illuminate\Http\Response
-     */
-                public function indexProfessor()
-            {
-                $user = Auth::user();
-                $provas = Prova::where('user_id', $user->id)
-                            ->with(['escola', 'ano', 'disciplina'])
-                            ->orderBy('created_at', 'desc') // Ordena do mais recente para o mais antigo
-                            ->paginate(10); // Paginação com 10 itens por página
-                            
-                return view('provas.professor.index', compact('provas'));
+        $user = Auth::user();
+        $prova = Prova::with([
+            'questoes',
+            'ano',
+            'disciplina',
+            'habilidade',
+            'professor', // Usando o relacionamento professor em vez de user
+            'escola'
+        ])->findOrFail($id);
+        
+        // Verificação de permissão
+        if ($user->role === 'professor' && $prova->user_id !== $user->id) {
+            abort(403, 'Acesso não autorizado');
+        }
+        
+        if (in_array($user->role, ['coordenador', 'gestor', 'aee'])) {
+            if (!$user->escolas->contains($prova->escola_id)) {
+                abort(403, 'Acesso não autorizado');
             }
-
-    /**
-     * Exibe a listagem de provas para o perfil do coordenador.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function indexCoordenador(Request $request)
+        }
+    
+        $data = [
+            'prova' => $prova,
+            'data_emissao' => now()->format('d/m/Y H:i'),
+            'titulo' => 'Prova Pedagógica'
+        ];
+    
+        $pdf = Pdf::loadView('provas.pdf', $data);
+        $filename = 'prova_' . $prova->id . '_' . now()->format('Ymd') . '.pdf';
+    
+        return $pdf->download($filename);
+    }
+    public function direcionarAvaliacao()
     {
         $user = Auth::user();
     
-        // Filtro por nome do professor
-        $professorNome = $request->query('professor_nome');
+        if (in_array($user->role, ['admin', 'aplicador', 'tutor'])) {
+            return redirect()->route('provas.admin.estatisticas-rede');
+        } elseif ($user->role === 'coordenador') {
+            $escolas = $user->escolas;
+            if ($escolas->count() === 1) {
+                return redirect()->route('avaliacao.estatisticas.coordenador', ['escola' => $escolas->first()->id]);
+            } else {
+                return redirect()->route('avaliacao.selecionar-escola'); // Redireciona para a seleção se tiver múltiplas ou nenhuma escola
+            }
+        } elseif ($user->role === 'gestor') {
+            $escolas = $user->escolas;
+            if ($escolas->count() === 1) {
+                return redirect()->route('avaliacao.estatisticas.gestor', ['escola' => $escolas->first()->id]);
+            } else {
+                return redirect()->route('avaliacao.selecionar-escola'); // Redireciona para a seleção se tiver múltiplas ou nenhuma escola
+            }
+        } elseif ($user->role === 'aee') {
+            $escolas = $user->escolas;
+            if ($escolas->count() === 1) {
+                return redirect()->route('avaliacao.estatisticas.aee', ['escola' => $escolas->first()->id]);
+            } else {
+                return redirect()->route('avaliacao.selecionar-escola'); // Redireciona para a seleção se tiver múltiplas ou nenhuma escola
+            }
+        } elseif ($user->role === 'professor') {
+            return view('provas.professor.estatisticas'); // Assumindo que você tem esta view
+        } else {
+            abort(403, 'Acesso não autorizado para visualizar as estatísticas.');
+        }
+    }
+    public function estatisticasRede()
+    {
+        $user = Auth::user();
     
-        // Query base
-        $provas = Prova::where('escola_id', $user->escola_id)
-            ->with(['escola', 'ano', 'disciplina', 'professor'])
-            ->orderBy('created_at', 'desc'); // Ordena do mais recente para o mais antigo
+        if (!in_array($user->role, ['admin', 'aplicador', 'tutor'])) {
+            abort(403, 'Esta ação não é autorizada.');
+        }
     
-        // Aplica o filtro de nome do professor, se fornecido
-        if ($professorNome) {
-            $provas->whereHas('professor', function ($query) use ($professorNome) {
-                $query->where('name', 'like', '%' . $professorNome . '%');
+        // ID da escola selecionada no filtro
+        $escolaId = request('escola_id');
+    
+        // 1. Total de provas na rede ou por escola
+        $totalProvas = Prova::when($escolaId, function ($query) use ($escolaId) {
+            $query->whereHas('user.escolas', function ($q) use ($escolaId) {
+                $q->where('escolas.id', $escolaId);
             });
+        })->count();
+    
+        // 2. Provas por escola (esse bloco é geral, não depende do filtro)
+        $provasPorEscola = DB::table('provas')
+        ->select(
+            'escolas.id as escola_id',
+            'escolas.nome', 
+            DB::raw('count(provas.id) as total')
+        )
+        ->rightJoin('escolas', function($join) {
+            $join->on('provas.escola_id', '=', 'escolas.id')
+                 ->orWhereNull('provas.escola_id');
+        })
+        ->groupBy('escolas.id', 'escolas.nome')
+        ->orderBy('total', 'desc')
+        ->get();
+        
+        // 3. Top 5 habilidades mais usadas
+        $topHabilidades = DB::table('provas')
+            ->select(
+                'habilidades.descricao',
+                DB::raw('count(provas.habilidade_id) as total')
+            )
+            ->join('habilidades', 'provas.habilidade_id', '=', 'habilidades.id')
+            ->when($escolaId, function ($query) use ($escolaId) {
+                $query->join('users', 'provas.user_id', '=', 'users.id')
+                    ->join('user_escola', 'users.id', '=', 'user_escola.user_id')
+                    ->where('user_escola.escola_id', $escolaId);
+            })
+            ->groupBy('habilidades.id', 'habilidades.descricao')
+            ->orderBy('total', 'desc')
+            ->limit(5)
+            ->get();
+    
+        // 4. Provas por ano de ensino
+        $provasPorAno = DB::table('provas')
+            ->select('anos.nome', DB::raw('count(provas.id) as total'))
+            ->join('anos', 'provas.ano_id', '=', 'anos.id')
+            ->when($escolaId, function ($query) use ($escolaId) {
+                $query->join('users', 'provas.user_id', '=', 'users.id')
+                    ->join('user_escola', 'users.id', '=', 'user_escola.user_id')
+                    ->where('user_escola.escola_id', $escolaId);
+            })
+            ->groupBy('anos.id', 'anos.nome')
+            ->orderBy('total', 'desc')
+            ->get();
+    
+        // 5. Total de professores que criaram provas
+        $totalProfessores = DB::table('provas')
+            ->select('provas.user_id')
+            ->when($escolaId, function ($query) use ($escolaId) {
+                $query->join('users', 'provas.user_id', '=', 'users.id')
+                    ->join('user_escola', 'users.id', '=', 'user_escola.user_id')
+                    ->where('user_escola.escola_id', $escolaId);
+            })
+            ->distinct()
+            ->count();
+    
+        // 6. Top 5 disciplinas
+        $topDisciplinas = DB::table('provas')
+            ->select(
+                'disciplinas.nome',
+                DB::raw('count(provas.disciplina_id) as total')
+            )
+            ->join('disciplinas', 'provas.disciplina_id', '=', 'disciplinas.id')
+            ->when($escolaId, function ($query) use ($escolaId) {
+                $query->join('users', 'provas.user_id', '=', 'users.id')
+                    ->join('user_escola', 'users.id', '=', 'user_escola.user_id')
+                    ->where('user_escola.escola_id', $escolaId);
+            })
+            ->groupBy('disciplinas.id', 'disciplinas.nome')
+            ->orderBy('total', 'desc')
+            ->limit(5)
+            ->get();
+    
+        // 7. Lista de escolas para o filtro
+        $escolas = Escola::orderBy('nome')->get();
+    
+        return view('provas.admin.estatisticas-rede', compact(
+            'totalProvas',
+            'provasPorEscola',
+            'topHabilidades',
+            'provasPorAno',
+            'totalProfessores',
+            'escolas',
+            'escolaId',
+            'topDisciplinas' // Adicionado aqui
+        ));
+    }
+
+    public function estatisticasEscola(Escola $escola)
+    {
+        $user = Auth::user();
+        
+        $allowedRoles = ['admin', 'aplicador', 'tutor', 'coordenador', 'gestor', 'aee'];
+        if (!in_array($user->role, $allowedRoles)) {
+            abort(403, 'Esta ação não é autorizada.');
+        }
+        
+        if (in_array($user->role, ['coordenador', 'gestor', 'aee'])) {
+            if (!$user->escolas->contains($escola->id)) {
+                abort(403, 'Esta ação não é autorizada.');
+            }
         }
     
-        // Paginação com 5 registros por página
-        $provas = $provas->paginate(5);
+        // 1. Provas da escola paginadas
+        $provasQuery = DB::table('provas')
+            ->select(
+                'provas.*',
+                'disciplinas.nome as disciplina_nome',
+                'anos.nome as ano_nome',
+                'users.name as professor_name'
+            )
+            ->join('disciplinas', 'provas.disciplina_id', '=', 'disciplinas.id')
+            ->join('anos', 'provas.ano_id', '=', 'anos.id')
+            ->join('users', 'provas.user_id', '=', 'users.id')
+            ->where('provas.escola_id', $escola->id)
+            ->orderBy('provas.created_at', 'desc');
     
-        return view('provas.coordenador.index', compact('provas', 'professorNome'));
+        $provas = $provasQuery->paginate(10);
+    
+        // 2. Total de provas na escola
+        $totalProvas = Prova::where('escola_id', $escola->id)->count();
+    
+        // 3. Top 5 habilidades da escola
+        $topHabilidades = DB::table('provas')
+            ->select(
+                'habilidades.descricao',
+                DB::raw('count(*) as total')
+            )
+            ->join('habilidades', 'provas.habilidade_id', '=', 'habilidades.id')
+            ->where('provas.escola_id', $escola->id)
+            ->groupBy('habilidades.id', 'habilidades.descricao')
+            ->orderBy('total', 'desc')
+            ->limit(5)
+            ->get();
+    
+        // 4. Provas por ano na escola
+        $provasPorAno = DB::table('provas')
+            ->select(
+                'anos.nome',
+                DB::raw('count(*) as total')
+            )
+            ->join('anos', 'provas.ano_id', '=', 'anos.id')
+            ->where('provas.escola_id', $escola->id)
+            ->groupBy('anos.id', 'anos.nome')
+            ->orderBy('total', 'desc')
+            ->get();
+    
+        // 5. Professores que criaram provas na escola
+        $professores = DB::table('provas')
+            ->select(
+                'users.id',
+                'users.name',
+                DB::raw('count(*) as provas_count')
+            )
+            ->join('users', 'provas.user_id', '=', 'users.id')
+            ->where('provas.escola_id', $escola->id)
+            ->groupBy('users.id', 'users.name')
+            ->orderBy('provas_count', 'desc')
+            ->get();
+    
+        // 6. Top disciplinas na escola
+        $topDisciplinas = DB::table('provas')
+            ->select(
+                'disciplinas.nome',
+                DB::raw('count(*) as total')
+            )
+            ->join('disciplinas', 'provas.disciplina_id', '=', 'disciplinas.id')
+            ->where('provas.escola_id', $escola->id)
+            ->groupBy('disciplinas.id', 'disciplinas.nome')
+            ->orderBy('total', 'desc')
+            ->limit(5)
+            ->get();
+    
+        // 7. Provas recentes (últimas 5)
+        $provasRecentes = Prova::with(['ano', 'disciplina', 'professor'])
+            ->where('escola_id', $escola->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+    
+        return view('provas.coordenador.estatisticas-escola', [
+            'escola' => $escola,
+            'provas' => $provas,
+            'totalProvas' => $totalProvas, // Renomeado para corresponder à view
+            'topHabilidades' => $topHabilidades,
+            'provasPorAno' => $provasPorAno,
+            'professores' => $professores, // Renomeado para corresponder à view
+            'topDisciplinas' => $topDisciplinas,
+            'provasRecentes' => $provasRecentes
+        ]);
     }
     /**
-     * Exibe a listagem de provas para o perfil do AEE.
-     *
-     * @return \Illuminate\Http\Response
+     * Obtém o ID da escola atual (da sessão ou única vinculada)
      */
-    public function indexAEE()
-    {
-        $user = Auth::user();
-        $provas = Prova::where('escola_id', $user->escola_id)->with(['escola', 'ano', 'disciplina', 'professor'])->get();
-        return view('provas.aee.index', compact('provas'));
+    protected function getEscolaId()
+{
+    $user = Auth::user();
+    
+    // 1. Verifica se tem escola na sessão
+    if (session('escola_selecionada')) {
+        return session('escola_selecionada');
     }
-
-    /**
-     * Exibe a listagem de provas para o perfil inclusiva.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function indexInclusiva()
-    {
-        $user = Auth::user();
-        $provas = Prova::where('escola_id', $user->escola_id)->with(['escola', 'ano', 'disciplina', 'professor'])->get();
-        return view('provas.inclusiva.index', compact('provas'));
+    
+    // 2. Se tiver apenas uma escola vinculada
+    if ($user->escolas()->count() === 1) {
+        return $user->escolas()->first()->id;
     }
-
-    /**
-     * Exibe os detalhes de uma prova específica.
-     *
-     * @param  \App\Models\Prova  $prova
-     * @return \Illuminate\Http\Response
-     */
-   
-
-    /**
-     * Gera o PDF de uma prova.
-     *
-     * @param  \App\Models\Prova  $prova
-     * @return \Illuminate\Http\Response
-     */
+    
+    // 3. Se não tiver escola definida
+    return null;
+}
     public function gerarPDF(Prova $prova)
-    {
-        $user = Auth::user();
-
-        // Verifica se o usuário tem permissão para acessar a prova
-        if ($user->role === 'professor' && $prova->user_id !== $user->id) {
-            abort(403, 'Acesso não autorizado.');
+{
+    $user = Auth::user();
+    
+    // Verificação de permissão
+    if ($user->role === 'professor' && $prova->professor->id !== $user->id) {
+        abort(403, 'Acesso não autorizado');
+    }
+    
+    if (in_array($user->role, ['coordenador', 'gestor', 'aee'])) {
+        if (!$user->escolas->contains($prova->escola_id)) {
+            abort(403, 'Acesso não autorizado');
         }
-
-        // Carrega as questões associadas à prova
-        $prova->load('questoes');
-
-        // Gera o PDF
-        $pdf = Pdf::loadView('provas.pdf', [
-            'prova' => $prova,
-            'user' => $user,
-        ]);
-
-        return $pdf->download('prova_' . $prova->id . '.pdf');
     }
 
-    public function gerarPDFGabarito(Prova $prova)
-    {
-        $user = Auth::user();
+    $data = [
+        'prova' => $prova->load(['questoes', 'ano', 'disciplina', 'habilidade', 'professor', 'escola']),
+        'data_emissao' => now()->format('d/m/Y H:i'),
+        'titulo' => 'Prova Pedagógica',
+        'mostrar_gabarito' => false,
+        'professor_gerador' => $prova->professor->name
+    ];
 
-        // Verifica se o usuário tem permissão para acessar a prova
-        if ($user->role === 'professor' && $prova->user_id !== $user->id) {
-            abort(403, 'Acesso não autorizado.');
-        }
+    $pdf = Pdf::loadView('provas.pdf', $data);
+    $filename = 'prova_'.$prova->id.'_'.now()->format('Ymd').'.pdf';
 
-        // Carrega as questões associadas à prova
-        $prova->load('questoes');
+    return $pdf->download($filename);
+}
 
-        // Gera o PDF
-        $pdf = Pdf::loadView('provas.pdf-gabarito', [
-            'prova' => $prova,
-            'user' => $user,
-        ]);
-
-        return $pdf->download('prova_' . $prova->id . '.pdf');
+public function gerarPDFGabarito(Prova $prova)
+{
+    $user = Auth::user();
+    
+    // Verificação de permissão
+    if ($user->role === 'professor' && $prova->professor->id !== $user->id) {
+        abort(403, 'Acesso não autorizado');
     }
+    
+    if (in_array($user->role, ['coordenador', 'gestor', 'aee'])) {
+        if (!$user->escolas->contains($prova->escola_id)) {
+            abort(403, 'Acesso não autorizado');
+        }
+    }
+
+    $data = [
+        'prova' => $prova->load(['questoes', 'ano', 'disciplina', 'habilidade', 'professor', 'escola']),
+        'data_emissao' => now()->format('d/m/Y H:i'),
+        'titulo' => 'Gabarito da Prova',
+        'mostrar_gabarito' => true,
+        'professor_gerador' => $prova->professor->name
+    ];
+
+    $pdf = Pdf::loadView('provas.pdf', $data);
+    $filename = 'gabarito_prova_'.$prova->id.'_'.now()->format('Ymd').'.pdf';
+
+    return $pdf->download($filename);
+}
 }

@@ -2,10 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prova</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>{{ $titulo }}</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -122,6 +119,7 @@
             margin-top: 15px;
             padding: 8px 0;
             border-top: 1px dashed #ccc;
+            display: {{ $mostrar_gabarito ? 'block' : 'none' }};
         }
         
         .resposta p {
@@ -139,8 +137,11 @@
             padding-top: 10px;
         }
         
-        .page-break {
-            page-break-after: always;
+        .gerador {
+            font-size: 11px;
+            color: #555;
+            text-align: right;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -149,26 +150,28 @@
         <!-- Cabeçalho -->
         <div class="header">
             <div class="logo-container">
-                <img src="{{ public_path('images/logoprefeitura.png') }}" class="logo" alt="Prefeitura de Juazeiro-BA">
+                <img src="{{ public_path('images/logoprefeitura.png') }}" class="logo" alt="Logo da Prefeitura">
                 <div>
                     <h2>Secretaria Municipal de Educação</h2>
                     <p class="municipio">Prefeitura de Juazeiro-BA, presente no futuro da gente.</p>
                 </div>
             </div>
             <div class="header-text">
-                <h1>{{ $user->escola->nome }}</h1>
+                <h1>{{ $prova->escola->nome }}</h1>
                 <h2>Atividade Avaliativa: {{ $prova->disciplina->nome }}</h2>
             </div>
             <div class="sistema">
                 <p>Gerado pelo sistema EduHabil+</p>
-                <p>{{ now()->format('d/m/Y H:i') }}</p>
+                <p>{{ $data_emissao }}</p>
             </div>
         </div>
 
         <!-- Informações da Prova -->
         <div class="info-prova">
+            <p><strong>Professor:</strong> {{ $professor_gerador }}</p>
             <p><strong>Habilidade:</strong> {{ $prova->habilidade->descricao }}</p>
             <p><strong>Ano:</strong> {{ $prova->ano->nome }}</p>
+            <p><strong>Data da Prova:</strong> ______/________/_______</p>
             <p><strong>Turma:</strong> ___________________________________</p>
             <p><strong>Aluno(a):</strong> _________________________________</p>
         </div>
@@ -187,10 +190,11 @@
                         <p class="alternativa"><strong>C)</strong> {{ $questao->alternativa_c }}</p>
                         <p class="alternativa"><strong>D)</strong> {{ $questao->alternativa_d }}</p>
                     </div>
-                    <div class="correct-answer">
-                    <strong>Resposta:</strong> {{ $questao->resposta_correta }}
-                </div>
-                  
+
+                    <!-- Gabarito (só aparece no PDF de gabarito) -->
+                    <div class="resposta">
+                        <p>Resposta correta: {{ strtoupper($questao->resposta_correta) }}</p>
+                    </div>
                 </div>
             @endforeach
         </div>
@@ -199,9 +203,8 @@
         <div class="footer">
             <p>EduHabil+ - Sistema de Geração de Provas</p>
             <p>Prefeitura Municipal de Juazeiro - Secretaria de Educação</p>
+            <p class="gerador">Prova gerada por: {{ $professor_gerador }} em {{ $data_emissao }}</p>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

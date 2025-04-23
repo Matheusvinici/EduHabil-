@@ -12,7 +12,8 @@
                 </div>
 
                 <div class="card-body p-4 bg-white-translucent">
-                <form method="POST" action="{{ route('professor.definir.escola') }}">                        @csrf
+                    <form method="POST" action="{{ route('gestor.definir-escola') }}">
+                        @csrf
 
                         <div class="mb-4">
                             <label for="escola_id" class="form-label fw-bold text-primary-blue">Escola</label>
@@ -39,6 +40,7 @@
         </div>
     </div>
 </div>
+
 
 <style>
     :root {

@@ -12,7 +12,8 @@
                 </div>
 
                 <div class="card-body p-4 bg-white-translucent">
-                <form method="POST" action="{{ route('professor.definir.escola') }}">                        @csrf
+                    <form method="POST" action="{{ route('coordenador.definir.escola') }}">
+                        @csrf
 
                         <div class="mb-4">
                             <label for="escola_id" class="form-label fw-bold text-primary-blue">Escola</label>
@@ -31,7 +32,7 @@
                         </div>
                     </form>
                 </div>
-                
+
                 <div class="card-footer bg-primary-ultralight py-3 text-center">
                     <small class="text-primary-blue">Sistema Educacional</small>
                 </div>
@@ -47,52 +48,52 @@
         --primary-ultralight: #e8f0fe;
         --soft-blue: #f5f8ff;
     }
-    
+
     .bg-soft-blue {
         background-color: var(--soft-blue);
     }
-    
+
     .bg-primary-blue {
         background-color: var(--primary-blue);
     }
-    
+
     .bg-primary-ultralight {
         background-color: var(--primary-ultralight);
     }
-    
+
     .bg-white-translucent {
         background-color: rgba(255, 255, 255, 0.9);
     }
-    
+
     .text-primary-blue {
         color: var(--primary-blue);
     }
-    
+
     .border-primary-light {
         border: 1px solid var(--primary-light);
     }
-    
+
     .btn-primary-blue {
         background-color: var(--primary-blue);
         border-color: var(--primary-blue);
         transition: all 0.3s ease;
     }
-    
+
     .btn-primary-blue:hover {
         background-color: #2358a8;
         border-color: #2358a8;
         transform: translateY(-1px);
     }
-    
+
     .card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    
+
     .card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(44, 110, 203, 0.15) !important;
     }
-    
+
     .form-select:focus, .btn:focus {
         box-shadow: 0 0 0 0.25rem rgba(44, 110, 203, 0.25);
     }

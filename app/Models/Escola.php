@@ -21,6 +21,12 @@ class Escola extends Model
     {
         return $this->belongsToMany(User::class, 'user_escola');
     }
+    // No modelo Escola.php
+public function professores()
+{
+    return $this->belongsToMany(User::class, 'user_escola', 'escola_id', 'user_id')
+                ->where('role', 'professor');
+}
        // Remova o relacionamento many-to-many e adicione:
         public function alunos()
         {
@@ -39,7 +45,7 @@ class Escola extends Model
     }
     public function avaliacoes(): HasMany
     {
-        return $this->hasMany(AvaliacaoTutoria::class, 'escola_id');
+        return $this->hasMany(TutoriaAvaliacao::class, 'escola_id');
     }
     public function notas(): HasMany
     {

@@ -2,8 +2,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\NotaAvaliacao;
-use App\Models\AvaliacaoTutoria;
-use App\Models\CriterioAvaliacao;
+use App\Models\TutoriaAvaliacao; // ATUALIZADO
+use App\Models\TutoriaCriterio; // ATUALIZADO
 use Illuminate\Http\Request;
 
 class NotaAvaliacaoController extends Controller
@@ -22,24 +22,22 @@ class NotaAvaliacaoController extends Controller
     }
 
     // Formulário de criação (associado a uma avaliação existente)
-    public function create(AvaliacaoTutoria $avaliacao)
-        {
-            $avaliacao->load('escola'); // garante que o relacionamento esteja disponível
-            $criterios = CriterioAvaliacao::all();
-            return view('notas.create', compact('avaliacao', 'criterios'));
-        }
+    public function create(TutoriaAvaliacao $avaliacao)
+    {
+        $avaliacao->load('escola');
+        $criterios = TutoriaCriterio::all();
+        return view('notas.create', compact('avaliacao', 'criterios'));
+    }
 
-    
-
-    // Salvar nova nota
-    public function store(Request $request, AvaliacaoTutoria $avaliacao)
+    // ATUALIZADO
+    public function store(Request $request, TutoriaAvaliacao $avaliacao)
     {
         $request->validate([
-            'criterio_id' => 'required|exists:criterios_avaliacao,id',
+            'criterio_id' => 'required|exists:tutoria_criterios,id', // ATUALIZADO
             'nota' => 'required|integer|between:1,5',
         ]);
 
-        // Verifica se o critério já foi avaliado nesta visita
+        // Verifica se o critério já foi avaliado
         $notaExistente = NotaAvaliacao::where('avaliacao_id', $avaliacao->id)
             ->where('criterio_id', $request->criterio_id)
             ->exists();
@@ -54,7 +52,7 @@ class NotaAvaliacaoController extends Controller
             'nota' => $request->nota,
         ]);
 
-        return redirect()->route('avaliacoes.show', $avaliacao->id)->with('success', 'Nota adicionada!');
+        return redirect()->route('tutoria.avaliacoes.show', $avaliacao->id)->with('success', 'Nota adicionada!');
     }
 
     // Formulário de edição

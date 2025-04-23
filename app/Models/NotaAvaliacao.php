@@ -4,22 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
- 
+
 class NotaAvaliacao extends Model
 {
-    protected $table = 'notas_avaliacoes';
+    protected $table = 'avaliacao_criterios'; // Usando a tabela existente
 
-    protected $fillable = ['avaliacao_id', 'criterio_id','nota'];
+    protected $fillable = ['avaliacao_id', 'criterio_id', 'nota'];
 
-    // Avaliação principal
-    public function avaliacao(): BelongsTo
+    public function avaliacao(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(AvaliacaoTutoria::class, 'avaliacao_id');
+        return $this->belongsTo(TutoriaAvaliacao::class, 'avaliacao_tutoria_id');
     }
+    
 
-    // Critério avaliado
     public function criterio(): BelongsTo
     {
-        return $this->belongsTo(CriterioAvaliacao::class, 'criterio_id');
+        return $this->belongsTo(TutoriaCriterio::class, 'criterio_id');
     }
 }
