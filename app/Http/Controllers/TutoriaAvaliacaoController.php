@@ -71,42 +71,51 @@ class TutoriaAvaliacaoController extends Controller
     }
 
     public function quadrante($quadrante)
-    {
-        $quadrantes = [
-            'vermelho' => [1, 4],
-            'amarelo' => [5, 6],
-            'verde' => [7, 8],
-            'azul' => [9, 10]
-        ];
+{
+    $quadrantes = [
+        'vermelho' => [1, 4],
+        'amarelo' => [5, 6],
+        'verde' => [7, 8],
+        'azul' => [9, 10]
+    ];
 
-        if (!array_key_exists($quadrante, $quadrantes)) {
-            abort(404);
-        }
-
-        [$min, $max] = $quadrantes[$quadrante];
-
-        $escolas = Escola::with(['avaliacoes.criterios'])
-            ->get()
-            ->map(function($escola) {
-                $escola->media_avaliacao = $escola->avaliacoes->flatMap(function($avaliacao) {
-                    return $avaliacao->criterios->pluck('nota');
-                })->avg() ?? 0;
-                return $escola;
-            })
-            ->filter(function($escola) use ($min, $max) {
-                return $escola->media_avaliacao >= $min && $escola->media_avaliacao <= $max;
-            });
-
-        $cores = [
-            'vermelho' => 'danger',
-            'amarelo' => 'warning',
-            'verde' => 'success',
-            'azul' => 'primary'
-        ];
-        $quadranteColor = $cores[$quadrante];
-
-        return view('tutoria.quadrante', compact('escolas', 'quadrante', 'quadranteColor'));
+    if (!array_key_exists($quadrante, $quadrantes)) {
+        abort(404);
     }
+
+    [$min, $max] = $quadrantes[$quadrante];
+
+    $escolas = Escola::with(['avaliacoes' => function($query) {
+        $query->with(['tutor', 'criterios'])
+              ->orderByDesc('data_visita');
+    }])
+    ->get()
+    ->map(function($escola) {
+        // Calcular média considerando todos os critérios de todas as avaliações
+        $escola->media_avaliacao = $escola->avaliacoes->flatMap(function($avaliacao) {
+            return $avaliacao->criterios->pluck('pivot.nota');
+        })->avg() ?? 0;
+        
+        // Adicionar última avaliação
+        $escola->ultima_avaliacao = $escola->avaliacoes->first();
+        
+        return $escola;
+    })
+    ->filter(function($escola) use ($min, $max) {
+        return $escola->media_avaliacao >= $min && $escola->media_avaliacao <= $max;
+    })
+    ->sortByDesc('media_avaliacao');
+
+    $cores = [
+        'vermelho' => 'danger',
+        'amarelo' => 'warning',
+        'verde' => 'success',
+        'azul' => 'primary'
+    ];
+    $quadranteColor = $cores[$quadrante];
+
+    return view('tutoria.quadrante', compact('escolas', 'quadrante', 'quadranteColor'));
+}
 
     public function create()
     {
