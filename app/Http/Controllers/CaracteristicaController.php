@@ -10,11 +10,12 @@ class CaracteristicaController extends Controller
 {
     public function index()
     {
-        $caracteristicas = Caracteristica::with('deficiencia')->paginate(10); // 10 itens por página
+        $caracteristicas = Caracteristica::with('deficiencia')
+                            ->orderBy('id', 'desc') // Ordena pelo ID em ordem decrescente
+                            ->paginate(10);
+        
         return view('caracteristicas.index', compact('caracteristicas'));
     }
-
-    // Exibir formulário de criação
     public function create()
     {
         $deficiencias = Deficiencia::all();

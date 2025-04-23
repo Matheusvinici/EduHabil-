@@ -15,40 +15,57 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Escola</th>
-                                    <th>Média</th>
-                                    <th>Última Avaliação</th>
-                                    <th>Tutor Responsável</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($escolas as $escola)
-                                <tr>
-                                    <td>{{ $escola->nome }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $quadranteColor }}">
-                                            {{ number_format($escola->media_avaliacao, 1) }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $escola->ultimo_tutor->name ?? 'N/A' }}</td>
-                                    <td>
-                                        <a href="{{ route('tutoria_avaliacoes.create', ['escola_id' => $escola->id]) }}" 
-                                           class="btn btn-sm btn-outline-primary">
-                                            Nova Avaliação
-                                        </a>
-                                        <a href="{{ route('tutoria.acompanhamento.escola', $escola->id) }}" 
-                                           class="btn btn-sm btn-outline-info">
-                                            Acompanhamento
-                                        </a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Escola</th>
+                                <th>Média</th>
+                                <th>Última Avaliação</th>
+                                <th>Tutor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($escolas as $escola)
+                            <tr>
+                                <td>{{ $escola->nome }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $quadranteColor }}">
+                                        {{ number_format($escola->media_avaliacao, 1) }}
+                                    </span>
+                                </td>
+                                <td>
+                                @if($escola->ultima_avaliacao)
+                                    {{ \Carbon\Carbon::parse($escola->ultima_avaliacao->data_visita)->format('d/m/Y') }}
+                                @else
+                                    N/A
+                                @endif
+                            </td>
+                                <td>
+                                    @if($escola->ultima_avaliacao && $escola->ultima_avaliacao->tutor)
+                                        {{ $escola->ultima_avaliacao->tutor->name }}
+                                    @else
+                                        N/A
+                                    @endif
+                                </td>
+                                <td>
+                                    <a href="{{ route('tutoria.avaliacoes.create', ['escola_id' => $escola->id]) }}" 
+                                    class="btn btn-sm btn-outline-primary">
+                                        Nova Avaliação
+                                    </a>
+                                    <a href="{{ route('tutoria.acompanhamento.escola', $escola->id) }}" 
+                                    class="btn btn-sm btn-outline-info">
+                                        Acompanhamento
+                                    </a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="text-center">Nenhuma escola encontrada neste quadrante</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                     </div>
                 </div>
             </div>
