@@ -1,506 +1,524 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Relatório Completo - Rede Municipal</title>
+    <meta charset="utf-8">
+    <title>Relatório da Rede Municipal</title>
     <style>
-        /* Reset e configurações básicas */
         body {
-            font-family: 'Arial', sans-serif;
-            font-size: 10pt;
-            line-height: 1.4;
-            margin: 0;
+            font-family: Arial, sans-serif;
+            font-size: 16px; /* Aumentei ainda mais o tamanho base */
+            line-height: 1.5;
+            margin: 5px;
             padding: 0;
-            color: #333;
         }
-        
-        /* Layout do container */
-        .container {
-            width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 10px;
-        }
-        
-        /* Cabeçalho */
         .header {
             text-align: center;
             margin-bottom: 15px;
-            border-bottom: 2px solid #2c3e50;
             padding-bottom: 10px;
         }
-        
-        .header h1 {
-            font-size: 16pt;
-            margin: 5px 0;
-            color: #2c3e50;
+        .header img {
+            height: 80px;
+            margin-bottom: 5px;
         }
-        
-        .header-info {
-            font-size: 9pt;
-            color: #555;
+        .title {
+            font-size: 22px; /* Título principal maior */
+            font-weight: bold;
+            margin: 10px 0;
         }
-        
-        .logo {
-            height: 60px;
-            margin-bottom: 10px;
-        }
-        
-        /* Filtros aplicados */
-        .filters {
-            background-color: #f8f9fa;
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 9pt;
-        }
-        
-        /* Seções do relatório */
-        .section {
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
             margin-bottom: 20px;
             page-break-inside: avoid;
         }
-        
-        .section-title {
-            background-color: #3490dc;
+        .card-header {
+            background-color: #4e73df;
             color: white;
-            padding: 6px 10px;
-            margin-bottom: 10px;
+            padding: 12px 15px; /* Padding maior */
+            border-radius: 5px 5px 0 0;
+            margin: -15px -15px 15px -15px;
             font-weight: bold;
-            font-size: 11pt;
-            border-radius: 4px;
+            font-size: 18px; /* Cabeçalho maior */
         }
-        
-        /* Grid de estatísticas */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .stat-box {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 8px;
-            text-align: center;
-            background-color: #f9f9f9;
-        }
-        
-        .stat-title {
-            font-size: 8pt;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #6c757d;
-        }
-        
-        .stat-value {
-            font-size: 12pt;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .stat-percent {
-            font-size: 8pt;
-            color: #6c757d;
-        }
-        
-        /* Quadrantes */
-        .quadrant-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .quadrant-card {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .quadrant-header {
-            padding: 8px;
-            font-weight: bold;
-            text-align: center;
-            color: white;
-        }
-        
-        .q1 { background-color: #28a745; } /* Verde */
-        .q2 { background-color: #dc3545; } /* Vermelho */
-        .q3 { background-color: #ffc107; color: #333; } /* Amarelo */
-        .q4 { background-color: #17a2b8; } /* Azul */
-        
-        .quadrant-body {
-            padding: 8px;
-            text-align: center;
-        }
-        
-        .quadrant-count {
-            font-size: 18pt;
-            font-weight: bold;
-            margin: 5px 0;
-        }
-        
-        /* Tabelas */
         .table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 9pt;
+            margin-bottom: 15px;
+            font-size: 15px; /* Fonte da tabela maior */
         }
-        
         .table th, .table td {
             border: 1px solid #ddd;
-            padding: 6px;
+            padding: 8px 10px; /* Células mais espaçosas */
             text-align: left;
         }
-        
         .table th {
-            background-color: #f2f2f2;
+            background-color: #f8f9fa;
+            font-weight: bold;
+            font-size: 16px; /* Cabeçalho da tabela maior */
+        }
+        /* Cores para status */
+        .text-success { color: #28a745; font-weight: bold; }
+        .text-danger { color: #dc3545; font-weight: bold; }
+        .text-warning { color: #ffc107; font-weight: bold; }
+        .text-info { color: #17a2b8; font-weight: bold; }
+        
+        /* Alertas */
+        .alert {
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 5px solid #17a2b8;
+        }
+        
+        /* Cartões de estatísticas */
+        .stat-card {
+            border-left: 5px solid #4e73df;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            background: white;
+            border-radius: 5px;
+        }
+        .stat-title {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .stat-value {
+            font-size: 24px; /* Valor bem maior */
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        /* Seções de quadrantes */
+        .quadrant-section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .quadrant-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 5px;
+            font-size: 18px; /* Título do quadrante maior */
+        }
+        /* Cores dos quadrantes */
+        .q1-title { background-color: #d4edda; color: #155724; border-left: 5px solid #28a745; }
+        .q2-title { background-color: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
+        .q3-title { background-color: #fff3cd; color: #856404; border-left: 5px solid #ffc107; }
+        .q4-title { background-color: #d1ecf1; color: #0c5460; border-left: 5px solid #17a2b8; }
+        
+        .quadrant-description {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        .quadrant-stats {
+            font-size: 16px;
+            margin-bottom: 12px;
             font-weight: bold;
         }
-        
-        .table tr:nth-child(even) {
-            background-color: #f9f9f9;
+        .no-schools {
+            font-style: italic;
+            color: #6c757d;
+            padding: 12px 0;
+            font-size: 16px;
         }
         
-        /* Segmentos */
-        .segment-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+        /* Layout responsivo */
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -10px;
+            margin-left: -10px;
+        }
+        .col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 0;
+        }
+        
+        /* Barras de progresso */
+        .progress {
+            height: 30px; /* Barra mais alta */
+            background-color: #e9ecef;
+            border-radius: 20px;
             margin-bottom: 15px;
         }
-        
-        .segment-card {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .segment-header {
-            padding: 8px;
-            font-weight: bold;
-            text-align: center;
-            background-color: #e9ecef;
-        }
-        
-        .segment-body {
-            padding: 10px;
-            text-align: center;
-        }
-        
-        .progress {
-            height: 20px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            margin: 8px 0;
-            overflow: hidden;
-        }
-        
         .progress-bar {
             height: 100%;
-            line-height: 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            font-size: 8pt;
-            text-align: center;
+            font-weight: bold;
+            font-size: 16px; /* Texto na barra maior */
         }
-        
+        /* Cores das barras */
         .bg-success { background-color: #28a745; }
         .bg-danger { background-color: #dc3545; }
         .bg-warning { background-color: #ffc107; }
+        .bg-info { background-color: #17a2b8; }
         
         /* Badges */
         .badge {
             display: inline-block;
-            padding: 3px 6px;
-            border-radius: 3px;
-            font-size: 8pt;
-            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
         }
         
-        .badge-success { background-color: #d4edda; color: #155724; }
-        .badge-danger { background-color: #f8d7da; color: #721c24; }
-        .badge-warning { background-color: #fff3cd; color: #856404; }
-        
-        /* Rodapé */
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 8pt;
-            color: #6c757d;
-            border-top: 1px solid #ddd;
-            padding-top: 8px;
-        }
-        
-        /* Controle de quebra de página */
-        .page-break {
-            page-break-after: always;
-        }
-        
-        /* Classes auxiliares */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .text-bold { font-weight: bold; }
-        .text-success { color: #28a745; }
-        .text-danger { color: #dc3545; }
-        .text-warning { color: #ffc107; }
-        
+        /* Melhorias para impressão */
         @media print {
             body {
-                font-size: 9pt;
+                font-size: 18px !important;
             }
-            .header {
-                border-bottom: 1px solid #333;
-            }
-            .table th, .table td {
-                padding: 4px;
+            .table {
+                font-size: 16px !important;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Cabeçalho -->
-        <div class="header">
-            <div>
-                <img src="{{ storage_path('app/public/images/logo_prefeitura.png') }}" class="logo" alt="Logo Prefeitura">
-            </div>
-            <h1>Relatório Completo - Rede Municipal</h1>
-            <div class="header-info">
-                <strong>Simulado:</strong> {{ $simulados->firstWhere('id', request()->simulado_id)->nome ?? 'Todos' }} | 
-                <strong>Data:</strong> {{ now()->format('d/m/Y H:i') }}
-            </div>
+    <div class="header">
+        <img src="{{ $logoPath }}" alt="Logo Prefeitura">
+        <div class="title">Relatório da Rede Municipal</div>
+        <div style="font-size: 16px;">
+            Simulado: {{ $simulados->firstWhere('id', request('simulado_id'))->nome ?? 'Todos' }} | 
+            Data: {{ now()->format('d/m/Y H:i') }}
         </div>
+    </div>
 
-        <!-- Dados Gerais -->
-        <div class="section">
-            <div class="section-title">Dados Gerais</div>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-title">Total de Alunos</div>
-                    <div class="stat-value">{{ $totalAlunos }}</div>
+    <!-- Dados Gerais - Com fontes maiores -->
+    <div class="card">
+        <div class="card-header">Dados Gerais</div>
+        <div class="row">
+            <div class="col">
+                <div class="stat-card">
+                    <h6 class="stat-title">Total de Alunos</h6>
+                    <p class="stat-value">{{ $totalAlunos }}</p>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-title">Alunos Ativos</div>
-                    <div class="stat-value">{{ $alunosAtivos }}</div>
-                    <div class="stat-percent">
-                        {{ $totalAlunos > 0 ? number_format(($alunosAtivos/$totalAlunos)*100, 2) : 0 }}%
-                    </div>
+            </div>
+            <div class="col">
+                <div class="stat-card">
+                    <h6 class="stat-title">Alunos Ativos</h6>
+                    <p class="stat-value">{{ $alunosAtivos }}</p>
+                    <div style="font-size: 16px;">{{ $totalAlunos > 0 ? number_format(($alunosAtivos/$totalAlunos)*100, 2) : 0 }}%</div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-title">Alunos Responderam</div>
-                    <div class="stat-value">{{ $alunosResponderam }}</div>
-                    <div class="stat-percent">
-                        {{ $alunosAtivos > 0 ? number_format(($alunosResponderam/$alunosAtivos)*100, 2) : 0 }}%
-                    </div>
+            </div>
+            <div class="col">
+                <div class="stat-card">
+                    <h6 class="stat-title">Alunos Responderam</h6>
+                    <p class="stat-value">{{ $alunosResponderam }}</p>
+                    <div style="font-size: 16px;">{{ $alunosAtivos > 0 ? number_format(($alunosResponderam/$alunosAtivos)*100, 2) : 0 }}%</div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-title">Taxa de Faltosos</div>
-                    <div class="stat-value">{{ $alunosAtivos - $alunosResponderam }}</div>
-                    <div class="stat-percent">
-                        {{ $alunosAtivos > 0 ? number_format((($alunosAtivos - $alunosResponderam)/$alunosAtivos)*100, 2) : 0 }}%
-                    </div>
+            </div>
+            <div class="col">
+                <div class="stat-card">
+                    <h6 class="stat-title">Taxa de Faltosos</h6>
+                    <p class="stat-value">{{ $alunosAtivos - $alunosResponderam }}</p>
+                    <div style="font-size: 16px;">{{ $alunosAtivos > 0 ? number_format((($alunosAtivos - $alunosResponderam)/$alunosAtivos)*100, 2) : 0 }}%</div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Quadrantes -->
-        <div class="section">
-            <div class="section-title">Análise por Quadrantes</div>
-            <div class="quadrant-container">
-                <div class="quadrant-card">
-                    <div class="quadrant-header q1">🟩 Q1 - Alto Desempenho/Grande</div>
-                    <div class="quadrant-body">
-                        <div class="quadrant-count">{{ $quadrantes['q1']['count'] }}</div>
-                        <div>Escolas</div>
-                        <div class="stat-percent">200+ alunos e nota TRI acima da média</div>
-                        <div class="text-bold">Média TRI: {{ number_format($quadrantes['q1']['media_tri'] ?? 0, 2) }}</div>
-                    </div>
-                </div>
-                <div class="quadrant-card">
-                    <div class="quadrant-header q2">🟥 Q2 - Baixo Desempenho/Grande</div>
-                    <div class="quadrant-body">
-                        <div class="quadrant-count">{{ $quadrantes['q2']['count'] }}</div>
-                        <div>Escolas</div>
-                        <div class="stat-percent">200+ alunos e nota TRI abaixo da média</div>
-                        <div class="text-bold">Média TRI: {{ number_format($quadrantes['q2']['media_tri'] ?? 0, 2) }}</div>
-                    </div>
-                </div>
-                <div class="quadrant-card">
-                    <div class="quadrant-header q3">🟨 Q3 - Baixo Desempenho/Pequena</div>
-                    <div class="quadrant-body">
-                        <div class="quadrant-count">{{ $quadrantes['q3']['count'] }}</div>
-                        <div>Escolas</div>
-                        <div class="stat-percent">Menos de 200 alunos e nota TRI abaixo da média</div>
-                        <div class="text-bold">Média TRI: {{ number_format($quadrantes['q3']['media_tri'] ?? 0, 2) }}</div>
-                    </div>
-                </div>
-                <div class="quadrant-card">
-                    <div class="quadrant-header q4">🟦 Q4 - Alto Desempenho/Pequena</div>
-                    <div class="quadrant-body">
-                        <div class="quadrant-count">{{ $quadrantes['q4']['count'] }}</div>
-                        <div>Escolas</div>
-                        <div class="stat-percent">Menos de 200 alunos e nota TRI acima da média</div>
-                        <div class="text-bold">Média TRI: {{ number_format($quadrantes['q4']['media_tri'] ?? 0, 2) }}</div>
-                    </div>
-                </div>
-            </div>
-            <div style="text-align: center; margin-top: 10px;">
-                <strong>Média Geral TRI:</strong> {{ number_format($mediaGeralTRI, 2) }}
-            </div>
-        </div>
-
-        <!-- Análise de Desempenho -->
-        <div class="section">
-            <div class="section-title">Análise de Desempenho</div>
+    <!-- Médias Ponderadas e TRI - Com fontes maiores -->
+    <div class="card">
+        <div class="card-header">Análise de Desempenho</div>
+        <div style="overflow-x: auto;">
             <table class="table">
                 <thead>
                     <tr>
-                        <th rowspan="2">Métrica</th>
-                        <th colspan="3">Métricas por Peso</th>
-                        <th rowspan="2">Geral</th>
+                        <th rowspan="2" style="vertical-align: middle; font-size: 16px;">Métrica</th>
+                        <th colspan="3" style="text-align: center; font-size: 16px;">Métricas por Peso</th>
+                        <th rowspan="2" style="text-align: center; vertical-align: middle; font-size: 16px;">Geral</th>
                     </tr>
                     <tr>
-                        <th>Peso 1</th>
-                        <th>Peso 2</th>
-                        <th>Peso 3</th>
+                        <th style="text-align: center; font-size: 16px;">Peso 1</th>
+                        <th style="text-align: center; font-size: 16px;">Peso 2</th>
+                        <th style="text-align: center; font-size: 16px;">Peso 3</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Média Tradicional</td>
-                        <td class="text-center">{{ number_format($mediasPeso['peso_1'], 2) }}</td>
-                        <td class="text-center">{{ number_format($mediasPeso['peso_2'], 2) }}</td>
-                        <td class="text-center">{{ number_format($mediasPeso['peso_3'], 2) }}</td>
-                        <td class="text-center">{{ number_format($mediasPeso['media_geral'], 2) }}</td>
+                        <td style="font-size: 15px;">Média Tradicional</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($mediasPeso['peso_1'], 2) }}</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($mediasPeso['peso_2'], 2) }}</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($mediasPeso['peso_3'], 2) }}</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($mediasPeso['media_geral'], 2) }}</td>
                     </tr>
                     <tr>
-                        <td>Média TRI</td>
-                        <td class="text-center">{{ number_format($analiseTRI['peso_1']['media'], 2) }}</td>
-                        <td class="text-center">{{ number_format($analiseTRI['peso_2']['media'], 2) }}</td>
-                        <td class="text-center">{{ number_format($analiseTRI['peso_3']['media'], 2) }}</td>
-                        <td class="text-center">{{ number_format($analiseTRI['media_geral'], 2) }}</td>
+                        <td style="font-size: 15px;">Média TRI</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($analiseTRI['peso_1']['media'], 2) }}</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($analiseTRI['peso_2']['media'], 2) }}</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($analiseTRI['peso_3']['media'], 2) }}</td>
+                        <td style="text-align: center; font-size: 15px;">{{ number_format($analiseTRI['media_geral'], 2) }}</td>
                     </tr>
                 </tbody>
             </table>
-            <div style="margin-top: 10px;">
-                <strong>Índice de Consistência Interna (Alpha de Cronbach):</strong> 
-                {{ number_format($analiseTRI['indice_consistencia'], 2) }}
-                @if($analiseTRI['indice_consistencia'] > 0.7)
-                    <span class="badge badge-success">Boa consistência</span>
-                @elseif($analiseTRI['indice_consistencia'] > 0.5)
-                    <span class="badge badge-warning">Consistência moderada</span>
-                @else
-                    <span class="badge badge-danger">Baixa consistência</span>
-                @endif
+        </div>
+        <div class="alert alert-info">
+            <strong style="font-size: 16px;">Índice de Consistência Interna (Alpha de Cronbach):</strong> 
+            <span style="font-size: 16px;">{{ number_format($analiseTRI['indice_consistencia'], 2) }}</span>
+            @if($analiseTRI['indice_consistencia'] > 0.7)
+                <span class="badge" style="background-color: #28a745; font-size: 14px;">Boa consistência</span>
+            @elseif($analiseTRI['indice_consistencia'] > 0.5)
+                <span class="badge" style="background-color: #ffc107; color: black; font-size: 14px;">Consistência moderada</span>
+            @else
+                <span class="badge" style="background-color: #dc3545; font-size: 14px;">Baixa consistência</span>
+            @endif
+        </div>
+    </div>
+
+    <!-- Quadrantes de Desempenho - Com fontes maiores -->
+    <div class="card">
+        <div class="card-header">Análise por Quadrantes</div>
+        <div class="alert alert-info">
+            <strong style="font-size: 16px;">Média Geral TRI da Rede:</strong> 
+            <span style="font-size: 16px;">{{ number_format($mediaGeralTRI, 2) }}</span>
+        </div>
+        
+        <div class="row">
+            <!-- Quadrante 1 -->
+            <div class="col">
+                <div class="quadrant-section">
+                    <div class="quadrant-title q1-title">
+                        🟩 Q1 - Alto Desempenho/Grande ({{ $quadrantes['q1']['count'] }} escolas)
+                    </div>
+                    <p class="quadrant-description">200+ alunos e nota TRI acima da média</p>
+                    <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q1']['media_tri'], 2) }}</p>
+                    
+                    @if($quadrantes['q1']['count'] > 0)
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%; font-size: 15px;">Escola</th>
+                                    <th style="width: 15%; font-size: 15px;">Alunos</th>
+                                    <th style="width: 15%; font-size: 15px;">Média Trad.</th>
+                                    <th style="width: 15%; font-size: 15px;">Média TRI</th>
+                                    <th style="width: 20%; font-size: 15px;">Diferença</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($quadrantes['q1']['escolas'] as $escola)
+                                <tr>
+                                    <td style="font-size: 14px;">{{ $escola['nome'] }}</td>
+                                    <td style="font-size: 14px;">{{ $escola['total_alunos'] }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_simulado'], 2) }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_tri'], 2) }}</td>
+                                    <td style="font-size: 14px;" class="{{ $escola['media_tri'] >= $mediaGeralTRI ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($escola['media_tri'] - $mediaGeralTRI, 2) }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="no-schools">Nenhuma escola encontrada neste quadrante</p>
+                    @endif
+                </div>
+            </div>
+            
+            <!-- Quadrante 2 -->
+            <div class="col">
+                <div class="quadrant-section">
+                    <div class="quadrant-title q2-title">
+                        🟥 Q2 - Baixo Desempenho/Grande ({{ $quadrantes['q2']['count'] }} escolas)
+                    </div>
+                    <p class="quadrant-description">200+ alunos e nota TRI abaixo da média</p>
+                    <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q2']['media_tri'], 2) }}</p>
+                    
+                    @if($quadrantes['q2']['count'] > 0)
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%; font-size: 15px;">Escola</th>
+                                    <th style="width: 15%; font-size: 15px;">Alunos</th>
+                                    <th style="width: 15%; font-size: 15px;">Média Trad.</th>
+                                    <th style="width: 15%; font-size: 15px;">Média TRI</th>
+                                    <th style="width: 20%; font-size: 15px;">Diferença</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($quadrantes['q2']['escolas'] as $escola)
+                                <tr>
+                                    <td style="font-size: 14px;">{{ $escola['nome'] }}</td>
+                                    <td style="font-size: 14px;">{{ $escola['total_alunos'] }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_simulado'], 2) }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_tri'], 2) }}</td>
+                                    <td style="font-size: 14px;" class="{{ $escola['media_tri'] >= $mediaGeralTRI ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($escola['media_tri'] - $mediaGeralTRI, 2) }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="no-schools">Nenhuma escola encontrada neste quadrante</p>
+                    @endif
+                </div>
             </div>
         </div>
-
-        <!-- Médias por Segmento -->
-        <div class="section">
-            <div class="section-title">Médias por Segmento</div>
-            <div class="segment-row">
-                <div class="segment-card">
-                    <div class="segment-header {{ $projecaoSegmento['1a5']['atingiu_meta'] ? 'bg-success' : 'bg-danger' }}">
-                        1º ao 5º Ano
+        
+        <div class="row">
+            <!-- Quadrante 3 -->
+            <div class="col">
+                <div class="quadrant-section">
+                    <div class="quadrant-title q3-title">
+                        🟨 Q3 - Baixo Desempenho/Pequena ({{ $quadrantes['q3']['count'] }} escolas)
                     </div>
-                    <div class="segment-body">
-                        <div style="font-size: 14pt; font-weight: bold; margin: 5px 0;">
-                            {{ number_format($projecaoSegmento['1a5']['media'], 2) }}
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar {{ $projecaoSegmento['1a5']['projecao'] >= 6 ? 'bg-success' : 'bg-danger' }}" 
-                                 style="width: {{ min(100, $projecaoSegmento['1a5']['projecao'] * 10) }}%">
-                                Projeção: {{ number_format($projecaoSegmento['1a5']['projecao'], 1) }}
+                    <p class="quadrant-description">Menos de 200 alunos e nota TRI abaixo da média</p>
+                    <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q3']['media_tri'], 2) }}</p>
+                    
+                    @if($quadrantes['q3']['count'] > 0)
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%; font-size: 15px;">Escola</th>
+                                    <th style="width: 15%; font-size: 15px;">Alunos</th>
+                                    <th style="width: 15%; font-size: 15px;">Média Trad.</th>
+                                    <th style="width: 15%; font-size: 15px;">Média TRI</th>
+                                    <th style="width: 20%; font-size: 15px;">Diferença</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($quadrantes['q3']['escolas'] as $escola)
+                                <tr>
+                                    <td style="font-size: 14px;">{{ $escola['nome'] }}</td>
+                                    <td style="font-size: 14px;">{{ $escola['total_alunos'] }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_simulado'], 2) }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_tri'], 2) }}</td>
+                                    <td style="font-size: 14px;" class="{{ $escola['media_tri'] >= $mediaGeralTRI ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($escola['media_tri'] - $mediaGeralTRI, 2) }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="no-schools">Nenhuma escola encontrada neste quadrante</p>
+                    @endif
+                </div>
+            </div>
+            
+            <!-- Quadrante 4 -->
+            <div class="col">
+                <div class="quadrant-section">
+                    <div class="quadrant-title q4-title">
+                        🟦 Q4 - Alto Desempenho/Pequena ({{ $quadrantes['q4']['count'] }} escolas)
+                    </div>
+                    <p class="quadrant-description">Menos de 200 alunos e nota TRI acima da média</p>
+                    <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q4']['media_tri'], 2) }}</p>
+                    
+                    @if($quadrantes['q4']['count'] > 0)
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%; font-size: 15px;">Escola</th>
+                                    <th style="width: 15%; font-size: 15px;">Alunos</th>
+                                    <th style="width: 15%; font-size: 15px;">Média Trad.</th>
+                                    <th style="width: 15%; font-size: 15px;">Média TRI</th>
+                                    <th style="width: 20%; font-size: 15px;">Diferença</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($quadrantes['q4']['escolas'] as $escola)
+                                <tr>
+                                    <td style="font-size: 14px;">{{ $escola['nome'] }}</td>
+                                    <td style="font-size: 14px;">{{ $escola['total_alunos'] }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_simulado'], 2) }}</td>
+                                    <td style="font-size: 14px;">{{ number_format($escola['media_tri'], 2) }}</td>
+                                    <td style="font-size: 14px;" class="{{ $escola['media_tri'] >= $mediaGeralTRI ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($escola['media_tri'] - $mediaGeralTRI, 2) }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p class="no-schools">Nenhuma escola encontrada neste quadrante</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Médias por Segmento - Com fontes maiores -->
+    <div class="card">
+        <div class="card-header">Médias por Segmento</div>
+        <div class="row">
+            <div class="col">
+                <div style="border: 1px solid {{ $projecaoSegmento['1a5']['atingiu_meta'] ? '#28a745' : '#dc3545' }}; border-radius: 5px; padding: 15px; margin-bottom: 20px;">
+                    <div style="background-color: {{ $projecaoSegmento['1a5']['atingiu_meta'] ? '#28a745' : '#dc3545' }}; color: white; padding: 12px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0;">
+                        <h6 style="margin: 0; font-size: 17px;">1º ao 5º Ano</h6>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 15px; font-weight: bold;">Média Tradicional</div>
+                                <div style="font-size: 20px; font-weight: bold;">{{ number_format($projecaoSegmento['1a5']['media'], 2) }}</div>
                             </div>
                         </div>
-                        <div style="margin-top: 5px;">
-                            <span class="badge {{ $projecaoSegmento['1a5']['atingiu_meta'] ? 'badge-success' : 'badge-danger' }}">
-                                Meta: 6.0 | Diferença: {{ $projecaoSegmento['1a5']['diferenca'] >= 0 ? '+' : '' }}{{ $projecaoSegmento['1a5']['diferenca'] }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="segment-card">
-                    <div class="segment-header {{ $projecaoSegmento['6a9']['atingiu_meta'] ? 'bg-success' : 'bg-warning' }}">
-                        6º ao 9º Ano
-                    </div>
-                    <div class="segment-body">
-                        <div style="font-size: 14pt; font-weight: bold; margin: 5px 0;">
-                            {{ number_format($projecaoSegmento['6a9']['media'], 2) }}
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar {{ $projecaoSegmento['6a9']['projecao'] >= 5 ? 'bg-success' : 'bg-warning' }}" 
-                                 style="width: {{ min(100, $projecaoSegmento['6a9']['projecao'] * 10) }}%">
-                                Projeção: {{ number_format($projecaoSegmento['6a9']['projecao'], 1) }}
+                        <div class="col">
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 15px; font-weight: bold;">Média TRI</div>
+                                <div style="font-size: 20px; font-weight: bold;">{{ number_format($projecaoSegmento['1a5']['media_tri'], 2) }}</div>
                             </div>
                         </div>
-                        <div style="margin-top: 5px;">
-                            <span class="badge {{ $projecaoSegmento['6a9']['atingiu_meta'] ? 'badge-success' : 'badge-warning' }}">
-                                Meta: 5.0 | Diferença: {{ $projecaoSegmento['6a9']['diferenca'] >= 0 ? '+' : '' }}{{ $projecaoSegmento['6a9']['diferenca'] }}
-                            </span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: {{ $projecaoSegmento['1a5']['projecao'] * 10 }}%; background-color: {{ $projecaoSegmento['1a5']['atingiu_meta'] ? '#28a745' : '#dc3545' }};">
+                            <span style="font-size: 15px;">Projeção TRI: {{ number_format($projecaoSegmento['1a5']['projecao'], 1) }}</span>
                         </div>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <span class="badge" style="background-color: {{ $projecaoSegmento['1a5']['atingiu_meta'] ? '#28a745' : '#dc3545' }}; font-size: 14px;">
+                            Meta: 6.0 | Diferença: {{ $projecaoSegmento['1a5']['diferenca'] >= 0 ? '+' : '' }}{{ $projecaoSegmento['1a5']['diferenca'] }}
+                        </span>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Escolas por Quadrante -->
-        <!-- Escolas por Quadrante -->
-@foreach(['q1', 'q2', 'q3', 'q4'] as $quad)
-    @if(isset($quadrantes[$quad]) && is_array($quadrantes[$quad]) && 
-        isset($quadrantes[$quad]['escolas']) && 
-        count($quadrantes[$quad]['escolas']) > 0)
-        <div class="section">
-            <div class="section-title" style="background-color: {{ 
-                $quad == 'q1' ? '#28a745' : 
-                ($quad == 'q2' ? '#dc3545' : 
-                ($quad == 'q3' ? '#ffc107' : '#17a2b8')) 
-            }};">
-                @switch($quad)
-                    @case('q1') 🟩 Quadrante 1 - Alto Desempenho/Grande @break
-                    @case('q2') 🟥 Quadrante 2 - Baixo Desempenho/Grande @break
-                    @case('q3') 🟨 Quadrante 3 - Baixo Desempenho/Pequena @break
-                    @case('q4') 🟦 Quadrante 4 - Alto Desempenho/Pequena @break
-                @endswitch
+            <div class="col">
+                <div style="border: 1px solid {{ $projecaoSegmento['6a9']['atingiu_meta'] ? '#28a745' : '#ffc107' }}; border-radius: 5px; padding: 15px; margin-bottom: 20px;">
+                    <div style="background-color: {{ $projecaoSegmento['6a9']['atingiu_meta'] ? '#28a745' : '#ffc107' }}; color: white; padding: 12px; margin: -15px -15px 15px -15px; border-radius: 5px 5px 0 0;">
+                        <h6 style="margin: 0; font-size: 17px;">6º ao 9º Ano</h6>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 15px; font-weight: bold;">Média Tradicional</div>
+                                <div style="font-size: 20px; font-weight: bold;">{{ number_format($projecaoSegmento['6a9']['media'], 2) }}</div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 15px; font-weight: bold;">Média TRI</div>
+                                <div style="font-size: 20px; font-weight: bold;">{{ number_format($projecaoSegmento['6a9']['media_tri'], 2) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: {{ $projecaoSegmento['6a9']['projecao'] * 10 }}%; background-color: {{ $projecaoSegmento['6a9']['atingiu_meta'] ? '#28a745' : '#ffc107' }};">
+                            <span style="font-size: 15px;">Projeção TRI: {{ number_format($projecaoSegmento['6a9']['projecao'], 1) }}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <span class="badge" style="background-color: {{ $projecaoSegmento['6a9']['atingiu_meta'] ? '#28a745' : '#ffc107' }}; font-size: 14px;">
+                            Meta: 5.0 | Diferença: {{ $projecaoSegmento['6a9']['diferenca'] >= 0 ? '+' : '' }}{{ $projecaoSegmento['6a9']['diferenca'] }}
+                        </span>
+                    </div>
+                </div>
             </div>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Escola</th>
-                        <th class="text-center">Alunos</th>
-                        <th class="text-center">Média Trad.</th>
-                        <th class="text-center">Média TRI</th>
-                        <th class="text-center">Diferença</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($quadrantes[$quad]['escolas'] as $escola)
-                        @if(is_array($escola))
-                            <tr>
-                                <td>{{ $escola['nome'] ?? 'N/A' }}</td>
-                                <td class="text-center">{{ $escola['total_alunos'] ?? 0 }}</td>
-                                <td class="text-center">{{ number_format($escola['media_simulado'] ?? 0, 2) }}</td>
-                                <td class="text-center">{{ number_format($escola['media_tri'] ?? 0, 2) }}</td>
-                                <td class="text-center {{ ($escola['media_tri'] ?? 0) >= $mediaGeralTRI ? 'text-success' : 'text-danger' }}">
-                                    {{ ($escola['media_tri'] ?? 0) >= $mediaGeralTRI ? '+' : '' }}{{ number_format(($escola['media_tri'] ?? 0) - $mediaGeralTRI, 2) }}
-                                </td>
-                            </tr>
-                        @endif
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endif
-@endforeach
-
-        <!-- Rodapé -->
-        <div class="footer">
-            Relatório gerado em {{ now()->format('d/m/Y H:i') }} pelo sistema EduHabil+<br>
-            Secretaria Municipal de Educação - Prefeitura de Juazeiro-BA
         </div>
     </div>
 </body>

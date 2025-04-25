@@ -667,7 +667,8 @@ Route::prefix('relatorios')->group(function() {
 
     Route::get('/rede-municipal/pdf', [RelatorioController::class, 'exportarPdf'])
     ->name('relatorios.rede-municipal.pdf');
-    Route::get('/rede-municipal/excel', [RelatorioController::class, 'excelRede'])->name('relatorios.rede-municipal.excel');
+    Route::post('/relatorios/exportar-excel', [RelatorioController::class, 'exportarExcel'])
+    ->name('relatorios.exportar-excel');
     Route::get('/relatorios/estatisticas-escola', [RelatorioController::class, 'estatisticasEscola'])->name('relatorios.estatisticas-escola');
     Route::get('/relatorios/exportar-escola-pdf', [RelatorioController::class, 'exportarEscolaPdf'])->name('relatorios.exportar-escola-pdf');
     Route::get('/relatorios/exportar-escola-excel', [RelatorioController::class, 'exportarEscolaExcel'])->name('relatorios.exportar-escola-excel');

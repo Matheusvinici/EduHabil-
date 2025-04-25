@@ -32,30 +32,26 @@ class RecursoController extends Controller
             'descricao' => 'required|string',
             'como_trabalhar' => 'required|string',
             'direcionamentos' => 'required|string',
-            'deficiencias' => 'nullable|array',
+            'deficiencias' => 'required|array|min:1',
             'deficiencias.*' => 'exists:deficiencias,id',
-            'caracteristicas' => 'nullable|array',
+            'caracteristicas' => 'required|array|min:1',
             'caracteristicas.*' => 'exists:caracteristicas,id',
+        ], [
+            'deficiencias.required' => 'Selecione pelo menos uma deficiência.',
+            'deficiencias.min' => 'Selecione pelo menos uma deficiência.',
+            'caracteristicas.required' => 'Selecione pelo menos uma característica.',
+            'caracteristicas.min' => 'Selecione pelo menos uma característica.',
         ]);
     
-        // Cria o recurso com os campos corretos
         $recurso = Recurso::create([
             'nome' => $request->nome,
             'descricao' => $request->descricao,
-        
             'como_trabalhar' => $request->como_trabalhar,
             'direcionamentos' => $request->direcionamentos,
         ]);
     
-        // Associar deficiências ao recurso
-        if ($request->deficiencias) {
-            $recurso->deficiencias()->attach($request->deficiencias);
-        }
-    
-        // Associar características ao recurso
-        if ($request->caracteristicas) {
-            $recurso->caracteristicas()->attach($request->caracteristicas);
-        }
+        $recurso->deficiencias()->attach($request->deficiencias);
+        $recurso->caracteristicas()->attach($request->caracteristicas);
     
         return redirect()->route('recursos.index')->with('success', 'Recurso criado com sucesso!');
     }
@@ -75,33 +71,36 @@ class RecursoController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'nome' => 'required|string|max:100',
-            'descricao' => 'required|string',
-            'como_trabalhar' => 'required|string',
-            'direcionamentos' => 'required|string',
-            'deficiencias' => 'nullable|array',
-            'deficiencias.*' => 'exists:deficiencias,id',
-            'caracteristicas' => 'nullable|array',
-            'caracteristicas.*' => 'exists:caracteristicas,id',
-        ]);
+{
+    $request->validate([
+        'nome' => 'required|string|max:100',
+        'descricao' => 'required|string',
+        'como_trabalhar' => 'required|string',
+        'direcionamentos' => 'required|string',
+        'deficiencias' => 'required|array|min:1',
+        'deficiencias.*' => 'exists:deficiencias,id',
+        'caracteristicas' => 'required|array|min:1',
+        'caracteristicas.*' => 'exists:caracteristicas,id',
+    ], [
+        'deficiencias.required' => 'Selecione pelo menos uma deficiência.',
+        'deficiencias.min' => 'Selecione pelo menos uma deficiência.',
+        'caracteristicas.required' => 'Selecione pelo menos uma característica.',
+        'caracteristicas.min' => 'Selecione pelo menos uma característica.',
+    ]);
 
-        // Atualiza o recurso
-        $recurso = Recurso::findOrFail($id);
-        $recurso->update([
-            'nome' => $request->nome,
-            'descricao' => $request->descricao,
-            'como_trabalhar' => $request->como_trabalhar,
-            'direcionamentos' => $request->direcionamentos,
-        ]);
+    $recurso = Recurso::findOrFail($id);
+    $recurso->update([
+        'nome' => $request->nome,
+        'descricao' => $request->descricao,
+        'como_trabalhar' => $request->como_trabalhar,
+        'direcionamentos' => $request->direcionamentos,
+    ]);
 
-        // Sincroniza deficiências e características
-        $recurso->deficiencias()->sync($request->deficiencias);
-        $recurso->caracteristicas()->sync($request->caracteristicas);
+    $recurso->deficiencias()->sync($request->deficiencias);
+    $recurso->caracteristicas()->sync($request->caracteristicas);
 
-        return redirect()->route('recursos.index')->with('success', 'Recurso atualizado com sucesso!');
-    }
+    return redirect()->route('recursos.index')->with('success', 'Recurso atualizado com sucesso!');
+}
 
     // Excluir recurso
     public function destroy(Recurso $recurso)

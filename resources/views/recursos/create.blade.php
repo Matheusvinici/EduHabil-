@@ -3,6 +3,15 @@
 @section('content')
 <div class="container">
     <h1 class="mb-4">{{ isset($recurso) ? 'Editar' : 'Criar' }} Recurso</h1>
+    @if ($errors->any())
+    <div class="alert alert-danger">
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
     <form action="{{ isset($recurso) ? route('recursos.update', $recurso->id) : route('recursos.store') }}" method="POST">
         @csrf
         @if(isset($recurso)) @method('PUT') @endif
@@ -108,5 +117,31 @@
             }
         });
     });
+    $(document).ready(function() {
+    // Carrega características quando uma deficiência é selecionada
+    $('.deficiencia-checkbox').change(function() {
+        // ... (seu código existente)
+    });
+
+    // Validação antes de enviar o formulário
+    $('form').submit(function(e) {
+        const deficienciasSelecionadas = $('.deficiencia-checkbox:checked').length;
+        const caracteristicasSelecionadas = $('input[name="caracteristicas[]"]:checked').length;
+        
+        if (deficienciasSelecionadas === 0) {
+            alert('Selecione pelo menos uma deficiência.');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (caracteristicasSelecionadas === 0) {
+            alert('Selecione pelo menos uma característica.');
+            e.preventDefault();
+            return false;
+        }
+        
+        return true;
+    });
+});
 </script>
 @endsection
