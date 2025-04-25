@@ -674,23 +674,39 @@ class RelatorioController extends Controller
 
     // Dados das escolas
     $dadosEscolas = $this->prepararDadosEscolas($request->simulado_id, $request);
+    $mediaGeralTRI = $analiseTRI['media_geral'];
+    $limiteGrande = 200;
 
-    // Quadrantes baseados na média TRI
-    $quadrantes = $this->analisarQuadrantes($dadosEscolas, $analiseTRI['media_geral']);
-
-    // Garantir estrutura completa dos quadrantes
-    $defaultQuadrant = [
-        'count' => 0,
-        'media_tri' => 0,
-        'escolas' => []
+    // Preparar dados dos quadrantes
+    $quadrantes = [
+        'q1' => ['escolas' => [], 'count' => 0, 'media_tri' => 0],
+        'q2' => ['escolas' => [], 'count' => 0, 'media_tri' => 0],
+        'q3' => ['escolas' => [], 'count' => 0, 'media_tri' => 0],
+        'q4' => ['escolas' => [], 'count' => 0, 'media_tri' => 0]
     ];
 
-    $quadrantes = array_merge([
-        'q1' => $defaultQuadrant,
-        'q2' => $defaultQuadrant,
-        'q3' => $defaultQuadrant,
-        'q4' => $defaultQuadrant
-    ], $quadrantes);
+    foreach ($dadosEscolas as $escola) {
+        if ($escola['total_alunos'] <= 0) continue;
+        
+        $grande = $escola['total_alunos'] >= $limiteGrande;
+        $acimaMedia = $escola['media_tri'] >= $mediaGeralTRI;
+        
+        if ($grande && $acimaMedia) {
+            $quadrante = 'q1';
+        } elseif ($grande && !$acimaMedia) {
+            $quadrante = 'q2';
+        } elseif (!$grande && !$acimaMedia) {
+            $quadrante = 'q3';
+        } else {
+            $quadrante = 'q4';
+        }
+        
+        $quadrantes[$quadrante]['escolas'][] = $escola;
+        $quadrantes[$quadrante]['count']++;
+        $quadrantes[$quadrante]['media_tri'] = $quadrantes[$quadrante]['count'] > 0 
+            ? ($quadrantes[$quadrante]['media_tri'] * ($quadrantes[$quadrante]['count'] - 1) + $escola['media_tri']) / $quadrantes[$quadrante]['count']
+            : 0;
+    }
 
     // Projeção por segmento com TRI
     $projecaoSegmento = [
@@ -699,7 +715,7 @@ class RelatorioController extends Controller
     ];
 
     // Configurar PDF
-    $pdf = Pdf::loadView('relatorios.pdf.rede-municipal', [
+    $pdf = PDF::loadView('relatorios.pdf.rede-municipal', [
         'simulados' => $simulados,
         'anos' => $anos,
         'escolas' => $escolas,
@@ -711,20 +727,104 @@ class RelatorioController extends Controller
         'projecaoSegmento' => $projecaoSegmento,
         'dadosEscolas' => $dadosEscolas,
         'quadrantes' => $quadrantes,
-        'mediaGeralTRI' => $analiseTRI['media_geral'],
-        'request' => $request
+        'mediaGeralTRI' => $mediaGeralTRI,
+        'request' => $request,
+        'logoPath' => public_path('images/logoprefeitura.png')
     ]);
 
-    // Configurações para evitar quebras de página desnecessárias
     $pdf->setOption('margin-top', 10);
     $pdf->setOption('margin-bottom', 10);
     $pdf->setOption('margin-left', 10);
     $pdf->setOption('margin-right', 10);
     $pdf->setOption('dpi', 150);
+    $pdf->setOption('enable-local-file-access', true);
 
     return $pdf->download('relatorio_rede_municipal.pdf');
 }
-
+        public function exportarExcel(Request $request)
+        {
+            $request->validate([
+                'simulado_id' => 'required|exists:simulados,id',
+                'ano_id' => 'nullable|exists:anos,id',
+                'escola_id' => 'nullable|exists:escolas,id',
+                'deficiencia' => 'nullable|string'
+            ]);
+        
+            // Reutiliza a mesma lógica do método estatisticasRede
+            $queryAlunos = User::where('role', 'aluno');
+            $queryRespostas = RespostaSimulado::where('simulado_id', $request->simulado_id)
+                ->with(['aluno', 'pergunta']);
+        
+            // Aplicar filtros
+            if ($request->ano_id) {
+                $queryAlunos->where('ano_id', $request->ano_id);
+                $queryRespostas->whereHas('aluno', fn($q) => $q->where('ano_id', $request->ano_id));
+            }
+        
+            if ($request->escola_id) {
+                $queryAlunos->where('escola_id', $request->escola_id);
+                $queryRespostas->whereHas('aluno', fn($q) => $q->where('escola_id', $request->escola_id));
+            }
+        
+            if ($request->deficiencia) {
+                if ($request->deficiencia === 'ND') {
+                    $queryAlunos->whereNull('deficiencia');
+                    $queryRespostas->whereHas('aluno', fn($q) => $q->whereNull('deficiencia'));
+                } else {
+                    $queryAlunos->where('deficiencia', $request->deficiencia);
+                    $queryRespostas->whereHas('aluno', fn($q) => $q->where('deficiencia', $request->deficiencia));
+                }
+            }
+        
+            // Dados gerais
+            $totalAlunos = $queryAlunos->count();
+            $alunosAtivos = $queryAlunos->count();
+            $alunosResponderam = $queryRespostas->distinct('user_id')->count('user_id');
+        
+            // Cálculo das médias tradicionais por peso
+            $mediasPeso = [
+                'peso_1' => $this->calcularMediaPorPeso($queryRespostas, 1),
+                'peso_2' => $this->calcularMediaPorPeso($queryRespostas, 2),
+                'peso_3' => $this->calcularMediaPorPeso($queryRespostas, 3),
+                'media_geral' => $this->calcularMediaGeral($queryRespostas)
+            ];
+        
+            // Cálculo TRI completo
+            $analiseTRI = $this->calcularAnaliseTRICompleta($queryRespostas);
+        
+            // Dados das escolas
+            $dadosEscolas = $this->prepararDadosEscolas($request->simulado_id, $request);
+        
+            // Quadrantes baseados na média TRI
+            $quadrantes = $this->analisarQuadrantes($dadosEscolas, $analiseTRI['media_geral']);
+        
+            // Projeção por segmento com TRI
+            $projecaoSegmento = [
+                '1a5' => $this->calcularProjecaoSegmentoTRI($queryRespostas, range(1, 5)),
+                '6a9' => $this->calcularProjecaoSegmentoTRI($queryRespostas, range(6, 9))
+            ];
+        
+            // Dados para gráficos
+            $graficoData = $this->prepararDadosGraficos($queryRespostas);
+        
+            // Preparar dados para exportação
+            $exportData = [
+                'simulados' => Simulado::orderBy('nome')->get(),
+                'request' => $request,
+                'totalAlunos' => $totalAlunos,
+                'alunosAtivos' => $alunosAtivos,
+                'alunosResponderam' => $alunosResponderam,
+                'mediasPeso' => $mediasPeso,
+                'analiseTRI' => $analiseTRI,
+                'projecaoSegmento' => $projecaoSegmento,
+                'dadosEscolas' => $dadosEscolas,
+                'quadrantes' => $quadrantes,
+                'graficoData' => $graficoData,
+                'mediaGeralTRI' => $analiseTRI['media_geral']
+            ];
+        
+            return Excel::download(new RedeMunicipalExport($exportData), 'relatorio_rede_municipal.xlsx');
+        }
         private function prepareExcelData(Request $request)
         {
             $data = $this->getReportData($request);
@@ -1424,15 +1524,7 @@ class RelatorioController extends Controller
         return round($tri_normalizado, 1);
     }
 
-        public function exportPdf(Request $request)
-        {
-            $filtros = $request->only(['simulado_id', 'disciplina_id', 'ano_id']);
-            
-            $data = $this->getDataForExport($filtros);
-            
-            $pdf = PDF::loadView('relatorios.pdf.questoes', $data);
-            return $pdf->download('relatorio_questoes_'.now()->format('YmdHis').'.pdf');
-        }
+   
 
         public function exportExcel(Request $request)
         {

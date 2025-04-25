@@ -47,16 +47,23 @@
     <!-- Botões de Exportação -->
     <div class="row mb-4">
         <div class="col-md-12 text-right">
-        <div class="mt-3">
-                    <a href="{{ route('relatorios.rede-municipal.pdf', [
-                        'simulado_id' => request('simulado_id'),
-                    ]) }}" class="btn btn-danger" target="_blank">
-                        <i class="fas fa-file-pdf"></i> Gerar PDF
-                    </a>
-                </div>
-            <a href="{{ route('relatorios.rede-municipal.excel', request()->all()) }}" class="btn btn-success">
-                <i class="fas fa-file-excel"></i> Exportar Excel
-            </a>
+        <div class="mt-3 d-flex flex-wrap gap-2">
+    <a href="{{ route('relatorios.rede-municipal.pdf', [
+        'simulado_id' => request('simulado_id'),
+    ]) }}" class="btn btn-danger" target="_blank">
+        <i class="fas fa-file-pdf"></i> Gerar PDF
+    </a>
+    
+    <form action="{{ route('relatorios.exportar-excel') }}" method="POST" class="d-inline">
+        @csrf
+        <!-- Campos ocultos com os parâmetros do filtro -->
+        <input type="hidden" name="simulado_id" value="{{ request('simulado_id') }}">
+    
+        <button type="submit" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Exportar Excel
+        </button>
+    </form>
+</div>
         </div>
     </div>
 
@@ -155,20 +162,8 @@
                             <td class="text-center">{{ number_format($analiseTRI['peso_3']['media'], 2) }}</td>
                             <td class="text-center">{{ number_format($analiseTRI['media_geral'], 2) }}</td>
                         </tr>
-                        <tr>
-                            <td>Dificuldade Média (TRI)</td>
-                            <td class="text-center">{{ number_format($analiseTRI['peso_1']['dificuldade'], 2) }}</td>
-                            <td class="text-center">{{ number_format($analiseTRI['peso_2']['dificuldade'], 2) }}</td>
-                            <td class="text-center">{{ number_format($analiseTRI['peso_3']['dificuldade'], 2) }}</td>
-                            <td class="text-center">-</td>
-                        </tr>
-                        <tr>
-                            <td>Discriminação Média (TRI)</td>
-                            <td class="text-center">{{ number_format($analiseTRI['peso_1']['discriminacao'], 2) }}</td>
-                            <td class="text-center">{{ number_format($analiseTRI['peso_2']['discriminacao'], 2) }}</td>
-                            <td class="text-center">{{ number_format($analiseTRI['peso_3']['discriminacao'], 2) }}</td>
-                            <td class="text-center">-</td>
-                        </tr>
+                       
+                       
                     </tbody>
                 </table>
             </div>
