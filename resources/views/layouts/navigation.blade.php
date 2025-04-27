@@ -7,12 +7,18 @@
                 <p>Início</p>
             </a>
         </li>
+        @php
+                        $showAvaliacaoSimulados = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'gestor', 'admin', 'aplicador', 'tutor']);
+                @endphp
+                @if($showAvaliacaoSimulados)
+
         <li class="nav-item">
-                        <a href="{{ route('respostas_simulados.index') }}" class="nav-link text-white">
+         <a href="{{ route('respostas_simulados.index') }}" class="nav-link text-white">
                 <i class="far fa-circle nav-icon text-white"></i>
                 <p>Avaliação Simulado</p>
             </a>
-                        </li>
+         </li>
+         @endif
        @php
                         $showSimulados = Auth::check() && in_array(Auth::user()->role, ['inclusiva', 'admin']);
                         $canSeePerguntas = Auth::check() && Auth::user()->role === 'admin';
@@ -45,9 +51,9 @@
 
         @php
                 $showAvaliacoes = false;
-                $showGerarProvas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'gestor', 'aee']);
-                $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aee', 'aplicador']);
-                $showBancoQuestoes = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
+                $showGerarProvas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'gestor']);
+                $showAvaliacao = Auth::check() && in_array(Auth::user()->role, ['admin', 'aplicador']);
+                $showBancoQuestoes = Auth::check() && in_array(Auth::user()->role, ['admin', 'aplicador']);
                 $showAvaliacoes = $showGerarProvas || $showAvaliacao || $showBancoQuestoes;
         @endphp
         @if($showAvaliacoes)
@@ -88,38 +94,30 @@
         @php
                 $showPlanejamento = false;
                 $showAtividadesEducativas = Auth::check() && in_array(Auth::user()->role, ['professor', 'coordenador', 'gestor', 'admin', 'aplicador']);
-                $showMinhasTurmas = Auth::check() && in_array(Auth::user()->role, ['admin', 'inclusiva', 'aplicador']);
                 $showCadastrarAtividades = Auth::check() && in_array(Auth::user()->role, ['admin','aplicador']);
-                $showPlanejamento = $showAtividadesEducativas || $showMinhasTurmas || $showCadastrarAtividades;
+                $showPlanejamento = $showAtividadesEducativas || $showCadastrarAtividades;
         @endphp
         @if($showPlanejamento)
                 <li class="nav-item has-treeview">
                         <a href="#" class="nav-link text-white">
                                 <i class="nav-icon fas fa-tasks text-white"></i>
-                                <p>Sequência Didática<i class="right fas fa-angle-left"></i></p>
+                                <p>Atividades de Intervenção<i class="right fas fa-angle-left"></i></p>
                         </a>
                         <ul class="nav nav-treeview">
                                 @if($showAtividadesEducativas)
                                         <li class="nav-item">
                                                 <a href="{{ route('atividades_professores.index') }}" class="nav-link text-white">
                                                         <i class="far fa-circle nav-icon text-white"></i>
-                                                        <p>Gerar Sequência Didática</p>
+                                                        <p> Atividade de Intervenção</p>
                                                 </a>
                                         </li>
                                 @endif
-                                @if($showMinhasTurmas)
-                                        <li class="nav-item">
-                                                <a href="{{ route('turmas.index') }}" class="nav-link text-white">
-                                                        <i class="far fa-circle nav-icon text-white"></i>
-                                                        <p>Minhas Turmas</p>
-                                                </a>
-                                        </li>
-                                @endif
+                               
                                 @if($showCadastrarAtividades)
                                         <li class="nav-item">
                                                 <a href="{{ route('atividades.index') }}" class="nav-link text-white">
                                                         <i class="far fa-circle nav-icon text-white"></i>
-                                                        <p>Cadastrar Sequência Didática</p>
+                                                        <p>Cadastrar Atividade de Intervenção</p>
                                                 </a>
                                         </li>
                                 @endif
@@ -217,29 +215,34 @@
                 </li>
         @endif
 
-
-        @if(Auth::check() && Auth::user()->role === 'admin')
-                <li class="nav-item has-treeview">
-                        <a href="#" class="nav-link text-white">
-                                <i class="nav-icon fas fa-cogs text-white"></i>
-                                <p>Administração<i class="right fas fa-angle-left"></i></p>
-                        </a>
-                        <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                        <a href="{{ route('escolas.index') }}" class="nav-link text-white">
-                                                <i class="far fa-circle nav-icon text-white"></i>
-                                                <p>Gerenciar Escolas</p>
-                                        </a>
-                                </li>
-                                <li class="nav-item">
-                                        <a href="{{ route('users.index') }}" class="nav-link text-white">
-                                                <i class="far fa-circle nav-icon text-white"></i>
-                                                <p>Gerenciar Usuários</p>
-                                        </a>
-                                </li>
-                        </ul>
+                                       
+        @if(Auth::check() && in_array(Auth::user()->role, ['admin', 'aee', 'inclusiva', 'aplicador']))
+    <li class="nav-item has-treeview">
+        <a href="#" class="nav-link text-white">
+            <i class="nav-icon fas fa-cogs text-white"></i>
+            <p>Administração<i class="right fas fa-angle-left"></i></p>
+        </a>
+        <ul class="nav nav-treeview">
+            @if(in_array(Auth::user()->role, ['admin', 'inclusiva']))
+                <li class="nav-item">
+                    <a href="{{ route('users.index') }}" class="nav-link text-white">
+                        <i class="far fa-circle nav-icon text-white"></i>
+                        <p>Gerenciar Usuários</p>
+                    </a>
                 </li>
-        @endif
+            @endif
+            
+            @if(in_array(Auth::user()->role, ['admin', 'aee', 'inclusiva', 'aplicador']))
+                <li class="nav-item">
+                    <a href="{{ route('turmas.index') }}" class="nav-link text-white">
+                        <i class="far fa-circle nav-icon text-white"></i>
+                        <p>Minhas Turmas</p>
+                    </a>
+                </li>
+            @endif
+        </ul>
+    </li>
+@endif
 
           @if(Auth::check() && Auth::user()->role === 'admin')
           <li class="nav-item has-treeview menu-open">
@@ -351,12 +354,7 @@
                                                 <p>Estatísticas por Ano</p>
                                         </a>
                                 </li>
-                                <li class="nav-item">
-                                        <a href="{{ route('relatorios.estatisticas-escola') }}" class="nav-link text-white">
-                                                <i class="far fa-circle nav-icon text-white"></i>
-                                                <p>Estatísticas por Escola</p>
-                                        </a>
-                                </li>
+                               
                                 <li class="nav-item">
                                         <a href="{{ route('relatorios.estatisticas-questoes') }}" class="nav-link text-white">
                                                 <i class="far fa-circle nav-icon text-white"></i>

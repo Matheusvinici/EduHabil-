@@ -22,4 +22,8 @@ class Deficiencia extends Model
     {
         return $this->belongsToMany(Recurso::class, 'recurso_deficiencia');
     }
+    public function adaptacoes()
+{
+    return $this->belongsToMany(Adaptacao::class, 'adaptacao_deficiencia');
+}
 }

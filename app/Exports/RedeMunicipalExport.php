@@ -153,10 +153,20 @@ class ResumoSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
     {
         return [
             AfterSheet::class => function(AfterSheet $event) {
-                // Aplicar bordas às tabelas
-                $this->applyBorders($event);
+                $styleArray = [
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['argb' => 'FF000000'],
+                        ],
+                    ],
+                ];
+
+                $event->sheet->getStyle('A5:B9')->applyFromArray($styleArray);
+                $event->sheet->getStyle('A12:C16')->applyFromArray($styleArray);
+                $event->sheet->getStyle('A19:C23')->applyFromArray($styleArray);
+                $event->sheet->getStyle('A25:F28')->applyFromArray($styleArray);
                 
-                // Centralizar cabeçalhos
                 $event->sheet->getStyle('A1:F1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $event->sheet->getStyle('A5:F5')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $event->sheet->getStyle('A12:F12')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -165,27 +175,9 @@ class ResumoSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths,
             },
         ];
     }
-
-    protected function applyBorders(AfterSheet $event)
-    {
-        $styleArray = [
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['argb' => 'FF000000'],
-                ],
-            ],
-        ];
-
-        // Aplicar bordas às tabelas
-        $event->sheet->getStyle('A5:F9')->applyFromArray($styleArray); // Dados Gerais
-        $event->sheet->getStyle('A12:F16')->applyFromArray($styleArray); // Médias
-        $event->sheet->getStyle('A19:F23')->applyFromArray($styleArray); // Quadrantes
-        $event->sheet->getStyle('A25:F28')->applyFromArray($styleArray); // Segmentos
-    }
 }
 
-class QuadranteSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths, WithEvents
+class QuadranteSheet implements FromArray, WithTitle, WithStyles, WithColumnWidths
 {
     protected $data;
     protected $quadrante;
@@ -201,147 +193,72 @@ class QuadranteSheet implements FromArray, WithTitle, WithStyles, WithColumnWidt
     public function array(): array
     {
         $rows = [];
-        
+
         // Cabeçalho
         $rows[] = [$this->titulo];
-        $rows[] = ['Total de Escolas:', $this->data['quadrantes'][$this->quadrante]['count'] ?? 0];
-        $rows[] = ['Média TRI:', $this->data['quadrantes'][$this->quadrante]['media_tri'] ?? 0];
-        $rows[] = ['Média Geral TRI:', $this->data['mediaGeralTRI'] ?? 0];
-        $rows[] = [];
-        
-        // Descrição do Quadrante
-        $descricao = [
-            'q1' => 'Escolas com grande quantidade de matrículas (200+) e desempenho TRI acima da média',
-            'q2' => 'Escolas com grande quantidade de matrículas (200+) e desempenho TRI abaixo da média',
-            'q3' => 'Escolas com menor quantidade de matrículas (<200) e desempenho TRI abaixo da média',
-            'q4' => 'Escolas com menor quantidade de matrículas (<200) e desempenho TRI acima da média',
-        ];
-        
-        $rows[] = ['Descrição:', $descricao[$this->quadrante] ?? ''];
-        $rows[] = [];
+        $rows[] = ['Média Geral TRI: ' . number_format($this->data['mediaGeralTRI'], 2)];
+        $rows[] = []; // Linha vazia
         
         // Cabeçalho da tabela
-        $rows[] = ['Escola', 'Total Alunos', 'Média Tradicional', 'Média TRI', 'Diferença p/ Média'];
-        
-        // Dados das escolas
-        if (isset($this->data['quadrantes'][$this->quadrante]['escolas']) && is_array($this->data['quadrantes'][$this->quadrante]['escolas'])) {
-            foreach ($this->data['quadrantes'][$this->quadrante]['escolas'] as $escola) {
-                if (is_array($escola)) {
-                    $diferenca = ($escola['media_tri'] ?? 0) - ($this->data['mediaGeralTRI'] ?? 0);
-                    $rows[] = [
-                        $escola['nome'] ?? 'N/A',
-                        $escola['total_alunos'] ?? 0,
-                        number_format($escola['media_simulado'] ?? 0, 2),
-                        number_format($escola['media_tri'] ?? 0, 2),
-                        number_format($diferenca, 2)
-                    ];
-                }
+        $rows[] = [
+            'Escola', 
+            'Total Alunos', 
+            'Alunos Respondentes', 
+            'Média Tradicional', 
+            'Média TRI', 
+            'Diferença para Média Geral'
+        ];
+
+        // Filtrar escolas do quadrante
+        $escolasQuadrante = collect($this->data['dadosEscolas'])->filter(function($escola) {
+            // Aplicar mesma lógica de filtro dos quadrantes
+            $grande = $escola['total_alunos'] >= 200;
+            $acimaMedia = $escola['media_tri'] >= $this->data['mediaGeralTRI'];
+            
+            switch($this->quadrante) {
+                case 'q1': return $grande && $acimaMedia;
+                case 'q2': return $grande && !$acimaMedia;
+                case 'q3': return !$grande && !$acimaMedia;
+                case 'q4': return !$grande && $acimaMedia;
+                default: return false;
             }
+        });
+
+        // Adicionar dados das escolas
+        foreach ($escolasQuadrante as $escola) {
+            $rows[] = [
+                $escola['nome'],
+                $escola['total_alunos'],
+                $escola['alunos_respondentes'],
+                number_format($escola['media_simulado'], 2),
+                number_format($escola['media_tri'], 2),
+                number_format($escola['media_tri'] - $this->data['mediaGeralTRI'], 2)
+            ];
         }
-        
+
         return $rows;
     }
-
     public function title(): string
     {
-        return substr($this->titulo, 0, 31); // Limita a 31 caracteres (limite do Excel)
+        return $this->titulo;
     }
 
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            7 => ['font' => ['bold' => true]],
-            'A7:E7' => [
-                'font' => ['bold' => true],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['argb' => 'FFD3D3D3']
-                ]
-            ],
+            1 => ['font' => ['bold' => true, 'size' => 14]], // Título da página
+            3 => ['font' => ['bold' => true]], // Cabeçalho
         ];
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 40, // Coluna mais larga para nomes das escolas
+            'A' => 40,
             'B' => 15,
             'C' => 20,
-            'D' => 15,
+            'D' => 20,
             'E' => 20,
         ];
     }
-
-    public function registerEvents(): array
-    {
-        return [
-            AfterSheet::class => function(AfterSheet $event) {
-                // Aplicar bordas a toda a tabela de escolas
-                $lastRow = $event->sheet->getHighestRow();
-                
-                $styleArray = [
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['argb' => 'FF000000'],
-                        ],
-                    ],
-                    'alignment' => [
-                        'vertical' => Alignment::VERTICAL_CENTER,
-                    ],
-                ];
-                
-                // Aplicar bordas da linha 7 até a última linha
-                $event->sheet->getStyle('A7:E'.$lastRow)->applyFromArray($styleArray);
-                
-                // Formatar números com 2 casas decimais
-                $event->sheet->getStyle('C8:E'.$lastRow)->getNumberFormat()->setFormatCode('0.00');
-                
-                // Centralizar cabeçalho
-                $event->sheet->getStyle('A1:E1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                
-                // Destacar diferença positiva/negativa
-                $this->applyConditionalFormatting($event);
-            },
-        ];
-    }
-
-    protected function applyConditionalFormatting(AfterSheet $event)
-{
-    $lastRow = $event->sheet->getHighestRow();
-    
-    // Create conditional styles
-    $conditionalStyles = [];
-    
-    // Green for positive differences
-    $conditionalStyles[] = (new \PhpOffice\PhpSpreadsheet\Style\Conditional())
-        ->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_CELLIS)
-        ->setOperatorType(\PhpOffice\PhpSpreadsheet\Style\Conditional::OPERATOR_GREATERTHAN)
-        ->addCondition(0)
-        ->setStyle(
-            (new \PhpOffice\PhpSpreadsheet\Style\Style())
-                ->applyFromArray([
-                    'font' => ['color' => ['argb' => 'FF006400']],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF90EE90']]
-                ])
-        );
-    
-    // Red for negative differences
-    $conditionalStyles[] = (new \PhpOffice\PhpSpreadsheet\Style\Conditional())
-        ->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_CELLIS)
-        ->setOperatorType(\PhpOffice\PhpSpreadsheet\Style\Conditional::OPERATOR_LESSTHAN)
-        ->addCondition(0)
-        ->setStyle(
-            (new \PhpOffice\PhpSpreadsheet\Style\Style())
-                ->applyFromArray([
-                    'font' => ['color' => ['argb' => 'FF8B0000']],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFA07A']]
-                ])
-        );
-    
-    // Apply all conditional styles at once
-    $event->sheet->getStyle('E8:E'.$lastRow)
-        ->setConditionalStyles($conditionalStyles);
-}
 }

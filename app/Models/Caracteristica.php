@@ -17,9 +17,14 @@ class Caracteristica extends Model
         return $this->belongsTo(Deficiencia::class);
     }
 
-   
     public function recursos()
-{
-    return $this->belongsToMany(Recurso::class, 'recurso_caracteristica');
-}
+    {
+        return $this->belongsToMany(Recurso::class, 'recurso_caracteristica');
+    }
+
+    // Adicione este novo relacionamento
+    public function adaptacoes()
+    {
+        return $this->belongsToMany(Adaptacao::class, 'adaptacao_caracteristica');
+    }
 }
