@@ -85,6 +85,30 @@ class SimuladoController extends Controller
 
         return redirect()->route('simulados.index')->with('success', 'Simulado atualizado com sucesso!');
     }
+    public function getPerguntasPorAno($anoId)
+    {
+        try {
+            $perguntas = Pergunta::where('ano_id', $anoId)
+                ->get()
+                ->map(function($pergunta) {
+                    return [
+                        'id' => $pergunta->id,
+                        'enunciado' => $pergunta->enunciado,
+                        'peso' => $pergunta->peso,
+                        'imagem' => $pergunta->imagem,
+                        'imagem_url' => $pergunta->imagem ? asset('storage/' . $pergunta->imagem) : null
+                    ];
+                });
+            
+            return response()->json($perguntas);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro ao carregar perguntas',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     // Excluir simulado
     public function destroy(Simulado $simulado)

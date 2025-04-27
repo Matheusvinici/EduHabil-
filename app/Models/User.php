@@ -40,6 +40,23 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsTo(Escola::class, 'escola_id');
     }
+    public function adaptacoes()
+    {
+        return $this->hasMany(Adaptacao::class);
+    }
+
+public function adaptacoesCount()
+{
+    return $this->adaptacoes()->count();
+}
+public function deficiencias()
+{
+    return $this->belongsToMany(Deficiencia::class, 'deficiencia_user');
+}
+public function deficiencia()
+{
+    return $this->belongsTo(Deficiencia::class, 'deficiencia', 'nome');
+}
 
      public function escolas()
     {
@@ -47,6 +64,11 @@ class User extends Authenticatable implements MustVerifyEmail
                    ->using(UserEscola::class)
                    ->withTimestamps();
     }
+    public function pertenceAEscola($escolaId)
+{
+    return $this->escola_id == $escolaId || 
+           $this->escolas()->where('escolas.id', $escolaId)->exists();
+}
 
     /**
      * Relacionamento com a tabela pivot personalizada
@@ -85,6 +107,11 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'professor';
     }
+    public function isAee()
+    {
+        return $this->role === 'aee';
+    }
+    
 
     
 }

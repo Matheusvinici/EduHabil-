@@ -108,11 +108,13 @@
 
    <!-- Sidebar -->
 @auth
-    @php
-        // Definir $escolaAtual de forma segura
-        $escolaAtual = session('escola_selecionada') ? App\Models\Escola::find(session('escola_selecionada')) : null;
-        $usuarioPodeSelecionarEscola = in_array(auth()->user()->role, ['professor', 'coordenador', 'gestor']);
+@php
+        // Verifica qual chave de sessão usar baseado no perfil
+        $sessionKey = auth()->user()->isAee() ? 'escola_selecionada_aee' : 'escola_selecionada';
+        $escolaAtual = session($sessionKey) ? App\Models\Escola::find(session($sessionKey)) : null;
+        $usuarioPodeSelecionarEscola = in_array(auth()->user()->role, ['professor', 'coordenador', 'gestor', 'aee']);
     @endphp
+
 
     @if($usuarioPodeSelecionarEscola)
         @if($escolaAtual)

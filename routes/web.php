@@ -395,8 +395,16 @@ Route::get('/respostas_simulados/aplicador/create/{simulado}/{aluno_id}', [Respo
 
 // Rotas para professores do AEE
 Route::middleware('auth')->group(function () {
-    Route::get('/aee/dashboard', [AeeController::class, 'index'])->name('aee.dashboard');
+    Route::get('/aee/dashboard', [AeeController::class, 'dashboard'])->name('aee.dashboard');
     Route::resource('adaptacoes', AdaptacaoController::class);
+    Route::get('/aee/selecionar-escola', [AeeController::class, 'selecionarEscola'])->name('aee.selecionar.escola');
+    Route::post('/aee/definir-escola', [AeeController::class, 'definirEscola'])->name('aee.definir.escola');
+    Route::get('/adaptacoes/escola/{escola}/coordenador', [AdaptacaoController::class, 'estatisticasEscolaCoordenador'])
+         ->name('adaptacoes.coordenador.estatisticas');
+         Route::get('/adaptacoes/professor/{professor}/coordenador', [AdaptacaoController::class, 'adaptacoesProfessorCoordenador'])
+         ->name('adaptacoes.coordenador.professor');
+
+
     Route::get('/turmas/aee/index', [TurmaController::class, 'indexAEE'])->name('turmas.aee.index');
 
     Route::get('/provas/aee', [ProvaController::class, 'indexAEE'])->name('provas.aee');
@@ -462,6 +470,7 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
 
     Route::get('/estatisticas/escola/{id}', [ProvaController::class, 'estatisticasEscola'])
     ->name('provas.estatisticas-escola');
+    Route::get('/simulados/perguntas-por-ano/{ano}', [SimuladoController::class, 'getPerguntasPorAno']);
 
     Route::get('/provas/admin/index', [ProvaController::class, 'indexAdmin'])->name('provas.admin.index');
     Route::get('/turmas/admin/index', [TurmaController::class, 'indexAdmin'])->name('turmas.admin.index');
@@ -502,6 +511,17 @@ Route::get('/admin/estatisticas/export/excel', [RespostaSimuladoController::clas
     // Rotas para Recursos
     Route::resource('recursos', RecursoController::class);
 
+    Route::group(['middleware' => ['auth', 'role:admin,inclusiva']], function() {
+        Route::get('/estatisticas-adaptacoes', [AdaptacaoController::class, 'estatisticas'])
+             ->name('adaptacoes.estatisticas');
+             
+        Route::get('/estatisticas-escola/{escola}', [AdaptacaoController::class, 'estatisticasEscola'])
+             ->name('adaptacoes.escola');
+             
+        Route::get('/adaptacoes-professor/{professor}', [AdaptacaoController::class, 'adaptacoesProfessor'])
+             ->name('adaptacoes.professor');
+    });
+    
     // Rotas para Adaptações
     Route::resource('adaptacoes', AdaptacaoController::class);
     Route::delete('/adaptacoes/{adaptacao}', [AdaptacaoController::class, 'destroy'])

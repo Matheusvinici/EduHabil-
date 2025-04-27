@@ -21,7 +21,6 @@ class Escola extends Model
     {
         return $this->belongsToMany(User::class, 'user_escola');
     }
-    // No modelo Escola.php
 public function professores()
 {
     return $this->belongsToMany(User::class, 'user_escola', 'escola_id', 'user_id')
@@ -50,6 +49,15 @@ public function professores()
     public function notas(): HasMany
     {
         return $this->hasMany(NotaAvaliacao::class, 'escola_id'); // ✅ Certo!
+    }
+   
+    public function adaptacoes()
+    {
+        return Adaptacao::whereHas('deficiencias', function($query) {
+            $query->whereHas('alunos', function($q) {
+                $q->where('escola_id', $this->id);
+            });
+        });
     }
     
 }

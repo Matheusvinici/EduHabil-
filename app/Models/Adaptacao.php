@@ -11,7 +11,7 @@ class Adaptacao extends Model
 
     protected $table = 'adaptacoes';
 
-    protected $fillable = ['recurso_id'];
+    protected $fillable = ['recurso_id', 'user_id'];
 
     public function deficiencias()
     {
@@ -25,6 +25,7 @@ class Adaptacao extends Model
             ->withTimestamps();
     }
 
+    
     public function recurso()
     {
         return $this->belongsTo(Recurso::class)->withDefault([
@@ -33,5 +34,13 @@ class Adaptacao extends Model
             'como_trabalhar' => '',
             'direcionamentos' => ''
         ]);
+    }
+    public function criador()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

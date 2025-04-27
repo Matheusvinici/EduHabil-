@@ -293,7 +293,7 @@
             <div class="col">
                 <div class="quadrant-section">
                     <div class="quadrant-title q1-title">
-                        🟩 Q1 - Alto Desempenho/Grande ({{ $quadrantes['q1']['count'] }} escolas)
+                         Q1 - Alto Desempenho/Grande ({{ $quadrantes['q1']['count'] }} escolas)
                     </div>
                     <p class="quadrant-description">200+ alunos e nota TRI acima da média</p>
                     <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q1']['media_tri'], 2) }}</p>
@@ -333,7 +333,7 @@
             <div class="col">
                 <div class="quadrant-section">
                     <div class="quadrant-title q2-title">
-                        🟥 Q2 - Baixo Desempenho/Grande ({{ $quadrantes['q2']['count'] }} escolas)
+                         Q2 - Baixo Desempenho/Grande ({{ $quadrantes['q2']['count'] }} escolas)
                     </div>
                     <p class="quadrant-description">200+ alunos e nota TRI abaixo da média</p>
                     <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q2']['media_tri'], 2) }}</p>
@@ -375,7 +375,7 @@
             <div class="col">
                 <div class="quadrant-section">
                     <div class="quadrant-title q3-title">
-                        🟨 Q3 - Baixo Desempenho/Pequena ({{ $quadrantes['q3']['count'] }} escolas)
+                         Q3 - Baixo Desempenho/Pequena ({{ $quadrantes['q3']['count'] }} escolas)
                     </div>
                     <p class="quadrant-description">Menos de 200 alunos e nota TRI abaixo da média</p>
                     <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q3']['media_tri'], 2) }}</p>
@@ -415,7 +415,7 @@
             <div class="col">
                 <div class="quadrant-section">
                     <div class="quadrant-title q4-title">
-                        🟦 Q4 - Alto Desempenho/Pequena ({{ $quadrantes['q4']['count'] }} escolas)
+                         Q4 - Alto Desempenho/Pequena ({{ $quadrantes['q4']['count'] }} escolas)
                     </div>
                     <p class="quadrant-description">Menos de 200 alunos e nota TRI acima da média</p>
                     <p class="quadrant-stats">Média TRI: {{ number_format($quadrantes['q4']['media_tri'], 2) }}</p>
