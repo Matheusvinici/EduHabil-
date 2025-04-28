@@ -16,74 +16,71 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class AtividadeProfessorController extends Controller
 {
-public function index()
-{
-    $user = auth()->user();
+    public function index()
+    {
+        $user = auth()->user();
     
-    // Redireciona admin, aplicador e tutor para estatísticas da rede
-    if (in_array($user->role, ['admin', 'aplicador', 'tutor'])) {
-        return redirect()->route('atividades_professores.estatisticas-rede');
-    }
-    
-    // Redireciona coordenador e gestor para estatísticas da escola
-    if (in_array($user->role, ['coordenador', 'gestor'])) {
-        // Assumindo que o usuário tem uma escola associada
-        $escola = $user->escolas->first(); // ou outra lógica para pegar a escola correta
-        if ($escola) {
-            return redirect()->route('atividades_professores.estatisticas-escola', $escola);
+        // Redireciona admin, aplicador e tutor para estatísticas da rede
+        if (in_array($user->role, ['admin', 'aplicador', 'tutor'])) {
+            return redirect()->route('atividades_professores.estatisticas-rede');
         }
+    
+        // Redireciona coordenador e gestor para estatísticas da escola
+        if (in_array($user->role, ['coordenador', 'gestor'])) {
+            // Assumindo que o usuário tem uma escola associada
+            $escola = $user->escolas->first(); // ou outra lógica para pegar a escola correta
+            if ($escola) {
+                return redirect()->route('atividades_professores.estatisticas-escola', $escola);
+            }
+        }
+    
+        // Consulta base com eager loading dos relacionamentos
+        $query = AtividadeProfessor::with([
+           'atividade.disciplinas', 
+            'atividade.ano',
+            'professor.escolas'
+        ])->orderBy('created_at', 'desc');
+    
+        // Filtro para professores
+        if ($user->role === 'professor') {
+            $query->where('professor_id', $user->id);
+        }
+        // Filtro para coordenador e gestor (caso não tenha redirecionado acima)
+        elseif (in_array($user->role, ['coordenador', 'gestor'])) {
+            $query->whereHas('professor.escolas', function($q) use ($user) {
+                $q->whereIn('escola_id', $user->escolas->pluck('id'));
+            });
+        }
+    
+        $atividadesProfessores = $query->paginate(10);
+    
+        return view('atividades_professores.index', compact('atividadesProfessores'));
     }
-    
-    // Consulta base com eager loading dos relacionamentos
-    $query = AtividadeProfessor::with([
-        'atividade.disciplina',
-        'atividade.ano',
-        'professor.escolas'
-    ])->orderBy('created_at', 'desc');
-    
-    // Filtro para professores
-    if ($user->role === 'professor') {
-        $query->where('professor_id', $user->id);
-    } 
-    // Filtro para coordenador e gestor (caso não tenha redirecionado acima)
-    elseif (in_array($user->role, ['coordenador', 'gestor'])) {
-        $query->whereHas('professor.escolas', function($q) use ($user) {
-            $q->whereIn('escola_id', $user->escolas->pluck('id'));
-        });
-    }
-    
-    $atividadesProfessores = $query->paginate(10);
-    
-    return view('atividades_professores.index', compact('atividadesProfessores'));
-}
-public function store(Request $request)
+// No AtividadeProfessorController.php
+public function getHabilidadesPorAno(Request $request)
 {
     $request->validate([
-        'disciplina_id' => 'required|exists:disciplinas,id',
-        'ano_id' => 'required|exists:anos,id',
-        'habilidade_id' => 'required|exists:habilidades,id',
+        'ano_id' => 'required|exists:anos,id'
     ]);
 
-    $atividade = Atividade::where('disciplina_id', $request->disciplina_id)
-        ->where('ano_id', $request->ano_id)
-        ->where('habilidade_id', $request->habilidade_id)
-        ->inRandomOrder()
-        ->first();
+    // Busca habilidades que têm atividades no ano selecionado
+    $habilidades = Habilidade::whereHas('atividades', function($query) use ($request) {
+            $query->where('ano_id', $request->ano_id);
+        })
+        ->select('id', 'descricao')
+        ->get()
+        ->map(function($item) {
+            return [
+                'id' => $item->id,
+                'codigo' => 'H'.$item->id, // Ou use $item->codigo se existir
+                'descricao' => $item->descricao
+            ];
+        });
 
-    if (!$atividade) {
-        return redirect()->back()
-            ->withInput()
-            ->with('error', 'Nenhuma atividade encontrada com os filtros selecionados.');
-    }
-
-    AtividadeProfessor::create([
-        'professor_id' => auth()->id(),
-        'atividade_id' => $atividade->id,
-    ]);
-
-    return redirect()->route('atividades_professores.index')
-        ->with('success', 'Atividade gerada com sucesso!');
+    return response()->json($habilidades);
 }
+
+
 
 public function create()
 {
@@ -110,6 +107,88 @@ public function show($id)
     }
     
     return view('atividades_professores.show', compact('atividadeProfessor'));
+}
+public function store(Request $request)
+{
+    $request->validate([
+        'disciplina_id' => 'required|exists:disciplinas,id',
+        'ano_id' => 'required|exists:anos,id',
+        'habilidades' => 'required|array|min:1',
+        'habilidades.*' => 'exists:habilidades,id',
+    ]);
+
+    // Busca atividades que atendam aos critérios
+    $atividades = Atividade::where('ano_id', $request->ano_id)
+    ->whereHas('disciplinas', function($query) use ($request) { // Note o plural
+        $query->where('disciplina_id', $request->disciplina_id);
+    })
+    ->whereHas('habilidades', function($query) use ($request) {
+        $query->whereIn('habilidade_id', $request->habilidades);
+    })
+    ->with(['habilidades' => function($query) use ($request) {
+        $query->whereIn('habilidade_id', $request->habilidades);
+    }])
+    ->get();
+
+    
+    if ($atividades->isEmpty()) {
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'Nenhuma atividade encontrada com os filtros selecionados.');
+    }
+
+    // Ordena por relevância (mais habilidades em comum)
+    $atividades = $atividades->sortByDesc(function($atividade) {
+        return $atividade->habilidades->count();
+    });
+
+    // Pega a atividade mais relevante
+    $atividadeSelecionada = $atividades->first();
+
+    // Cria o registro na tabela de atividades do professor
+    AtividadeProfessor::create([
+        'professor_id' => auth()->id(),
+        'atividade_id' => $atividadeSelecionada->id,
+    ]);
+
+    return redirect()->route('atividades_professores.index')
+        ->with('success', 'Atividade gerada com sucesso!');
+}
+
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'ano_id' => 'required|exists:anos,id',
+        'disciplinas' => 'required|array|min:1',
+        'disciplinas.*' => 'exists:disciplinas,id',
+        'habilidades' => 'required|array|min:1',
+        'habilidades.*' => 'exists:habilidades,id',
+    ]);
+
+    $relacao = AtividadeProfessor::findOrFail($id);
+    
+    $atividade = Atividade::where('ano_id', $request->ano_id)
+        ->whereHas('disciplinas', function($query) use ($request) {
+            $query->whereIn('disciplinas.id', $request->disciplinas);
+        })
+        ->whereHas('habilidades', function($query) use ($request) {
+            $query->whereIn('habilidades.id', $request->habilidades);
+        })
+        ->inRandomOrder()
+        ->first();
+
+    if (!$atividade) {
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'Nenhuma atividade encontrada para os critérios selecionados.');
+    }
+
+    $relacao->update([
+        'atividade_id' => $atividade->id,
+    ]);
+
+    return redirect()->route('atividades_professores.index')
+        ->with('success', 'Atividade atualizada com sucesso!');
 }
 
 public function destroy($id)
@@ -138,9 +217,9 @@ public function downloadPdf($id)
     $user = auth()->user();
     $atividadeProfessor = AtividadeProfessor::with([
         'atividade',
-        'atividade.disciplina',
+        'atividade.disciplinas',
         'atividade.ano',
-        'atividade.habilidade',
+        'atividade.habilidades',
         'professor'
     ])->findOrFail($id);
     

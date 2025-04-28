@@ -2,25 +2,18 @@
 
 @section('content')
 <div class="container py-4">
-    <!-- Mensagem de Sucesso -->
     @if(session('success'))
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-check-circle-fill me-2 fs-4"></i>
-                    <span class="fw-medium">{{ session('success') }}</span>
-                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            </div>
-        </div>
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
-<div class="container py-4">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0"><i class="bi bi-joystick"></i> Sequências Didáticas</h1>
+        <h1 class="h3 mb-0"><i class="bi bi-joystick"></i> Atividades Interventivas</h1>
         <a href="{{ route('atividades.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i> Criar Nova Atividade
+            <i class="bi bi-plus-circle me-1"></i> Nova Atividade
         </a>
     </div>
 
@@ -28,22 +21,36 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
-                    <thead class="table-primary">
+                    <thead class="table-light">
                         <tr>
                             <th>Título</th>
-                            <th class="d-none d-md-table-cell">Disciplina</th>
+                            <th class="d-none d-md-table-cell">Disciplinas</th>
                             <th class="d-none d-sm-table-cell">Ano</th>
-                            <th class="d-none d-lg-table-cell">Habilidade</th>
+                            <th class="d-none d-lg-table-cell">Habilidades</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($atividades as $atividade)
                         <tr>
-                            <td>{{ Str::limit($atividade->titulo, 30) }}</td>
-                            <td class="d-none d-md-table-cell">{{ $atividade->disciplina->nome }}</td>
-                            <td class="d-none d-sm-table-cell">{{ $atividade->ano->nome }}</td>
-                            <td class="d-none d-lg-table-cell">{{ Str::limit($atividade->habilidade->descricao, 30) }}</td>
+                            <td>{{ Str::limit($atividade->titulo, 25) }}</td>
+                            <td class="d-none d-md-table-cell">
+                                @foreach($atividade->disciplinas as $disciplina)
+                                    <span class="badge bg-primary me-1 mb-1">{{ $disciplina->nome }}</span>
+                                @endforeach
+                            </td>
+                            <td class="d-none d-sm-table-cell">
+                                {{ $atividade->ano->nome }}
+                            </td>
+                            <td class="d-none d-lg-table-cell">
+                                @foreach($atividade->habilidades as $habilidade)
+                                    <span class="badge bg-info text-dark me-1 mb-1" 
+                                          data-bs-toggle="tooltip" 
+                                          title="{{ $habilidade->descricao }}">
+                                        {{ Str::limit($habilidade->descricao, 15) }}
+                                    </span>
+                                @endforeach
+                            </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-2">
                                     <a href="{{ route('atividades.show', $atividade->id) }}" 
@@ -67,94 +74,44 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center py-4">Nenhuma atividade encontrada.</td>
+                            <td colspan="5" class="text-center py-4">Nenhuma atividade encontrada</td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            <!-- Paginação -->
-            @if($atividades->hasPages())
             <div class="d-flex justify-content-center mt-4">
-                <nav aria-label="Page navigation">
-                    <ul class="pagination">
-                        {{-- Previous Page Link --}}
-                        @if($atividades->onFirstPage())
-                            <li class="page-item disabled">
-                                <span class="page-link">&laquo;</span>
-                            </li>
-                        @else
-                            <li class="page-item">
-                                <a class="page-link" href="{{ $atividades->previousPageUrl() }}" rel="prev">&laquo;</a>
-                            </li>
-                        @endif
-
-                        {{-- Pagination Elements --}}
-                        @foreach($atividades->getUrlRange(1, $atividades->lastPage()) as $page => $url)
-                            @if($page == $atividades->currentPage())
-                                <li class="page-item active">
-                                    <span class="page-link">{{ $page }}</span>
-                                </li>
-                            @else
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                                </li>
-                            @endif
-                        @endforeach
-
-                        {{-- Next Page Link --}}
-                        @if($atividades->hasMorePages())
-                            <li class="page-item">
-                                <a class="page-link" href="{{ $atividades->nextPageUrl() }}" rel="next">&raquo;</a>
-                            </li>
-                        @else
-                            <li class="page-item disabled">
-                                <span class="page-link">&raquo;</span>
-                            </li>
-                        @endif
-                    </ul>
-                </nav>
+                {{ $atividades->links() }}
             </div>
-            @endif
         </div>
     </div>
 </div>
 
+<script>
+    // Ativa tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        const tooltips = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltips.map(function(tooltip) {
+            return new bootstrap.Tooltip(tooltip);
+        });
+    });
+</script>
+
 <style>
-    .table {
-        border-radius: 0.5rem;
-        overflow: hidden;
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+        font-size: 0.85em;
     }
     
-    .table thead th {
-        border-bottom: none;
+    .table th {
         font-weight: 600;
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(13, 110, 253, 0.05);
-    }
-    
-    .pagination .page-item.active .page-link {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-    
-    .pagination .page-link {
-        color: #0d6efd;
     }
     
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
     }
-    
-    @media (max-width: 768px) {
-        .btn-sm {
-            padding: 0.25rem;
-        }
-    }
 </style>
-
 @endsection

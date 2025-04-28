@@ -1,132 +1,176 @@
 @extends('layouts.app')
 
+@section('title', 'Gerar Atividade Aleatória')
+
 @section('content')
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <!-- Card redesenhado -->
-            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-                <!-- Header moderno -->
-                <div class="card-header bg-primary text-white py-3" style="border-radius: 12px 12px 0 0;">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h2 class="h5 mb-0">
-                            <i class="bi bi-magic me-2"></i> Criar Nova Atividade
-                        </h2>
-                        <span class="badge bg-white text-primary rounded-pill fs-6">Novo</span>
-                    </div>
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-primary text-white py-3 rounded-top-3">
+                    <h2 class="h5 mb-0">
+                        <i class="fas fa-magic me-2"></i> Gerar Atividade Aleatória
+                    </h2>
                 </div>
-                
+
                 <div class="card-body p-4">
-                    <!-- Alertas modernos -->
                     @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert" style="border-radius: 8px;">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
-                            <div>
-                                <strong>Erro!</strong> {{ session('error') }}
-                            </div>
-                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <div class="alert alert-danger alert-dismissible fade show mb-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i> {{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
-                    </div>
                     @endif
-                    
+
                     @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="border-radius: 8px;">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-check-circle-fill me-3 fs-4"></i>
-                            <div>
-                                <strong>Sucesso!</strong> {{ session('success') }}
-                            </div>
-                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <div class="alert alert-success alert-dismissible fade show mb-4">
+                            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
-                    </div>
                     @endif
-                    
-                    <form action="{{ route('atividades_professores.store') }}" method="POST">
+
+                    <form action="{{ route('atividades_professores.store') }}" method="POST" id="activityForm">
                         @csrf
-                        
-                        <!-- Linha de seleção - Disciplina, Ano e Habilidade -->
-                        <div class="row g-3 mb-4">
-                            <!-- Disciplina -->
-                            <div class="col-md-4">
-                                <label for="disciplina_id" class="form-label fw-medium text-primary mb-2">
-                                    <i class="bi bi-book me-2"></i> Disciplina
-                                </label>
-                                <select name="disciplina_id" id="disciplina_id" class="form-select py-3" style="border-radius: 8px;" required>
-                                    <option value="" disabled selected>Selecione uma disciplina</option>
-                                    @foreach($disciplinas as $disciplina)
-                                    <option value="{{ $disciplina->id }}" @if(old('disciplina_id')==$disciplina->id) selected @endif>
-                                        {{ $disciplina->nome }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            
-                            <!-- Ano -->
-                            <div class="col-md-4">
-                                <label for="ano_id" class="form-label fw-medium text-primary mb-2">
-                                    <i class="bi bi-mortarboard me-2"></i> Ano/Série
-                                </label>
-                                <select name="ano_id" id="ano_id" class="form-select py-3" style="border-radius: 8px;" required>
-                                    <option value="" disabled selected>Selecione o ano/série</option>
-                                    @foreach($anos as $ano)
-                                    <option value="{{ $ano->id }}" @if(old('ano_id')==$ano->id) selected @endif>
-                                        {{ $ano->nome }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            
-                            <!-- Habilidade - Versão corrigida -->
-                            <div class="col-md-4">
-                                <label for="habilidade_id" class="form-label fw-medium text-primary mb-2">
-                                    <i class="bi bi-bullseye me-2"></i> Habilidade
-                                </label>
-                                <select name="habilidade_id" id="habilidade_id" class="form-select py-3" style="border-radius: 8px;" required>
-                                    <option value="" disabled selected>Selecione uma habilidade</option>
-                                    @foreach($habilidades as $habilidade)
-                                    <option value="{{ $habilidade->id }}" 
-                                        data-descricao="{{ $habilidade->descricao }}"
-                                        @if(old('habilidade_id')==$habilidade->id) selected @endif>
-                                        {{ $habilidade->codigo }} - {{ Str::limit($habilidade->descricao, 35) }}
-                                    </option>
-                                    @endforeach
-                                </select>
-                                <div id="detalhes-habilidade" class="mt-2 p-3 bg-light rounded" style="display: none;">
-                                    <small class="text-muted d-block fw-bold">Descrição completa:</small>
-                                    <span id="texto-detalhes-habilidade" class="small"></span>
-                                </div>
+
+                        <!-- Selecionar Ano -->
+                        <div class="mb-3">
+                            <label for="ano_id" class="form-label fw-medium text-primary">
+                                <i class="fas fa-graduation-cap me-2"></i> Ano/Série
+                            </label>
+                            <select name="ano_id" id="ano_id" class="form-select" required>
+                                <option value="" selected disabled>Selecione o ano/série</option>
+                                @foreach($anos as $ano)
+                                    <option value="{{ $ano->id }}">{{ $ano->nome }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Selecionar Disciplina -->
+                        <div class="mb-3">
+                            <label for="disciplina_id" class="form-label fw-medium text-primary">
+                                <i class="fas fa-book me-2"></i> Disciplina
+                            </label>
+                            <select name="disciplina_id" id="disciplina_id" class="form-select" required>
+                                <option value="" selected disabled>Selecione a disciplina</option>
+                                @foreach($disciplinas as $disciplina)
+                                    <option value="{{ $disciplina->id }}">{{ $disciplina->nome }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Habilidades (dinâmicas) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-medium text-primary">
+                                <i class="fas fa-bullseye me-2"></i> Habilidades
+                            </label>
+                            <div id="habilidadesContainer" class="border rounded p-3" style="min-height: 100px;">
+                                <div class="text-muted text-center">Selecione o ano para carregar as habilidades</div>
                             </div>
                         </div>
-                        
-                        <!-- Botão de ação -->
-                        <div class="d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-primary px-4 py-3 fw-medium" style="border-radius: 8px;">
-                                <i class="bi bi-lightning-charge-fill me-2"></i> Gerar Atividade
+
+                        <!-- Habilidades selecionadas -->
+                        <div id="selectedHabilidades" class="mb-3 d-flex flex-wrap gap-2">
+                        </div>
+
+                        <!-- Campos ocultos -->
+                        <div id="hiddenInputs"></div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-bolt me-2"></i> Gerar Atividade
                             </button>
                         </div>
                     </form>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
+@endsection
 
 @section('scripts')
 <script>
-    // Mostrar detalhes da habilidade quando selecionada
-    document.getElementById('habilidade_id').addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const detalhesDiv = document.getElementById('detalhes-habilidade');
-        const textoDetalhes = document.getElementById('texto-detalhes-habilidade');
-        
-        if(selectedOption.value && selectedOption.dataset.descricao) {
-            textoDetalhes.textContent = selectedOption.dataset.descricao;
-            detalhesDiv.style.display = 'block';
-        } else {
-            detalhesDiv.style.display = 'none';
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    const anoSelect = document.getElementById('ano_id');
+    const habilidadesContainer = document.getElementById('habilidadesContainer');
+    const selectedHabilidades = document.getElementById('selectedHabilidades');
+    const hiddenInputs = document.getElementById('hiddenInputs');
+    let habilidadesDisponiveis = [];
+    let habilidadesSelecionadas = [];
+
+    anoSelect.addEventListener('change', function() {
+        const anoId = this.value;
+        habilidadesContainer.innerHTML = '<div class="text-center py-2">Carregando habilidades...</div>';
+
+        fetch(`/habilidades-por-ano?ano_id=${anoId}`)
+            .then(response => response.json())
+            .then(data => {
+                habilidadesDisponiveis = data;
+                renderizarHabilidades();
+            })
+            .catch(error => {
+                habilidadesContainer.innerHTML = '<div class="alert alert-danger">Erro ao carregar habilidades</div>';
+            });
     });
+
+    function renderizarHabilidades() {
+        if (habilidadesDisponiveis.length === 0) {
+            habilidadesContainer.innerHTML = '<div class="text-center text-muted">Nenhuma habilidade disponível para esse ano.</div>';
+            return;
+        }
+
+        let html = '<div class="list-group">';
+        habilidadesDisponiveis.forEach(habilidade => {
+            html += `
+                <button type="button" class="list-group-item list-group-item-action"
+                    onclick="adicionarHabilidade(${habilidade.id}, '${habilidade.codigo}')">
+                    <strong>${habilidade.codigo}</strong> - ${habilidade.descricao.substring(0, 50)}${habilidade.descricao.length > 50 ? '...' : ''}
+                </button>
+            `;
+        });
+        html += '</div>';
+        habilidadesContainer.innerHTML = html;
+    }
+
+    window.adicionarHabilidade = function(id, codigo) {
+        if (!habilidadesSelecionadas.includes(id)) {
+            habilidadesSelecionadas.push(id);
+            atualizarSelecionadas();
+        }
+    };
+
+    window.removerHabilidade = function(id) {
+        habilidadesSelecionadas = habilidadesSelecionadas.filter(h => h !== id);
+        atualizarSelecionadas();
+    };
+
+    function atualizarSelecionadas() {
+        selectedHabilidades.innerHTML = '';
+        hiddenInputs.innerHTML = '';
+
+        if (habilidadesSelecionadas.length === 0) {
+            selectedHabilidades.innerHTML = '<span class="text-muted">Nenhuma habilidade selecionada.</span>';
+            return;
+        }
+
+        habilidadesSelecionadas.forEach(id => {
+            const habilidade = habilidadesDisponiveis.find(h => h.id == id);
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary d-flex align-items-center';
+            badge.style.gap = '5px';
+            badge.innerHTML = `
+                ${habilidade.codigo}
+                <button type="button" class="btn-close btn-close-white btn-sm" onclick="removerHabilidade(${id})"></button>
+            `;
+            selectedHabilidades.appendChild(badge);
+
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'habilidades[]';
+            hiddenInput.value = id;
+            hiddenInputs.appendChild(hiddenInput);
+        });
+    }
+});
 </script>
-@endsection
 @endsection

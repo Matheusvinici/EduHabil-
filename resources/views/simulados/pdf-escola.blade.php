@@ -141,6 +141,32 @@
             font-size: 11px;
             font-weight: bold;
         }
+        .gabarito-section {
+            page-break-before: always;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #0066cc;
+        }
+        .gabarito-title {
+            color: #0066cc;
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .gabarito-instructions {
+            background-color: #f0f7ff;
+            border: 1px solid #cce5ff;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 11px;
+        }
+        .gabarito-image {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            margin: 0 auto;
+            display: block;
+        }
         @media print {
             body {
                 font-size: 10pt;
@@ -232,6 +258,24 @@
             @endif
         @endif
     </div>
+    
+    <!-- Seção do Gabarito Fixo -->
+    <div class="gabarito-section">
+        <h2 class="gabarito-title">GABARITO PARA RESPOSTAS</h2>
+        
+        <img src="{{ public_path('images/gabarito-padrao.png') }}" class="gabarito-image" alt="Gabarito Padrão">
+        
+        <div class="gabarito-instructions">
+            <h4>INSTRUÇÕES:</h4>
+            <ol>
+                <li>Preencha completamente o círculo correspondente à alternativa escolhida</li>
+                <li>Use caneta esferográfica azul ou preta</li>
+                <li>Não rabisque ou faça marcas fora dos círculos</li>
+                <li>Preencha apenas uma alternativa por questão</li>
+            </ol>
+        </div>
+    </div>
+
     <div class="footer">
         <p>EduHabil+ - Sistema de Gestão Educacional</p>
         <p>Prefeitura Municipal de Juazeiro - Secretaria de Educação</p>

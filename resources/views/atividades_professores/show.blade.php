@@ -23,7 +23,11 @@
             <div class="row mb-4">
                 <div class="col-md-4">
                     <h5 class="text-primary">Disciplina</h5>
-                    <p>{{ $atividadeProfessor->atividade->disciplina->nome }}</p>
+                    <p>
+                                @foreach($atividadeProfessor->atividade->disciplinas as $disciplina)
+                                    {{ $disciplina->nome }}<br>
+                                @endforeach
+                            </p>   
                 </div>
                 <div class="col-md-4">
                     <h5 class="text-primary">Ano/Série</h5>
@@ -31,7 +35,11 @@
                 </div>
                 <div class="col-md-4">
                     <h5 class="text-primary">Habilidade</h5>
-                    <p>{{ $atividadeProfessor->atividade->habilidade->descricao }}</p>
+                    <p>
+                    @foreach($atividadeProfessor->atividade->habilidades as $habilidade)
+                                    {{ $habilidade->descricao }}<br>
+                                @endforeach
+                    </p>
                 </div>
             </div>
 
@@ -67,6 +75,12 @@
                 <h4 class="text-primary border-bottom pb-2">Atividade Proposta</h4>
                 <div class="p-3 bg-light rounded">
                     {!! nl2br(e($atividadeProfessor->atividade->resultados_esperados)) !!}
+                </div>
+            </div>
+            <div class="mb-4">
+                <h4 class="text-primary border-bottom pb-2">Materiais de Sugestão</h4>
+                <div class="p-3 bg-light rounded">
+                    {!! nl2br(e($atividadeProfessor->atividade->links_sugestoes)) !!}
                 </div>
             </div>
         </div>

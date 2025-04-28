@@ -20,12 +20,13 @@ class Disciplina extends Model
     {
         return $this->hasMany(Questao::class);
     }
+
     public function atividades()
     {
-        return $this->hasMany(Atividade::class, 'disciplina_id');
+        return $this->belongsToMany(Atividade::class, 'atividade_disciplina')
+                   ->withTimestamps();
     }
 
-    // Relacionamento com a tabela Simulado
     public function simulados()
     {
         return $this->hasMany(Simulado::class);
