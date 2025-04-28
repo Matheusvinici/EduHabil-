@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -7,36 +8,33 @@ use Illuminate\Database\Eloquent\Model;
 class Atividade extends Model
 {
     use HasFactory;
-    protected $table = 'atividades';
 
     protected $fillable = [
-        'disciplina_id',
         'ano_id',
-        'habilidade_id',
         'titulo',
         'objetivo',
         'metodologia',
         'materiais',
         'resultados_esperados',
+        'links_sugestoes'
+
     ];
 
-    // Relacionamento com disciplina
-    public function disciplina()
+    public function disciplinas()
     {
-        return $this->belongsTo(Disciplina::class, 'disciplina_id');
+        return $this->belongsToMany(Disciplina::class, 'atividade_disciplina')
+                   ->withTimestamps();
+    }
+   
+
+    public function habilidades()
+    {
+        return $this->belongsToMany(Habilidade::class, 'atividade_habilidade')
+                   ->withTimestamps();
     }
 
-    // Relacionamento com ano
     public function ano()
     {
-        return $this->belongsTo(Ano::class, 'ano_id');
+        return $this->belongsTo(Ano::class);
     }
-
-    // Relacionamento com habilidade
-    public function habilidade()
-    {
-        return $this->belongsTo(Habilidade::class, 'habilidade_id');
-    }
-
-  
 }

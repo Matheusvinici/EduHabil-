@@ -244,24 +244,21 @@
     </li>
 @endif
 
-          @if(Auth::check() && Auth::user()->role === 'admin')
-          <li class="nav-item has-treeview menu-open">
+@if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'tutor'))
+<li class="nav-item has-treeview">
     <a href="#" class="nav-link bg-primary-light">
         <i class="nav-icon fas fa-chalkboard-teacher text-white"></i>
         <p class="text-white font-weight-bold">
             Tutoria
-            <i class="right fas fa-angle-down"></i>
+            <i class="right fas fa-angle-left"></i>
         </p>
     </a>
-    <ul class="nav nav-treeview" style="background-color: rgba(30, 136, 229, 0.1);">
+    <ul class="nav nav-treeview" style="background-color: rgba(30, 136, 229, 0.1); display: none;">
         <!-- Dashboard -->
         <li class="nav-item">
             <a href="{{ route('tutoria.dashboard') }}" class="nav-link">
                 <i class="nav-icon fas fa-tachometer-alt text-primary"></i>
-                <p class="text-dark">
-                    Dashboard
-                    <span class="right badge badge-primary">Novo</span>
-                </p>
+                <p class="text-dark">Dashboard</p>
             </a>
         </li>
         
@@ -277,10 +274,7 @@
         <li class="nav-item">
             <a href="{{ route('tutoria_avaliacoes.index') }}" class="nav-link">
                 <i class="nav-icon fas fa-clipboard-list text-success"></i>
-                <p class="text-dark">
-                    Avaliações
-                    <span class="right badge badge-success">+</span>
-                </p>
+                <p class="text-dark">Avaliações</p>
             </a>
         </li>
         
@@ -288,15 +282,12 @@
         <li class="nav-item">
             <a href="{{ route('tutoria.acompanhamento.index') }}" class="nav-link">
                 <i class="nav-icon fas fa-hands-helping text-warning"></i>
-                <p class="text-dark">
-                    Acompanhamento
-                    <span class="right badge badge-danger">!</span>
-                </p>
+                <p class="text-dark">Acompanhamento</p>
             </a>
         </li>
         
         <!-- Quadrantes -->
-        <li class="nav-item">
+        <li class="nav-item has-treeview">
             <a href="#" class="nav-link">
                 <i class="nav-icon fas fa-chart-pie text-secondary"></i>
                 <p class="text-dark">
@@ -304,7 +295,7 @@
                     <i class="right fas fa-angle-left"></i>
                 </p>
             </a>
-            <ul class="nav nav-treeview" style="margin-left: 15px;">
+            <ul class="nav nav-treeview" style="margin-left: 15px; display: none;">
                 <li class="nav-item">
                     <a href="{{ route('tutoria.quadrante', ['quadrante' => 'vermelho']) }}" class="nav-link">
                         <i class="fas fa-square text-danger nav-icon"></i>
@@ -333,7 +324,7 @@
         </li>
     </ul>
 </li>
-        @endif
+@endif
 
           @if(Auth::check() && Auth::user()->role === 'admin')
                 <li class="nav-item has-treeview">

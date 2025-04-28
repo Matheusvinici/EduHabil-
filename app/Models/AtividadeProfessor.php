@@ -15,15 +15,13 @@ class AtividadeProfessor extends Model
         'atividade_id',
     ];
 
-    // Relacionamento com usuário (professor)
     public function professor()
     {
         return $this->belongsTo(User::class, 'professor_id');
     }
 
-    // Relacionamento com atividade
     public function atividade()
     {
-        return $this->belongsTo(Atividade::class, 'atividade_id');
+        return $this->belongsTo(Atividade::class)->with(['disciplinas', 'habilidades', 'ano']);
     }
 }

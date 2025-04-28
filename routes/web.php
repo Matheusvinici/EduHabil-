@@ -258,8 +258,7 @@ Route::middleware(['auth', 'role:coordenador,gestor,aee'])->group(function() {
 
 // Rotas de atividades
 Route::resource('atividades_professores', AtividadeProfessorController::class);
-
-Route::get('/atividades_professores/estatisticas-escola/{escola}', [AtividadeProfessorController::class, 'estatisticasEscola'])
+Route::get('/habilidades-por-ano', [AtividadeProfessorController::class, 'getHabilidadesPorAno']);Route::get('/atividades_professores/estatisticas-escola/{escola}', [AtividadeProfessorController::class, 'estatisticasEscola'])
     ->name('atividades_professores.estatisticas-escola');
 
 Route::get('/atividades/estatisticas-rede', [AtividadeProfessorController::class, 'estatisticasRede'])

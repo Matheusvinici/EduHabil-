@@ -12,7 +12,7 @@
                             <a href="{{ route('atividades.edit', $atividade->id) }}" class="btn btn-sm btn-warning">
                                 <i class="bi bi-pencil"></i> Editar
                             </a>
-                            <a href="{{ route('atividades.index') }}" class="btn btn-sm btn-secondary">
+                            <a href="{{ route('atividades.index') }}" class="btn btn-sm btn-light">
                                 <i class="bi bi-arrow-left"></i> Voltar
                             </a>
                         </div>
@@ -24,8 +24,12 @@
                     <div class="row mb-4">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label class="form-label">Disciplina</label>
-                                <div class="form-control bg-light">{{ $atividade->disciplina->nome }}</div>
+                                <label class="form-label">Disciplinas</label>
+                                <div class="p-2 bg-light rounded">
+                                    @foreach($atividade->disciplinas as $disciplina)
+                                        <span class="badge bg-primary me-1 mb-1">{{ $disciplina->nome }}</span>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                         
@@ -38,8 +42,12 @@
                         
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label class="form-label">Habilidade</label>
-                                <div class="form-control bg-light">{{ $atividade->habilidade->descricao }}</div>
+                                <label class="form-label">Habilidades</label>
+                                <div class="p-2 bg-light rounded">
+                                    @foreach($atividade->habilidades as $habilidade)
+                                        <span class="badge bg-info text-dark me-1 mb-1">{{ Str::limit($habilidade->descricao, 20) }}</span>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -72,7 +80,27 @@
                             </div>
                         </div>
                     </div>
-                    
+                    <!-- Links de Sugestões -->
+<div class="mb-4">
+    <label class="form-label fw-semibold text-primary mb-2">
+        <i class="fas fa-link me-2"></i> Sugestões de Links
+    </label>
+    <div class="form-control bg-light" style="min-height: 100px;">
+        @if($atividade->links_sugestoes)
+            @foreach(explode("\n", $atividade->links_sugestoes) as $link)
+                @if(trim($link))
+                    <div class="mb-1">
+                        <a href="{{ $link }}" target="_blank" class="text-primary">
+                            {{ $link }}
+                        </a>
+                    </div>
+                @endif
+            @endforeach
+        @else
+            Nenhum link sugerido
+        @endif
+    </div>
+</div>
                     <!-- Atividade Proposta -->
                     <div class="form-group mb-4">
                         <label class="form-label">Atividade Proposta</label>
@@ -84,12 +112,10 @@
                         <form action="{{ route('atividades.destroy', $atividade->id) }}" method="POST">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta atividade?')">
-                                <i class="bi bi-trash"></i> Excluir Atividade
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza?')">
+                                <i class="bi bi-trash"></i> Excluir
                             </button>
                         </form>
-                        
-                        
                     </div>
                 </div>
                 
@@ -111,25 +137,14 @@
 <style>
     .form-label {
         font-weight: 600;
-        color: #2c3e50;
     }
     
     .bg-light {
         background-color: #f8f9fa !important;
     }
     
-    .card {
-        border: none;
-        border-radius: 0.5rem;
-    }
-    
-    .card-header {
-        border-radius: 0.5rem 0.5rem 0 0 !important;
-    }
-    
-    .form-control {
-        border-radius: 0.375rem;
-        border: 1px solid #ced4da;
+    .badge {
+        font-weight: 500;
     }
 </style>
 @endsection

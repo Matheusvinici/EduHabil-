@@ -4,7 +4,7 @@
 <div class="content-header">
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1 class="m-0 text-primary fw-bold">Atividades dos Professores</h1>
+            <h1 class="m-0 text-primary fw-bold">Atividades Interventivas</h1>
             <a href="{{ route('atividades_professores.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i> Cadastrar Nova Atividade
             </a>
@@ -33,7 +33,11 @@
                             <tr>
                                 <td>{{ $atividadeProfessor->professor->name }}</td>
                                 <td>{{ Str::limit($atividadeProfessor->atividade->titulo, 30) }}</td>
-                                <td>{{ $atividadeProfessor->atividade->disciplina->nome }}</td>
+                                <td>
+                                @foreach($atividadeProfessor->atividade->disciplinas as $disciplina)
+                                    {{ $disciplina->nome }}<br>
+                                @endforeach
+                            </td>                            
                                 <td>{{ $atividadeProfessor->atividade->ano->nome }}</td>
                                 <td>
                                     @if ($atividadeProfessor->professor->escolas->isNotEmpty())

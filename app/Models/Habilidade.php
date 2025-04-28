@@ -11,24 +11,28 @@ class Habilidade extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['ano_id', 'disciplina_id', 'descricao'];
+    protected $fillable = ['ano_id', 'disciplina_id', 'codigo', 'descricao'];
 
     public function ano()
     {
         return $this->belongsTo(Ano::class);
     }
+
     public function perguntas()
     {
         return $this->hasMany(Pergunta::class);
     }
+
     public function disciplina()
     {
         return $this->belongsTo(Disciplina::class);
     }
 
+    // RELACIONAMENTO ERRADO - Deve ser many-to-many com atividades
     public function atividades()
     {
-        return $this->hasMany(Atividade::class, 'habilidade_id');
+        return $this->belongsToMany(Atividade::class, 'atividade_habilidade')
+                   ->withTimestamps();
     }
 
     public function questoes()
@@ -36,35 +40,25 @@ class Habilidade extends Model
         return $this->hasMany(Questao::class);
     }
 
-
     public function provas(): HasMany
     {
         return $this->hasMany(Prova::class, 'habilidade_id');
     }
 
-    /**
-     * Relacionamento indireto com o modelo Resposta.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasManyThrough
-     */
     public function respostas(): HasManyThrough
     {
         return $this->hasManyThrough(
-            Resposta::class, // Modelo final (Resposta)
-            Questao::class,  // Modelo intermediário (Questao)
-            'habilidade_id', // Chave estrangeira no modelo intermediário (Questao)
-            'questao_id',    // Chave estrangeira no modelo final (Resposta)
-            'id',            // Chave local no modelo atual (Habilidade)
-            'id'             // Chave local no modelo intermediário (Questao)
+            Resposta::class,
+            Questao::class,
+            'habilidade_id',
+            'questao_id',
+            'id',
+            'id'
         );
     }
 
-
-    
-    // Relacionamento com a tabela Simulado
     public function simulados()
     {
         return $this->hasMany(Simulado::class);
     }
 }
-

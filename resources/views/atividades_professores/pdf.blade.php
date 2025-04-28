@@ -98,6 +98,20 @@
             border-top: 1px solid #eee;
             padding-top: 10px;
         }
+        
+        .links-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .links-list li {
+            margin-bottom: 8px;
+        }
+        
+        .links-list a {
+            color: #0066cc;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -117,23 +131,38 @@
     </div>
     
     <!-- Título Principal -->
-    <h1>SEQUÊNCIA DIDÁTICA</h1>
+    <h1>Atividade Interventiva</h1>
     
     <!-- Informações da Atividade -->
     <div class="activity-info">
         <div class="info-item">
+            <span class="info-label">Título:</span> {{ $atividade->atividade->titulo ?? 'N/A' }}
+        </div>
+        <div class="info-item">
             <span class="info-label">Professor:</span> {{ $atividade->professor->name ?? 'N/A' }}
         </div>
         <div class="info-item">
-            <span class="info-label">Disciplina:</span> {{ $atividade->atividade->disciplina->nome ?? 'N/A' }}
+            <span class="info-label">Disciplina:</span> 
+            @if($atividade->atividade->disciplinas && $atividade->atividade->disciplinas->count() > 0)
+                @foreach($atividade->atividade->disciplinas as $disciplina)
+                    {{ $disciplina->nome }}
+                    @if (!$loop->last) <!-- Adiciona uma vírgula se não for a última disciplina -->
+                        ,
+                    @endif
+                @endforeach
+            @else
+                N/A
+            @endif
         </div>
         <div class="info-item">
             <span class="info-label">Ano/Série:</span> {{ $atividade->atividade->ano->nome ?? 'N/A' }}
         </div>
         <div class="info-item">
             <span class="info-label">Habilidade:</span> 
-            {{ $atividade->atividade->habilidade->codigo ?? 'N/A' }} - 
-            {{ $atividade->atividade->habilidade->descricao ?? 'N/A' }}
+            <br>
+            @foreach($atividade->atividade->habilidades as $habilidade)
+                                    {{ $habilidade->descricao }}; <br>
+                                @endforeach
         </div>
         <div class="info-item">
             <span class="info-label">Data:</span> {{ $atividade->created_at->format('d/m/Y') ?? 'N/A' }}
@@ -144,23 +173,43 @@
     <div class="activity-content">
         <div class="section">
             <h2>OBJETIVOS DE APRENDIZAGEM</h2>
-            {!! $atividade->atividade->objetivos ?? '<p>Não especificado</p>' !!}
+            {!! $atividade->atividade->objetivo ?? '<p>Não especificado</p>' !!}
+
+        </div>
+       
+
+        <div class="section">
+            <h2>ETAPAS DA AULA</h2>
+            {!! $atividade->atividade->metodologia ?? '<p>Não especificado</p>' !!}
+
+        </div>
+        <div class="section">
+            <h2>MATERIAIS NECESSÁRIOS</h2>
+            {!! $atividade->atividade->materiais ?? '<p>Não especificado</p>' !!}
+
         </div>
         
-        <div class="section">
-            <h2>DESENVOLVIMENTO</h2>
-            {!! $atividade->atividade->desenvolvimento ?? '<p>Não especificado</p>' !!}
-        </div>
+        
+       
         
         <div class="section">
-            <h2>RECURSOS DIDÁTICOS</h2>
-            {!! $atividade->atividade->recursos ?? '<p>Não especificado</p>' !!}
+            <h2>ATIVIDADE PROPOSTA</h2>
+            {!! $atividade->atividade->resultados_esperados ?? '<p>Não especificado</p>' !!}
+
         </div>
         
+        @if($atividade->atividade->links_sugestoes)
         <div class="section">
-            <h2>AVALIAÇÃO</h2>
-            {!! $atividade->atividade->avaliacao ?? '<p>Não especificado</p>' !!}
+            <h2>LINKS SUGERIDOS</h2>
+            <ul class="links-list">
+                @foreach(explode("\n", $atividade->atividade->links_sugestoes) as $link)
+                    @if(trim($link))
+                        <li><a href="{{ trim($link) }}">{{ trim($link) }}</a></li>
+                    @endif
+                @endforeach
+            </ul>
         </div>
+        @endif
     </div>
     
     <!-- Rodapé -->

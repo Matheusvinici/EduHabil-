@@ -223,6 +223,23 @@
             @endif
         @endif
     </div>
+     
+    <!-- Seção do Gabarito Fixo -->
+    <div class="gabarito-section">
+        <h2 class="gabarito-title">GABARITO PARA RESPOSTAS</h2>
+        
+        <img src="{{ public_path('images/gabarito-padrao.png') }}" class="gabarito-image" alt="Gabarito Padrão">
+        
+        <div class="gabarito-instructions">
+            <h4>INSTRUÇÕES:</h4>
+            <ol>
+                <li>Preencha completamente o círculo correspondente à alternativa escolhida</li>
+                <li>Use caneta esferográfica azul ou preta</li>
+                <li>Não rabisque ou faça marcas fora dos círculos</li>
+                <li>Preencha apenas uma alternativa por questão</li>
+            </ol>
+        </div>
+    </div>
     <div class="footer">
         <p>EduHabil+ - Sistema de Gestão Educacional</p>
         <p>Prefeitura Municipal de Juazeiro - Secretaria de Educação</p>
